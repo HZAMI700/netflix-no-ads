@@ -87,7 +87,7 @@ let currentStream = null;
 let currentEmbed = null;
 
 const PROFILES = [
-  { id: 'N', name: 'You', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
+  { id: 'Z', name: 'You', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
   { id: 'K', name: 'Kids', color: 'linear-gradient(135deg, #1f6feb 0%, #0d419d 100%)' },
   { id: 'F', name: 'Family', color: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)' },
   { id: 'G', name: 'Guest', color: 'linear-gradient(135deg, #238636 0%, #175a24 100%)' }
@@ -346,7 +346,7 @@ const HOME_ROWS = [
   { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top', 'series/top/skip=100'], limit: 75 },
   { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating', 'movie/imdbRating/skip=100'], limit: 75 },
   { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating', 'series/imdbRating/skip=100'], limit: 75 },
-  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year', 'series/year', 'movie/year/skip=100'], badge: 'NEW', limit: 75 },
+  { id: 'new_releases', title: 'New Releases on Zflexy', url: ['movie/year', 'series/year', 'movie/year/skip=100'], badge: 'NEW', limit: 75 },
   { id: 'action', title: 'High-Octane Action & Adrenaline', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100'], limit: 75 },
   { id: 'action_series', title: 'Action & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure', 'series/top/genre=Action/skip=100'], limit: 75 },
   { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller', 'movie/top/genre=Thriller/skip=100'], limit: 75 },
@@ -1073,7 +1073,7 @@ function renderMyList() {
     g.innerHTML = `
       <div class="empty" style="grid-column:1/-1">
         <h2>Your List is Empty</h2>
-        <p>Explore titles on Netflix and add your favorites to watch them anytime.</p>
+        <p>Explore titles on Zflexy and add your favorites to watch them anytime.</p>
         <br>
         <button class="btn-red" onclick="document.querySelector('[data-nav=home]').click()">Explore Titles</button>
       </div>
@@ -1223,7 +1223,8 @@ function renderProfileSwitcherDropdown() {
   const list = $('profileSwitcherList');
   if (!list) return;
   list.innerHTML = '';
-  const current = store.get('nf_profile', 'N');
+  let current = store.get('nf_profile', 'Z');
+  if (current === 'N') current = 'Z';
 
   PROFILES.forEach(p => {
     const item = document.createElement('div');
@@ -1919,7 +1920,8 @@ function renderGate() {
   const av = $('gateAvatars');
   if (!av) return;
   av.innerHTML = '';
-  const saved = store.get('nf_profile', 'N');
+  let saved = store.get('nf_profile', 'Z');
+  if (saved === 'N') saved = 'Z';
 
   PROFILES.forEach(p => {
     const d = document.createElement('div');
@@ -1987,7 +1989,8 @@ renderGate();
 armLiveSearch($('searchInput'), $('searchBox'));
 armLiveSearch($('searchBox'), null);
 
-const currentProfileId = store.get('nf_profile', 'N');
+let currentProfileId = store.get('nf_profile', 'Z');
+if (currentProfileId === 'N') currentProfileId = 'Z';
 const activeProf = PROFILES.find(p => p.id === currentProfileId) || PROFILES[0];
 const letterEl = $('avatarLetter');
 if (letterEl) {

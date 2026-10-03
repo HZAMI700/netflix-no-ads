@@ -120,16 +120,17 @@ img {
   font-family: 'Bebas Neue', Impact, 'Arial Black', sans-serif;
   font-size: clamp(26px, 2.6vw, 36px);
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
   line-height: 1;
   display: inline-block;
   transform: scaleY(1.15);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
 }
 
 .logo-wordmark.large {
   font-size: clamp(42px, 5.5vw, 68px);
-  letter-spacing: 3px;
+  letter-spacing: 4px;
   transform: scaleY(1.18);
 }
 
