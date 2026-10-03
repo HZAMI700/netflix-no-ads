@@ -181,11 +181,6 @@ footer .flinks a:hover{text-decoration:underline}
 #mp4Fill{display:block;height:100%;width:0;background:var(--nf-red);transition:width .3s}
 #mp4Stats{font-size:12px;color:var(--nf-muted)}
 
-#pLoading{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(0,0,0,.72);z-index:5}
-#pLoading.show{display:flex}
-#pLoadingText{color:var(--nf-muted);font-size:14px;letter-spacing:.03em}
-.spinner{width:56px;height:56px;border:4px solid rgba(255,255,255,.15);border-top-color:var(--nf-red);border-radius:50%;animation:spin .9s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
 #pError{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.88);z-index:6;text-align:center;padding:0 8%}
 #pError.show{display:flex;animation:fade .3s}
 #pErrorTitle{font-size:clamp(22px,3vw,34px);font-weight:800}
@@ -215,13 +210,6 @@ footer .flinks a:hover{text-decoration:underline}
 .hero-content>*:nth-child(3){animation:heroUp .7s .14s var(--ease) both}
 .hero-content>*:nth-child(4){animation:heroUp .7s .2s var(--ease) both}
 .row-sec.enter{animation:fadeUp .55s var(--ease) both}
-.hero-rank{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:15px;font-weight:700}
-.top10-tag{background:var(--nf-red);color:#fff;font-size:11px;font-weight:900;border-radius:3px;padding:4px 7px;letter-spacing:.05em;line-height:1.2;text-align:center}
-/* Top-10 giant numerals */
-.top10{display:flex;align-items:flex-end;flex:0 0 auto;cursor:pointer;padding:6px 14px 6px 0;transition:transform .3s var(--ease)}
-.top10:hover{transform:scale(1.06)}
-.t10-num{font-size:clamp(130px,15vw,210px);font-weight:900;line-height:.78;color:#0d0d0d;-webkit-text-stroke:4px #8f8f8f;margin-right:-14px;letter-spacing:-.08em;user-select:none}
-.top10 img{width:clamp(96px,10vw,132px);aspect-ratio:2/3;object-fit:cover;border-radius:4px;background:#222}
 /* page indicator pills */
 .row-head{display:flex;align-items:baseline;gap:12px}
 .row-dots{display:flex;gap:3px;margin:0 4% 8px auto;padding-right:4px}
@@ -247,3 +235,51 @@ footer .flinks a:hover{text-decoration:underline}
 .m-actions{display:flex;gap:10px;align-items:center;margin:14px 0 4px}
 .m-actions .btn-play{padding:9px 26px;font-size:14px}
 .m-actions .cbtn{width:38px;height:38px;font-size:16px;border-color:#777}
+
+/* ---------- READABILITY: breathing room for cramped text ---------- */
+body{line-height:1.55;letter-spacing:.01em}
+#heroTitle{line-height:1.08;letter-spacing:.015em}
+#heroDesc{line-height:1.7;letter-spacing:.015em}
+.meta-row{line-height:1.8;gap:14px}
+.nav-links{gap:22px;letter-spacing:.03em}
+.btn-play,.btn-info,.btn-red,.btn-out{letter-spacing:.03em}
+.row-sec h2{letter-spacing:.015em}
+#rows{gap:38px}
+.hover-pop .hm{line-height:1.7}
+.smeta .fn{line-height:1.55;margin-bottom:4px}
+.smeta .ss{line-height:1.7}
+.stream-card{padding:14px;gap:14px}
+.detail-body p.desc{line-height:1.8}
+.rc{line-height:1.9}
+.ep-card b{line-height:1.55}
+.ep-card div{line-height:1.65}
+.similar-grid .sim div{line-height:1.55;padding:10px}
+.about div{line-height:1.8}
+.page h1{letter-spacing:.01em;margin-bottom:22px}
+#toast{line-height:1.55}
+footer .flinks{gap:14px;line-height:1.9}
+.dropdown a{line-height:1.7}
+#pErrorMsg{line-height:1.7}
+.detail-body h1{line-height:1.25;letter-spacing:.01em}
+
+/* ---------- MOTION UPGRADES ---------- */
+@keyframes imgIn{from{opacity:0}to{opacity:1}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:none}}
+.card img{animation:imgIn .5s ease}
+.page.show{animation:fadeUp .45s var(--ease)}
+.backdrop.show{backdrop-filter:blur(6px)}
+.btn-play:active,.btn-info:active,.btn-red:active,.btn-out:active{transform:scale(.96)}
+.cbtn{transition:transform .15s,border-color .15s,background .15s}
+.cbtn:hover{transform:scale(1.12)}
+.row-arrow{transition:opacity .2s,background .2s,transform .2s}
+.row-arrow.right:hover{transform:translateX(3px)}
+.row-arrow.left:hover{transform:translateX(-3px)}
+#nextEp{animation:slideInRight .4s var(--ease)}
+.pav .box{transition:transform .25s var(--ease),border-color .2s}
+.pav:hover .box{transform:scale(1.05)}
+.sim{transition:transform .25s var(--ease)}
+.sim:hover{transform:scale(1.04)}
+.new-badge{letter-spacing:.06em}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+}

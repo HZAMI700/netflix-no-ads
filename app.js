@@ -23,7 +23,6 @@ let likes = store.get('nf_likes', {});
 let heroItems = [], heroIdx = 0, heroTimer = null;
 let currentDetail = null;   // {meta, type, streams, ep:{s,e}}
 let currentStream = null;
-let wtClient = null;
 
 function toast(msg) {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
@@ -86,7 +85,6 @@ function metaRowHTML(m) {
 /* ---------- HOME ROWS ---------- */
 const ROWS = [
   { id: 'continue', title: 'Continue Watching for You', dynamic: 'history' },
-  { id: 'top10', title: 'Top 10 Movies Today', dynamic: 'top10' },
   { id: 'mylist', title: 'My List', dynamic: 'mylist' },
   { id: 'trending', title: 'Trending Now', url: ['movie/top', 'series/top'], mix: true },
   { id: 'movies', title: 'Popular Movies', url: ['movie/top'] },
@@ -130,11 +128,9 @@ async function buildHome() {
     const sec = $('row-' + r.id), track = sec.querySelector('.row-track');
     let items = [];
     if (r.dynamic === 'history') {
-      items = Object.entries(history).map(([id, h]) => ({ id, type: h.type, name: h.title, poster: h.poster, background: h.poster, _progress: h.progress }));
+      items = historyItems();
     } else if (r.dynamic === 'mylist') {
       items = myList;
-    } else if (r.dynamic === 'top10') {
-      items = (await fetchCatalog('movie/top')).slice(0, 10);
     } else {
       let pool = [];
       for (const u of r.url) pool = pool.concat(await fetchCatalog(u));
@@ -148,18 +144,9 @@ async function buildHome() {
     sec.classList.add('enter');
     sec.style.animationDelay = (shown++ * 80) + 'ms';
     track.innerHTML = '';
-    if (r.dynamic === 'top10') items.forEach((m, k) => track.appendChild(buildTop10(m, k + 1)));
-    else items.forEach(m => track.appendChild(buildCard(m, r.badge)));
+    items.forEach(m => track.appendChild(buildCard(m, r.badge)));
     track.dispatchEvent(new Event('scroll'));
   }
-}
-
-function buildTop10(m, rank) {
-  const el = document.createElement('div');
-  el.className = 'top10';
-  el.innerHTML = `<div class="t10-num">${rank}</div><img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}">`;
-  el.onclick = () => openDetail(m.id, m.type || 'movie', false);
-  return el;
 }
 
 function buildCard(m, badge) {
@@ -174,6 +161,8 @@ function buildCard(m, badge) {
     <div class="hm"><span class="match">${matchScore(m)}% Match</span><span class="age-badge">${ageRating(m)}</span><span>${(m.releaseInfo || '').toString().slice(0, 4)}</span></div>
     <div class="hm" style="margin-top:4px">${(m.genres || []).slice(0, 3).join(' • ')}</div></div>`;
   el.onclick = e => {
+    // Continue-Watching cards from player progress resume directly.
+    if (m._vidlink) { playVidlinkEntry(m); return; }
     const a = e.target.closest('[data-a]')?.dataset.a;
     const rx = e.target.closest('.remove-x');
     if (rx) { delete history[m.id]; store.set('nf_history', history); buildHome(); e.stopPropagation(); return; }
@@ -195,7 +184,6 @@ function renderHero(i) {
   const hc = document.querySelector('.hero-content');
   hc.style.animation = 'none'; void hc.offsetWidth; hc.style.animation = '';
   $('heroTitle').textContent = m.name;
-  $('heroRank').innerHTML = `<span class="top10-tag">TOP<br>10</span><span>#${i + 1} in Movies Today</span>`;
   $('heroMeta').innerHTML = metaRowHTML(m);
   $('heroDesc').textContent = m.description || '';
   $('heroMaturity').textContent = ageRating(m);
@@ -233,7 +221,12 @@ async function openDetail(id, type, autoplay) {
         vids.filter(v => v.season === s).forEach(v => {
           const d = document.createElement('div'); d.className = 'ep-card';
           d.innerHTML = `<div class="ep-thumb"><img src="${v.thumbnail || m.background || m.poster}"><div class="ep-play"><i>▶</i></div></div><div style="flex:1"><b>${v.episode}. ${v.title || v.name || 'Episode ' + v.episode}</b><div style="color:#888;font-size:12px;margin-top:4px">${v.released || ''}</div><div style="color:#bbb;font-size:12px;margin-top:4px">${(v.overview || '').slice(0, 140)}</div></div><span style="color:#888">${v.runtime || ''}</span>`;
-          d.onclick = () => { currentDetail.ep = { s: v.season, e: v.episode }; loadStreams(); };
+          d.onclick = () => {
+            currentDetail.ep = { s: v.season, e: v.episode };
+            const tmdbId = currentDetail.meta.moviedb_id;
+            if (!tmdbId) { toast('Streaming is unavailable for this title.'); return; }
+            playVidlink({ tmdbId, type: 'series', season: v.season, episode: v.episode, title: currentDetail.meta.name });
+          };
           $('epList').appendChild(d);
         });
       };
@@ -516,129 +509,137 @@ function wakeChrome() {
 document.addEventListener('mousemove', e => { if ($('playerView').classList.contains('show')) wakeChrome(); });
 $('pBack').onclick = closePlayer;
 function closePlayer() {
+  syncVidlinkProgress();
   $('playerView').classList.remove('show');
-  hidePlayerLoading(); hidePlayerError();
-  // save progress before tearing down the media
-  try {
-    const v = $('playerVideo');
-    if (currentDetail && v.currentTime > 30 && v.duration) {
-      const m = currentDetail.meta;
-      history[m.id] = { progress: Math.min(.98, v.currentTime / v.duration), type: m.type, title: m.name, poster: poster(m) };
-      store.set('nf_history', history);
-    }
-  } catch { /* ignore */ }
-  clearPlayerMedia();
-  try { wtClient?.destroy(); } catch { }
-  wtClient = null;
-}
-
-/* ---------- PRIMARY WATCH FLOW (Playback service → custom player) ---------- */
-let hlsRef = null, hlsScriptLoading = null;
-function showPlayerLoading(text) {
   hidePlayerError();
-  $('pLoadingText').textContent = text || 'Resolving playable source…';
-  $('pLoading').classList.add('show');
-}
-function hidePlayerLoading() { $('pLoading').classList.remove('show'); }
-function showPlayerError(msg) {
-  hidePlayerLoading();
-  $('pErrorMsg').textContent = msg || 'No playable source exists for this title right now.';
-  $('pError').classList.add('show');
-}
-function hidePlayerError() { $('pError').classList.remove('show'); }
-function clearPlayerMedia() {
-  try { hlsRef?.destroy(); } catch { }
-  hlsRef = null;
+  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
   const v = $('playerVideo');
   try { v.pause(); } catch { }
   v.removeAttribute('src'); v.load();
-  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
+  // restore native-video chrome for non-embed modes
   v.style.display = '';
+  $('pBottom').style.display = '';
+  $('torrentStats').style.display = '';
+  currentVidlink = null;
 }
-/* Lazy-load hls.js only when an HLS source actually needs it. */
-function ensureHls() {
-  if (window.Hls) return Promise.resolve();
-  if (hlsScriptLoading) return hlsScriptLoading;
-  hlsScriptLoading = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
-    s.onload = () => (window.Hls ? resolve() : reject(new Error('The video player failed to load.')));
-    s.onerror = () => reject(new Error('The video player failed to load. Check your connection.'));
-    document.head.appendChild(s);
-    setTimeout(() => reject(new Error('The video player timed out. Please try again.')), 15000);
-  }).catch(e => { hlsScriptLoading = null; throw e; });
-  return hlsScriptLoading;
+
+/* ---------- PRIMARY WATCH FLOW (VidLink embed — frontend only, no backend) ---------- */
+let currentVidlink = null;
+function hidePlayerError() { $('pError').classList.remove('show'); }
+function showPlayerError(msg) {
+  $('pErrorMsg').textContent = msg || 'This title is not available for streaming right now.';
+  $('pError').classList.add('show');
 }
-/** Play a resolved PlaybackSource ({url, type}) with native + hls.js support. */
-async function playSource(src) {
-  clearPlayerMedia(); hidePlayerError();
-  const v = $('playerVideo');
-  $('torrentStats').textContent = src.quality ? `${src.quality} · loading…` : 'loading…';
-  if (!src || !/^https?:\/\//i.test(src.url)) throw new Error('The stream URL is invalid.');
-  if (src.type === 'hls') {
-    if (v.canPlayType('application/vnd.apple.mpegurl')) {
-      v.src = src.url;
-    } else {
-      await ensureHls();
-      const hls = hlsRef = new Hls({ enableWorker: true });
-      hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data && data.fatal) showPlayerError('The stream stopped unexpectedly. Try again or pick another stream.');
-      });
-      hls.loadSource(src.url);
-      hls.attachMedia(v);
-      await new Promise((resolve, reject) => {
-        hls.on(Hls.Events.MANIFEST_PARSED, () => resolve());
-        setTimeout(() => reject(new Error('The stream timed out. Please try again.')), 30000);
-      });
-    }
-  } else if (src.type === 'mp4') {
-    v.src = src.url;
-  } else {
-    throw new Error('This format is not supported on your device.');
-  }
-  try {
-    await v.play();
-  } catch {
-    // Autoplay blocked — show controls state, user can press play.
-  }
-  hidePlayerLoading();
-  $('torrentStats').textContent = src.quality || 'playing';
+/** Official VidLink embed URL, styled to match this site (Netflix red). */
+function vidlinkUrl(o) {
+  const base = o.type === 'series'
+    ? `https://vidlink.pro/tv/${o.tmdbId}/${o.season || 1}/${o.episode || 1}`
+    : `https://vidlink.pro/movie/${o.tmdbId}`;
+  const p = new URLSearchParams({
+    primaryColor: 'E50914', secondaryColor: '808080', iconColor: 'FFFFFF',
+    icons: 'default', title: 'true', poster: 'true', autoplay: 'true',
+  });
+  if (o.type === 'series') p.set('nextbutton', 'true');
+  if (o.startAt > 0) p.set('startAt', String(Math.floor(o.startAt)));
+  return `${base}?${p.toString()}`;
+}
+function openPlayerShell(title) {
+  closeDetail();
+  hidePlayerError();
+  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
+  $('playerView').classList.add('show');
+  $('pTitle').textContent = title;
+  wakeChrome();
+  // embed mode: VidLink brings its own controls — hide the native chrome
+  $('playerVideo').style.display = 'none';
+  $('pBottom').style.display = 'none';
+  $('torrentStats').style.display = 'none';
+  $('skipIntro').style.display = 'none';
+  $('nextEp').style.display = 'none';
 }
 /**
  * PRIMARY Watch entry: every Play button ends up here.
- * UI → Playback.getPlaybackSource() → playSource() → custom player.
+ * Catalog (Cinemeta IMDb id) → TMDB id → VidLink embed → iframe player.
  */
-async function playStream(s) {
-  currentStream = s || null; closeDetail();
-  const m = currentDetail.meta;
-  $('playerView').classList.add('show');
-  $('pTitle').textContent = `${m.name}${currentDetail.type === 'series' ? ` S${currentDetail.ep.s}:E${currentDetail.ep.e}` : ''}`;
-  wakeChrome();
-  clearPlayerMedia();
-  showPlayerLoading('Resolving playable source…');
-  try {
-    const src = await Playback.getPlaybackSource({
-      id: m.id,
-      type: currentDetail.type,
-      season: currentDetail.ep.s,
-      episode: currentDetail.ep.e,
-      ...(s?.infoHash ? { stream: { infoHash: s.infoHash, fileIdx: s.fileIdx, title: s._p?.file, quality: s._p ? qLabel(s._p.q) : undefined } } : {}),
-    });
-    await playSource(src);
-  } catch (err) {
-    showPlayerError(err?.message);
+function playVidlink(o) {
+  if (!o || !o.tmdbId) { showPlayerError('This title is not available for streaming right now.'); return; }
+  currentVidlink = { ...o };
+  openPlayerShell(o.title + (o.type === 'series' ? ` — S${o.season || 1}:E${o.episode || 1}` : ''));
+  const f = document.createElement('iframe');
+  f.src = vidlinkUrl(o);
+  f.allowFullscreen = true;
+  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  f.style.cssText = 'flex:1;width:100%;border:none';
+  $('playerView').insertBefore(f, $('pTop'));
+}
+function playStream(s) {
+  currentStream = s || null;
+  const m = currentDetail?.meta;
+  if (!m) return;
+  const tmdbId = m.moviedb_id;
+  if (!tmdbId) {
+    closeDetail();
+    $('playerView').classList.add('show');
+    $('pTitle').textContent = m.name;
+    showPlayerError('This title is not available for streaming right now.');
+    return;
   }
-  $('skipIntro').style.display = 'block';
-  $('skipIntro').onclick = () => { $('playerVideo').currentTime += 85; $('skipIntro').style.display = 'none'; };
-  // next-episode overlay in last 30s
-  $('playerVideo').ontimeupdate = () => {
-    const v = $('playerVideo');
-    if (v.duration && v.duration - v.currentTime < 30 && currentDetail.type === 'series') {
-      $('nextEp').style.display = 'flex';
-      $('nextName').textContent = `S${currentDetail.ep.s} E${currentDetail.ep.e + 1}`;
-      let n = 25; const iv = setInterval(() => { n--; $('nextCount').textContent = n; if (n <= 0) { clearInterval(iv); nextEpisode(); } }, 1000);
-    }
-  };
+  playVidlink({
+    tmdbId, type: currentDetail.type,
+    season: currentDetail.ep.s, episode: currentDetail.ep.e, title: m.name,
+  });
+}
+/** Continue-Watching card (built from VidLink progress) → resume in place. */
+function playVidlinkEntry(m) {
+  playVidlink({
+    tmdbId: m.tmdbId, type: m.type === 'series' ? 'series' : 'movie',
+    season: m.season || 1, episode: m.episode || 1,
+    startAt: m._resume || 0, title: m.name,
+  });
+}
+/* VidLink progress → our Continue Watching (their documented MEDIA_DATA events). */
+function readVidlinkStore() {
+  try { return JSON.parse(localStorage.getItem('vidLinkProgress') || '{}'); }
+  catch { return {}; }
+}
+function historyItems() {
+  return Object.entries(history).map(([id, h]) => ({
+    id, type: h.type, name: h.title, poster: h.poster, background: h.poster,
+    _progress: h.progress, _vidlink: !!h._vidlink, tmdbId: h.tmdbId,
+    season: h.season, episode: h.episode, _resume: h._resume,
+  }));
+}
+function renderContinueRow() {
+  const sec = $('row-continue');
+  if (!sec) return;
+  const track = sec.querySelector('.row-track');
+  const items = historyItems();
+  sec.style.display = items.length ? '' : 'none';
+  track.innerHTML = '';
+  items.forEach(m => track.appendChild(buildCard(m)));
+  track.dispatchEvent(new Event('scroll'));
+}
+function syncVidlinkProgress() {
+  const data = readVidlinkStore();
+  let changed = false;
+  Object.values(data).forEach(entry => {
+    if (!entry || entry.id == null) return;
+    const dur = entry.progress?.duration || 0, watched = entry.progress?.watched || 0;
+    if (!dur || watched < 5) return;
+    history[`tmdb:${entry.id}`] = {
+      progress: Math.min(.98, watched / dur),
+      type: entry.type === 'tv' ? 'series' : 'movie',
+      title: entry.title || 'Title',
+      poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '',
+      tmdbId: entry.id, season: +(entry.last_season_watched || 1),
+      episode: +(entry.last_episode_watched || 1), _vidlink: true, _resume: watched,
+    };
+    changed = true;
+  });
+  if (changed) {
+    store.set('nf_history', history);
+    renderContinueRow();
+  }
 }
 function useWebtorFallback(s) {
   if (!s?.infoHash) return;
@@ -651,26 +652,47 @@ function useWebtorFallback(s) {
 }
 function nextEpisode() {
   $('nextEp').style.display = 'none';
-  currentDetail.ep.e += 1; loadStreams(true);
-  toast(`Loading S${currentDetail.ep.s} E${currentDetail.ep.e}…`);
+  if (currentVidlink?.type === 'series') {
+    const ep = (currentVidlink.episode || 1) + 1;
+    toast(`Loading episode ${ep}…`);
+    playVidlink({ ...currentVidlink, episode: ep, startAt: 0 });
+  } else if (currentDetail?.type === 'series') {
+    currentDetail.ep.e += 1;
+    playStream(null);
+  }
 }
 $('nextPlay').onclick = nextEpisode;
-$('pRetry').onclick = () => playStream(currentStream);
+$('pRetry').onclick = () => { hidePlayerError(); playStream(currentStream); };
 $('pAlt').onclick = () => {
   hidePlayerError();
-  if (currentStream?.infoHash) useWebtorFallback(currentStream);
-  else showPlayerError('No alternative player is available for this title.');
+  if (currentStream?.infoHash) {
+    // legacy torrent fallback for the selected stream
+    $('playerVideo').style.display = 'none';
+    useWebtorFallback(currentStream);
+  } else showPlayerError('No alternative player is available for this title.');
 };
-$('playerVideo').addEventListener('error', () => {
-  if ($('playerView').classList.contains('show') && $('pLoading').classList.contains('show'))
-    showPlayerError('The video failed to load. Try again or pick another stream.');
+/* VidLink player events (documented postMessage API): progress + ended. */
+window.addEventListener('message', (event) => {
+  if (event.origin !== 'https://vidlink.pro') return;
+  const msg = event.data || {};
+  if (msg.type === 'MEDIA_DATA' && msg.data) {
+    try {
+      const cur = readVidlinkStore();
+      cur[msg.data.id] = msg.data;
+      localStorage.setItem('vidLinkProgress', JSON.stringify(cur));
+    } catch { /* storage full/blocked */ }
+    syncVidlinkProgress();
+  } else if (msg.type === 'PLAYER_EVENT' && msg.data?.event === 'ended' && currentVidlink?.type === 'series') {
+    toast('Playing next episode…');
+    playVidlink({ ...currentVidlink, episode: (currentVidlink.episode || 1) + 1, startAt: 0 });
+  }
 });
 $('ppPlay').onclick = () => { const v = $('playerVideo'); v.paused ? v.play() : v.pause(); $('ppPlay').textContent = v.paused ? '▶' : '⏸'; };
 $('ppBack').onclick = () => $('playerVideo').currentTime -= 10;
 $('ppFwd').onclick = () => $('playerVideo').currentTime += 10;
 $('ppMute').onclick = () => $('playerVideo').muted = !$('playerVideo').muted;
 $('ppFs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : $('playerView').requestFullscreen?.();
-$('ppSubs').onclick = () => toast('Subtitles: install OpenSubtitles addon in Stremio, or use webtor.io CC');
+$('ppSubs').onclick = () => toast('Subtitles are built into the player — use the CC button');
 $('ppEps').onclick = () => { closePlayer(); if (currentDetail) openDetail(currentDetail.meta.id, currentDetail.type, false); };
 
 /* ---------- VPN ---------- */
