@@ -278,11 +278,18 @@ async function doSearch(q) {
   $('searchResults').innerHTML = skels(6);
 
   try {
-    const [m, s] = await Promise.all([
+    const [m1, m2, s1, s2] = await Promise.all([
       fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
+      fetch(`${CINEMETA}/catalog/movie/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
     ]);
-    const all = [...(m.metas || []), ...(s.metas || [])];
+    const all = dedupeMetas([
+      ...(m1.metas || []),
+      ...(m2.metas || []),
+      ...(s1.metas || []),
+      ...(s2.metas || [])
+    ]);
     $('searchResults').innerHTML = all.length
       ? ''
       : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${q}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
@@ -321,32 +328,47 @@ function metaRowHTML(m) {
   `;
 }
 
-/* ---------- HOME ROWS (EXPANDED TO 25 ORGANIZED NETFLIX CATEGORIES) ---------- */
+function dedupeMetas(arr) {
+  const seen = new Set();
+  return (arr || []).filter(m => {
+    if (!m || !m.id || seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
+  });
+}
+
+/* ---------- HOME ROWS (EXPANDED TO 30 ORGANIZED NETFLIX CATEGORIES) ---------- */
 const HOME_ROWS = [
   { id: 'continue', title: 'Continue Watching for You', dynamic: 'continue' },
   { id: 'finished', title: 'Watch It Again (Finished Watching)', dynamic: 'finished' },
   { id: 'top10', title: 'Top 10 in Movies & TV Today', url: ['movie/top', 'series/top'], mix: true, isTop10: true, limit: 10 },
-  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top'], limit: 60 },
-  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top'], limit: 60 },
-  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating'], limit: 60 },
-  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating'], limit: 60 },
-  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year', 'series/year'], badge: 'NEW', limit: 60 },
-  { id: 'action', title: 'High-Octane Action & Adrenaline', url: ['movie/top/genre=Action'], limit: 60 },
-  { id: 'action_series', title: 'Action & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure'], limit: 60 },
-  { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller'], limit: 60 },
-  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi'], limit: 60 },
-  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime'], limit: 60 },
-  { id: 'mystery', title: 'Mind-Bending Whodunits & Detective Stories', url: ['movie/top/genre=Mystery', 'series/top/genre=Mystery'], limit: 60 },
-  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy'], limit: 60 },
-  { id: 'comedy_series', title: 'Sitcoms & TV Comedy Hits', url: ['series/top/genre=Comedy'], limit: 60 },
-  { id: 'horror', title: 'Chilling Horror & Supernatural Thrillers', url: ['movie/top/genre=Horror'], limit: 60 },
-  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama'], limit: 60 },
-  { id: 'drama_movies', title: 'Award-Winning Drama Movies', url: ['movie/top/genre=Drama'], limit: 60 },
-  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation', 'movie/top/genre=Animation'], limit: 60 },
-  { id: 'family', title: 'Family Movie Night & Epic Adventures', url: ['movie/top/genre=Family', 'movie/top/genre=Adventure'], limit: 60 },
-  { id: 'fantasy', title: 'Fantasy & Mythical Quests', url: ['movie/top/genre=Fantasy', 'series/top/genre=Fantasy'], limit: 60 },
-  { id: 'romance', title: 'Romantic Movies & Heartfelt Stories', url: ['movie/top/genre=Romance'], limit: 60 },
-  { id: 'doc', title: 'Captivating Documentaries & Docuseries', url: ['movie/top/genre=Documentary', 'series/top/genre=Documentary'], limit: 60 },
+  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top', 'movie/top/skip=100'], limit: 75 },
+  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top', 'series/top/skip=100'], limit: 75 },
+  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating', 'movie/imdbRating/skip=100'], limit: 75 },
+  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating', 'series/imdbRating/skip=100'], limit: 75 },
+  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year', 'series/year', 'movie/year/skip=100'], badge: 'NEW', limit: 75 },
+  { id: 'action', title: 'High-Octane Action & Adrenaline', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100'], limit: 75 },
+  { id: 'action_series', title: 'Action & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure', 'series/top/genre=Action/skip=100'], limit: 75 },
+  { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller', 'movie/top/genre=Thriller/skip=100'], limit: 75 },
+  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi', 'movie/top/genre=Sci-Fi/skip=100'], limit: 75 },
+  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime', 'movie/top/genre=Crime', 'series/top/genre=Crime/skip=100'], limit: 75 },
+  { id: 'mystery', title: 'Mind-Bending Whodunits & Detective Stories', url: ['movie/top/genre=Mystery', 'series/top/genre=Mystery'], limit: 75 },
+  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy', 'movie/top/genre=Comedy/skip=100'], limit: 75 },
+  { id: 'comedy_series', title: 'Sitcoms & TV Comedy Hits', url: ['series/top/genre=Comedy', 'series/top/genre=Comedy/skip=100'], limit: 75 },
+  { id: 'horror', title: 'Chilling Horror & Supernatural Thrillers', url: ['movie/top/genre=Horror', 'movie/top/genre=Horror/skip=100'], limit: 75 },
+  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama', 'series/top/genre=Drama/skip=100'], limit: 75 },
+  { id: 'drama_movies', title: 'Award-Winning Drama Movies', url: ['movie/top/genre=Drama', 'movie/top/genre=Drama/skip=100'], limit: 75 },
+  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation', 'movie/top/genre=Animation', 'series/top/genre=Animation/skip=100'], limit: 75 },
+  { id: 'family', title: 'Family Movie Night & Epic Adventures', url: ['movie/top/genre=Family', 'movie/top/genre=Adventure'], limit: 75 },
+  { id: 'fantasy', title: 'Fantasy & Mythical Quests', url: ['movie/top/genre=Fantasy', 'series/top/genre=Fantasy'], limit: 75 },
+  { id: 'romance', title: 'Romantic Movies & Heartfelt Stories', url: ['movie/top/genre=Romance', 'movie/top/genre=Romance/skip=100'], limit: 75 },
+  { id: 'doc', title: 'Captivating Documentaries & Docuseries', url: ['movie/top/genre=Documentary', 'series/top/genre=Documentary'], limit: 75 },
+  { id: 'heist', title: 'High-Stakes Heists & Gangster Sagas', url: ['movie/top/genre=Crime/skip=100', 'series/top/genre=Crime/skip=100'], limit: 75 },
+  { id: 'superhero', title: 'Superhero Universes & Comic Legends', url: ['movie/top/genre=Action/skip=100', 'movie/top/genre=Fantasy/skip=100'], limit: 75 },
+  { id: 'dark_humor', title: 'Dark Comedy & Cult Classics', url: ['movie/top/genre=Comedy/skip=100', 'movie/imdbRating/genre=Comedy'], limit: 75 },
+  { id: 'sci_series', title: 'Sci-Fi & Cyberpunk Series', url: ['series/top/genre=Sci-Fi/skip=100', 'series/imdbRating/genre=Sci-Fi'], limit: 75 },
+  { id: 'epic_history', title: 'Historical Epics & War Sagas', url: ['movie/top/genre=History', 'movie/top/genre=War', 'series/top/genre=History'], limit: 75 },
+  { id: 'global_cinema', title: 'Global Cinema & International Hits', url: ['movie/top/skip=200', 'series/top/skip=200'], limit: 75 },
   { id: 'mylist', title: 'My List', dynamic: 'mylist' }
 ];
 
@@ -481,9 +503,10 @@ async function buildHome() {
       for (const u of r.url) {
         pool = pool.concat(await fetchCatalog(u));
       }
+      pool = dedupeMetas(pool);
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
-      const max = r.limit || 60;
+      const max = r.limit || 75;
       items = pool.slice(0, max);
       if (r.id === 'new_releases') {
         items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, max);
@@ -601,6 +624,9 @@ function openCardPortal(card, m, badge, rank) {
         <button class="cbtn" data-pa="dislike" title="Not for me">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
         </button>
+        <button class="cbtn" data-pa="dl" title="Download Servers">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </button>
         <span style="flex:1"></span>
         <button class="cbtn" data-pa="info" title="Episode & Info">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
@@ -655,6 +681,17 @@ function openCardPortal(card, m, badge, rank) {
       toast(dislikes[m.id] ? 'Not for me' : 'Rating removed');
       const likeBtn = portal.querySelector('[data-pa="like"]');
       if (likeBtn) likeBtn.classList.remove('solid');
+    } else if (a === 'dl') {
+      closeCardPortal();
+      const rawImdb = m.id || m.imdb_id;
+      const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : null;
+      openDownloadModal({
+        title: m.name,
+        type: m.type || type,
+        imdb,
+        tmdbId: m.moviedb_id,
+        year: (m.releaseInfo || m.year || '').toString().slice(0, 4)
+      });
     } else {
       closeCardPortal();
       if (m._embed) { playEmbedEntry(m); }
@@ -999,6 +1036,7 @@ if (detailBackdrop) {
 function closeDetail() {
   const bd = $('detailBackdrop');
   if (bd) bd.classList.remove('show');
+  closeDownloadModal();
   document.body.style.overflow = '';
 }
 
@@ -1078,37 +1116,42 @@ async function loadCategoryRows(kind) {
   let categoryRows = [];
   if (kind === 'series') {
     categoryRows = [
-      { id: 'b_series_top', title: 'Popular TV Shows', url: 'series/top' },
-      { id: 'b_series_rated', title: 'Critically Acclaimed TV', url: 'series/imdbRating' },
-      { id: 'b_series_crime', title: 'Crime, Mystery & Thrillers', url: 'series/top/genre=Crime' },
-      { id: 'b_series_action', title: 'Action & Adventure Series', url: 'series/top/genre=Action' },
-      { id: 'b_series_scifi', title: 'Sci-Fi & Supernatural', url: 'series/top/genre=Sci-Fi' },
-      { id: 'b_series_drama', title: 'Binge-Worthy Dramas', url: 'series/top/genre=Drama' },
-      { id: 'b_series_comedy', title: 'Sitcoms & Comedies', url: 'series/top/genre=Comedy' },
-      { id: 'b_series_anime', title: 'Anime & Animation Hits', url: 'series/top/genre=Animation' },
-      { id: 'b_series_fantasy', title: 'Fantasy & Epic Sagas', url: 'series/top/genre=Fantasy' },
-      { id: 'b_series_doc', title: 'Docuseries & Real Stories', url: 'series/top/genre=Documentary' }
+      { id: 'b_series_top', title: 'Popular TV Shows', url: ['series/top', 'series/top/skip=100'] },
+      { id: 'b_series_rated', title: 'Critically Acclaimed TV', url: ['series/imdbRating', 'series/imdbRating/skip=100'] },
+      { id: 'b_series_crime', title: 'Crime, Mystery & Thrillers', url: ['series/top/genre=Crime', 'series/top/genre=Crime/skip=100'] },
+      { id: 'b_series_action', title: 'Action & Adventure Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure'] },
+      { id: 'b_series_scifi', title: 'Sci-Fi & Supernatural', url: ['series/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi/skip=100'] },
+      { id: 'b_series_drama', title: 'Binge-Worthy Dramas', url: ['series/top/genre=Drama', 'series/top/genre=Drama/skip=100'] },
+      { id: 'b_series_comedy', title: 'Sitcoms & Comedies', url: ['series/top/genre=Comedy', 'series/top/genre=Comedy/skip=100'] },
+      { id: 'b_series_anime', title: 'Anime & Animation Hits', url: ['series/top/genre=Animation', 'series/top/genre=Animation/skip=100'] },
+      { id: 'b_series_fantasy', title: 'Fantasy & Epic Sagas', url: ['series/top/genre=Fantasy', 'series/top/genre=Fantasy/skip=100'] },
+      { id: 'b_series_doc', title: 'Docuseries & Real Stories', url: ['series/top/genre=Documentary', 'series/top/genre=Documentary/skip=100'] },
+      { id: 'b_series_mystery', title: 'Mystery & Detective Series', url: ['series/top/genre=Mystery', 'series/top/genre=Mystery/skip=100'] },
+      { id: 'b_series_horror', title: 'Supernatural & Horror Series', url: ['series/top/genre=Horror', 'series/top/genre=Horror/skip=100'] }
     ];
   } else if (kind === 'movies') {
     categoryRows = [
-      { id: 'b_mov_top', title: 'Blockbuster Movies', url: 'movie/top' },
-      { id: 'b_mov_rated', title: 'IMDb Top Rated Movies', url: 'movie/imdbRating' },
-      { id: 'b_mov_action', title: 'High-Octane Action', url: 'movie/top/genre=Action' },
-      { id: 'b_mov_scifi', title: 'Sci-Fi & Futuristic Hits', url: 'movie/top/genre=Sci-Fi' },
-      { id: 'b_mov_thriller', title: 'Suspense & Psychological Thrillers', url: 'movie/top/genre=Thriller' },
-      { id: 'b_mov_comedy', title: 'Comedies & Feel-Good', url: 'movie/top/genre=Comedy' },
-      { id: 'b_mov_horror', title: 'Horror & Paranormal', url: 'movie/top/genre=Horror' },
-      { id: 'b_mov_romance', title: 'Romantic Favorites', url: 'movie/top/genre=Romance' },
-      { id: 'b_mov_family', title: 'Family Movie Night', url: 'movie/top/genre=Family' },
-      { id: 'b_mov_doc', title: 'Documentary Films', url: 'movie/top/genre=Documentary' }
+      { id: 'b_mov_top', title: 'Blockbuster Movies', url: ['movie/top', 'movie/top/skip=100'] },
+      { id: 'b_mov_rated', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating', 'movie/imdbRating/skip=100'] },
+      { id: 'b_mov_action', title: 'High-Octane Action', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100'] },
+      { id: 'b_mov_scifi', title: 'Sci-Fi & Futuristic Hits', url: ['movie/top/genre=Sci-Fi', 'movie/top/genre=Sci-Fi/skip=100'] },
+      { id: 'b_mov_thriller', title: 'Suspense & Psychological Thrillers', url: ['movie/top/genre=Thriller', 'movie/top/genre=Thriller/skip=100'] },
+      { id: 'b_mov_comedy', title: 'Comedies & Feel-Good', url: ['movie/top/genre=Comedy', 'movie/top/genre=Comedy/skip=100'] },
+      { id: 'b_mov_horror', title: 'Horror & Paranormal', url: ['movie/top/genre=Horror', 'movie/top/genre=Horror/skip=100'] },
+      { id: 'b_mov_romance', title: 'Romantic Favorites', url: ['movie/top/genre=Romance', 'movie/top/genre=Romance/skip=100'] },
+      { id: 'b_mov_family', title: 'Family Movie Night', url: ['movie/top/genre=Family', 'movie/top/genre=Animation'] },
+      { id: 'b_mov_doc', title: 'Documentary Films', url: ['movie/top/genre=Documentary', 'movie/top/genre=Documentary/skip=100'] },
+      { id: 'b_mov_crime', title: 'Crime, Gangsters & Noir', url: ['movie/top/genre=Crime', 'movie/top/genre=Crime/skip=100'] },
+      { id: 'b_mov_adventure', title: 'Epic Adventure & Quests', url: ['movie/top/genre=Adventure', 'movie/top/genre=Adventure/skip=100'] }
     ];
   } else if (kind === 'new') {
     categoryRows = [
-      { id: 'b_new_mov', title: 'New Movie Releases', url: 'movie/year', badge: 'NEW' },
-      { id: 'b_new_series', title: 'New Series & Fresh Seasons', url: 'series/year', badge: 'NEW' },
-      { id: 'b_new_top', title: 'Trending Movies This Week', url: 'movie/top', isTop10: true },
-      { id: 'b_new_top_series', title: 'Trending Series This Week', url: 'series/top', isTop10: true },
-      { id: 'b_new_action', title: 'New Action & Thrillers', url: 'movie/year/genre=Action', badge: 'NEW' }
+      { id: 'b_new_mov', title: 'New Movie Releases', url: ['movie/year', 'movie/year/skip=100'], badge: 'NEW' },
+      { id: 'b_new_series', title: 'New Series & Fresh Seasons', url: ['series/year', 'series/year/skip=100'], badge: 'NEW' },
+      { id: 'b_new_top', title: 'Trending Movies This Week', url: ['movie/top', 'movie/top/skip=100'], isTop10: true },
+      { id: 'b_new_top_series', title: 'Trending Series This Week', url: ['series/top', 'series/top/skip=100'], isTop10: true },
+      { id: 'b_new_action', title: 'New Action & Thrillers', url: ['movie/year/genre=Action', 'movie/year/genre=Thriller'], badge: 'NEW' },
+      { id: 'b_new_scifi', title: 'New Sci-Fi & Fantasy', url: ['movie/year/genre=Sci-Fi', 'movie/year/genre=Fantasy'], badge: 'NEW' }
     ];
   }
 
@@ -1119,11 +1162,16 @@ async function loadCategoryRows(kind) {
     const sec = $('row-' + r.id);
     if (!sec) continue;
     const track = sec.querySelector('.row-track');
-    const items = await fetchCatalog(r.url);
-    if (!items.length) continue;
+    const urls = Array.isArray(r.url) ? r.url : [r.url];
+    let pool = [];
+    for (const u of urls) {
+      pool = pool.concat(await fetchCatalog(u));
+    }
+    pool = dedupeMetas(pool);
+    if (!pool.length) continue;
     sec.style.display = '';
     track.innerHTML = '';
-    items.slice(0, 60).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+    pool.slice(0, 75).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
   }
 }
@@ -1143,10 +1191,14 @@ async function filterBrowseByGenre(genre) {
   gridWrap.innerHTML = skels(12);
 
   const type = currentBrowseKind === 'series' ? 'series' : 'movie';
-  const items = await fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`);
+  const [p1, p2] = await Promise.all([
+    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`),
+    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`)
+  ]);
+  const items = dedupeMetas([...p1, ...p2]);
 
   gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
-  items.slice(0, 100).forEach(m => gridWrap.appendChild(buildCard(m)));
+  items.slice(0, 120).forEach(m => gridWrap.appendChild(buildCard(m)));
 }
 
 /* ---------- PROFILES ---------- */
@@ -1269,9 +1321,19 @@ if (clearData) {
   };
 }
 
-/* ---------- DOWNLOAD = OmniSave redirect only ---------- */
+/* ---------- DOWNLOAD SERVERS SYSTEM (VidVault & 02MovieDownloader) ---------- */
+let _lastDownloadClick = 0;
+function safeOpenDownloadUrl(url) {
+  if (!url) return;
+  const now = Date.now();
+  if (now - _lastDownloadClick < 800) return; // Debounce to prevent multiple tabs / duplicate clicks
+  _lastDownloadClick = now;
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 function openOmnisave(query) {
-  window.open(MediaLinks.omnisaveUrl(query), '_blank', 'noopener');
+  const url = MediaLinks.omnisaveUrl(query);
+  safeOpenDownloadUrl(url);
   if (!query) {
     toast('OmniSave opened in a new tab');
     return;
@@ -1293,25 +1355,151 @@ function openOmnisave(query) {
 
 function currentTitleContext() {
   if (currentDetail?.meta) {
-    return { title: currentDetail.meta.name, type: currentDetail.type, season: currentDetail.ep.s, episode: currentDetail.ep.e };
+    const m = currentDetail.meta;
+    const rawImdb = m.id || m.imdb_id;
+    const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : '';
+    return {
+      title: m.name,
+      type: currentDetail.type,
+      imdb,
+      tmdbId: m.moviedb_id,
+      year: (m.releaseInfo || m.year || '').toString().slice(0, 4),
+      season: currentDetail.ep?.s || 1,
+      episode: currentDetail.ep?.e || 1
+    };
   }
   if (currentEmbed) {
-    return { title: currentEmbed.title, type: currentEmbed.type, season: currentEmbed.season, episode: currentEmbed.episode };
+    return {
+      title: currentEmbed.title,
+      type: currentEmbed.type,
+      imdb: currentEmbed.imdb,
+      tmdbId: currentEmbed.tmdbId,
+      season: currentEmbed.season || 1,
+      episode: currentEmbed.episode || 1
+    };
   }
   return null;
+}
+
+function openDownloadModal(ctx) {
+  if (!ctx) { toast('Select a title first'); return; }
+
+  const backdrop = $('serverSelectBackdrop');
+  if (!backdrop) {
+    const query = ctx.type === 'series'
+      ? MediaLinks.getEpisodeDownloadSearch({ title: ctx.title }, ctx.season, ctx.episode)
+      : MediaLinks.getMovieDownloadSearch({ title: ctx.title });
+    openOmnisave(query);
+    return;
+  }
+
+  const isSeries = ctx.type === 'series';
+  const s = ctx.season || 1;
+  const e = ctx.episode || 1;
+  const rawImdb = ctx.imdb || ctx.id;
+  const imdbId = rawImdb ? String(rawImdb).split(':')[0].trim() : '';
+
+  const titleEl = $('serverModalTitle');
+  if (titleEl) {
+    titleEl.textContent = isSeries
+      ? `Download Episode — ${ctx.title || 'Series'}`
+      : `Download Movie — ${ctx.title || 'Movie'}`;
+  }
+
+  const metaEl = $('serverModalMeta');
+  if (metaEl) {
+    metaEl.textContent = isSeries
+      ? `Season ${s}, Episode ${e} • Verified High-Speed Mirrors`
+      : `${ctx.year ? ctx.year + ' • ' : ''}High-Speed Download Mirrors`.trim();
+  }
+
+  // Server 1: VidVault (Primary)
+  const vidVaultUrl = isSeries
+    ? MediaLinks.getVidVaultEpisodeUrl(imdbId, s, e)
+    : MediaLinks.getVidVaultMovieUrl(imdbId);
+
+  // Server 2: 02MovieDownloader (Alternative)
+  const movie02Url = isSeries
+    ? MediaLinks.get02MovieDownloaderEpisodeUrl(imdbId, s, e)
+    : MediaLinks.get02MovieDownloaderMovieUrl(imdbId);
+
+  // Server 3: OmniSave Search Mirror
+  const query = isSeries
+    ? MediaLinks.getEpisodeDownloadSearch({ title: ctx.title }, s, e)
+    : MediaLinks.getMovieDownloadSearch({ title: ctx.title });
+  const omniUrl = MediaLinks.omnisaveUrl(query);
+
+  const b1 = $('serverBtnVidvault');
+  if (b1) {
+    b1.onclick = () => {
+      if (!vidVaultUrl) {
+        toast('IMDb ID missing for this title on VidVault');
+        return;
+      }
+      safeOpenDownloadUrl(vidVaultUrl);
+      toast('Opening Server 1 — VidVault…');
+      closeDownloadModal();
+    };
+  }
+
+  const b2 = $('serverBtn02');
+  if (b2) {
+    b2.onclick = () => {
+      if (!movie02Url) {
+        toast('IMDb ID missing for this title on 02MovieDownloader');
+        return;
+      }
+      safeOpenDownloadUrl(movie02Url);
+      toast('Opening Server 2 — 02MovieDownloader…');
+      closeDownloadModal();
+    };
+  }
+
+  const b3 = $('serverBtnOmni');
+  if (b3) {
+    b3.onclick = () => {
+      safeOpenDownloadUrl(omniUrl);
+      toast('Opening OmniSave search mirror…');
+      closeDownloadModal();
+    };
+  }
+
+  backdrop.classList.add('show');
+}
+
+function closeDownloadModal() {
+  const backdrop = $('serverSelectBackdrop');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+const serverModalClose = $('serverModalClose');
+if (serverModalClose) serverModalClose.onclick = closeDownloadModal;
+
+const serverSelectBackdrop = $('serverSelectBackdrop');
+if (serverSelectBackdrop) {
+  serverSelectBackdrop.onclick = (e) => {
+    if (e.target === serverSelectBackdrop) closeDownloadModal();
+  };
 }
 
 function downloadCurrent() {
   const ctx = currentTitleContext();
   if (!ctx) { toast('Select a title first'); return; }
-  const query = ctx.type === 'series'
-    ? MediaLinks.getEpisodeDownloadSearch({ title: ctx.title }, ctx.season, ctx.episode)
-    : MediaLinks.getMovieDownloadSearch({ title: ctx.title });
-  openOmnisave(query);
+  openDownloadModal(ctx);
 }
 
 function downloadEpisode(seriesTitle, season, episode) {
-  openOmnisave(MediaLinks.getEpisodeDownloadSearch({ title: seriesTitle }, season, episode));
+  const m = currentDetail?.meta;
+  const rawImdb = m ? (m.id || m.imdb_id) : null;
+  const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : null;
+  openDownloadModal({
+    title: seriesTitle || m?.name || 'Series',
+    type: 'series',
+    imdb,
+    tmdbId: m?.moviedb_id,
+    season,
+    episode
+  });
 }
 
 const pDl = $('pDl');
@@ -1575,7 +1763,12 @@ if (pRetry) {
 const _nativeWindowOpen = window.open;
 window.open = function(url, target, features) {
   const urlStr = String(url || '');
-  if (urlStr.includes('videodownloader.site') || urlStr.includes('omnisave')) {
+  if (
+    urlStr.includes('vidvault.to') ||
+    urlStr.includes('02moviedownloader.site') ||
+    urlStr.includes('videodownloader.site') ||
+    urlStr.includes('omnisave')
+  ) {
     return _nativeWindowOpen.call(window, url, target, features);
   }
   console.warn('[AdBlock] Blocked unauthorized window.open popup attempt:', url);
@@ -1769,6 +1962,7 @@ function armLiveSearch(input, box) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeDetail();
+    closeDownloadModal();
     if ($('playerView')?.classList.contains('show')) closePlayer();
     closeAllNavDropdowns();
   }

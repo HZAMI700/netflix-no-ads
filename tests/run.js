@@ -47,6 +47,16 @@ check('omnisave arabic encoded', ar.startsWith('https://videodownloader.site/?ut
 const ap = ML.omnisaveUrl("Schindler's List");
 check('omnisave apostrophe preserved+encoded', ap === 'https://videodownloader.site/?utm_source=MB_Website&q=Schindler%27s%20List' || ap === 'https://videodownloader.site/?utm_source=MB_Website&q=Schindler\'s%20List', ap);
 
+/* --- download servers (VidVault & 02MovieDownloader) --- */
+check('vidvault movie exact', ML.getVidVaultMovieUrl('tt0816692') === 'https://vidvault.to/movie/tt0816692');
+check('vidvault episode exact', ML.getVidVaultEpisodeUrl('tt5071412', 1, 1) === 'https://vidvault.to/tv/tt5071412/1/1');
+check('vidvault movie object input', ML.getVidVaultMovieUrl({ imdb: 'tt0816692' }) === 'https://vidvault.to/movie/tt0816692');
+check('vidvault bad id → null', ML.getVidVaultMovieUrl('invalid') === null);
+check('vidvault episode missing params → null', ML.getVidVaultEpisodeUrl('tt5071412', null, 1) === null);
+check('02moviedownloader movie exact', ML.get02MovieDownloaderMovieUrl('tt0468569') === 'https://02moviedownloader.site/api/download/movie/tt0468569');
+check('02moviedownloader episode exact', ML.get02MovieDownloaderEpisodeUrl('tt5071412', 1, 1) === 'https://02moviedownloader.site/api/download/tv/tt5071412/1/1');
+check('02moviedownloader bad id → null', ML.get02MovieDownloaderMovieUrl('') === null);
+
 /* --- architecture guards: single provider, no direct downloads --- */
 const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

@@ -2033,6 +2033,223 @@ footer {
 }
 
 /* ==========================================================================
+   DOWNLOAD SERVERS SELECTION MODAL
+   ========================================================================== */
+#serverSelectBackdrop {
+  z-index: 2200;
+  align-items: center;
+  justify-content: center;
+}
+
+.server-modal {
+  position: relative;
+  background: #181818;
+  width: min(580px, 94vw);
+  border-radius: 8px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  animation: modalScale 0.25s var(--ease);
+  display: flex;
+  flex-direction: column;
+}
+
+.server-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, #222222 0%, #181818 100%);
+}
+
+.server-modal-title-wrap {
+  min-width: 0;
+  padding-right: 16px;
+}
+
+.server-modal-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--nf-red);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.server-modal-header h2 {
+  font-size: clamp(20px, 2.5vw, 24px);
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 4px;
+  line-height: 1.2;
+}
+
+.server-modal-meta {
+  font-size: 13px;
+  color: #a3a3a3;
+  font-weight: 500;
+}
+
+.server-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 24px 28px;
+  background: #141414;
+}
+
+.server-card {
+  position: relative;
+  background: #1f1f1f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.server-card:hover {
+  background: #252525;
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.server-card.primary-server {
+  border-color: rgba(229, 9, 20, 0.4);
+  background: linear-gradient(135deg, rgba(229, 9, 20, 0.08) 0%, #1f1f1f 100%);
+}
+.server-card.primary-server:hover {
+  border-color: var(--nf-red);
+}
+
+.server-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.server-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #46D369;
+  box-shadow: 0 0 8px #46D369;
+}
+.status-indicator.mirror {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.server-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(229, 9, 20, 0.2);
+  color: #ff4d58;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.server-label.alt {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+.server-label.mirror {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.server-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.server-tag-highlight {
+  font-size: 11px;
+  font-weight: 700;
+  color: #46D369;
+  background: rgba(70, 211, 105, 0.12);
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+.server-tag-highlight.alt {
+  color: #93c5fd;
+  background: rgba(147, 197, 253, 0.12);
+}
+.server-tag-highlight.mirror {
+  color: #fcd34d;
+  background: rgba(252, 211, 77, 0.12);
+}
+
+.server-speed {
+  font-size: 11px;
+  color: #888888;
+  font-weight: 600;
+}
+
+.server-desc {
+  font-size: 13px;
+  color: #b3b3b3;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.btn-server-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 18px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--nf-red);
+  color: #ffffff;
+  border: none;
+  transition: background 0.15s ease, transform 0.15s ease;
+  margin-top: 4px;
+}
+.btn-server-action:hover {
+  background: var(--nf-red-hover);
+  transform: scale(1.01);
+}
+
+.btn-server-action.alt {
+  background: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.btn-server-action.alt:hover {
+  background: #333333;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-server-action.mirror {
+  background: transparent;
+  color: #dddddd;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.btn-server-action.mirror:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+/* ==========================================================================
    RESPONSIVE BREAKPOINTS
    ========================================================================== */
 @media (max-width: 1100px) {

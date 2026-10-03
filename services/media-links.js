@@ -16,6 +16,8 @@
 const VAPLAYER_BASE = 'https://vaplayer.ru/embed';
 const OMNISAVE_BASE = 'https://videodownloader.site/';
 const OMNISAVE_UTM = 'utm_source=MB_Website';
+const VIDVAULT_BASE = 'https://vidvault.to';
+const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
 
 const IMDB_RE = /^tt\d+$/;
 
@@ -90,14 +92,77 @@ function omnisaveUrl(query) {
   return `${base}&q=${encodeURIComponent(q)}`;
 }
 
+function extractImdbId(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val.trim();
+  if (typeof val.imdb === 'string') return val.imdb.trim();
+  if (typeof val.id === 'string' && val.id.startsWith('tt')) return val.id.split(':')[0].trim();
+  if (typeof val.imdb_id === 'string') return val.imdb_id.trim();
+  return '';
+}
+
+/**
+ * Server 1: VidVault Movie Download URL
+ * https://vidvault.to/movie/{IMDB_ID}
+ * Example: https://vidvault.to/movie/tt0816692
+ */
+function getVidVaultMovieUrl(imdbId) {
+  const imdb = extractImdbId(imdbId);
+  if (!IMDB_RE.test(imdb)) return null;
+  return `${VIDVAULT_BASE}/movie/${imdb}`;
+}
+
+/**
+ * Server 1: VidVault TV Episode Download URL
+ * https://vidvault.to/tv/{IMDB_ID}/{SEASON}/{EPISODE}
+ * Example: https://vidvault.to/tv/tt5071412/1/1
+ */
+function getVidVaultEpisodeUrl(imdbId, season, episode) {
+  const imdb = extractImdbId(imdbId);
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!IMDB_RE.test(imdb) || !s || !e) return null;
+  return `${VIDVAULT_BASE}/tv/${imdb}/${s}/${e}`;
+}
+
+/**
+ * Server 2: 02MovieDownloader Movie Download URL
+ * https://02moviedownloader.site/api/download/movie/{IMDB_ID}
+ * Example: https://02moviedownloader.site/api/download/movie/tt0468569
+ */
+function get02MovieDownloaderMovieUrl(imdbId) {
+  const imdb = extractImdbId(imdbId);
+  if (!IMDB_RE.test(imdb)) return null;
+  return `${MOVIEDOWNLOADER02_BASE}/api/download/movie/${imdb}`;
+}
+
+/**
+ * Server 2: 02MovieDownloader TV Episode Download URL
+ * https://02moviedownloader.site/api/download/tv/{IMDB_ID}/{SEASON}/{EPISODE}
+ * Example: https://02moviedownloader.site/api/download/tv/tt11126994/1/1
+ */
+function get02MovieDownloaderEpisodeUrl(imdbId, season, episode) {
+  const imdb = extractImdbId(imdbId);
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!IMDB_RE.test(imdb) || !s || !e) return null;
+  return `${MOVIEDOWNLOADER02_BASE}/api/download/tv/${imdb}/${s}/${e}`;
+}
+
 const MediaLinks = {
   VAPLAYER_BASE,
   OMNISAVE_BASE,
+  VIDVAULT_BASE,
+  MOVIEDOWNLOADER02_BASE,
   getMovieStreamUrl,
   getEpisodeStreamUrl,
   cleanTitle,
   getMovieDownloadSearch,
   getEpisodeDownloadSearch,
   omnisaveUrl,
+  getVidVaultMovieUrl,
+  getVidVaultEpisodeUrl,
+  get02MovieDownloaderMovieUrl,
+  get02MovieDownloaderEpisodeUrl,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = MediaLinks;
