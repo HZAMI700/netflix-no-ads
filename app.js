@@ -1623,7 +1623,6 @@ function playEmbed(o) {
   f.src = o.url;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
-  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   f.style.cssText = 'flex:1;width:100%;border:none;background:#000';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
