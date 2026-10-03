@@ -569,6 +569,10 @@ function playVidlink(o) {
   f.src = vidlinkUrl(o);
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  // Block pop-unders/ads from inside the embed while keeping playback working:
+  // scripts + same-origin keep the player and postMessage progress alive,
+  // and omitting allow-popups / allow-top-navigation traps popups.
+  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   f.style.cssText = 'flex:1;width:100%;border:none';
   $('playerView').insertBefore(f, $('pTop'));
 }
