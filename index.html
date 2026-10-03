@@ -17,9 +17,7 @@
 <header id="topnav">
   <div class="nav-left">
     <div class="logo" data-nav="home" title="Netflix Home">
-      <svg class="nf-logo" viewBox="0 0 111 30" width="108" height="29" aria-label="Netflix">
-        <path fill="#E50914" d="M105.062 14.28L111 30c-1.78-.25-3.5-.42-5.1-.5l-3.6-9.82-3.6 9.5c-1.6.08-3.32.25-5.1.5l5.94-15.72L94.06 0h5.36l3.4 9.18L106.3 0h5.38l-6.62 14.28zM87.56 0v28.8c1.68.08 3.4.25 5.1.42V0h-5.1zM72.06 0v27.9c1.68.17 3.4.34 5.1.6V16.8h7.2v-4.5h-7.2V4.5h8.5V0h-13.6zM54.06 0v26.7c1.68.25 3.4.5 5.1.84V4.5h8.2V0h-13.3zm-17.7 0v25.2c1.7.34 3.4.67 5.1 1.09V0h-5.1zm-15.6 0v23.8c1.7.42 3.4.84 5.1 1.34V0h-5.1zM0 0v22.2c1.7.5 3.4 1.09 5.1 1.68l9.6-19.38v19.8c1.7.5 3.4 1 5.1 1.5V0h-5.1L5.1 19.38V0H0z"/>
-      </svg>
+      <span class="logo-wordmark">NETFLIX</span>
     </div>
     <nav class="nav-links">
       <a href="#" data-nav="home" class="active">Home</a>
@@ -103,7 +101,7 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
           Manage Profiles
         </a>
-        <a href="#" class="dd-item" onclick="toast('Profile transferred')">
+        <a href="#" class="dd-item" onclick="toast('Profile settings synced')">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
           Transfer Profile
         </a>
@@ -150,7 +148,7 @@
       </div>
     </div>
     <div class="hero-side-controls">
-      <button class="mute-btn" id="heroNext" title="Next feature">
+      <button class="mute-btn" id="heroNext" title="Next featured title">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
       </button>
       <div class="maturity" id="heroMaturity">TV-MA</div>
@@ -177,15 +175,35 @@
 <section class="page" id="mylistPage">
   <div class="page-header">
     <h1>My List</h1>
+    <div id="mylistCount" style="color:#aaa;font-size:14px"></div>
   </div>
   <div id="mylistGrid" class="grid6"></div>
 </section>
 
 <!-- BROWSE (movies/series/new) -->
 <section class="page" id="browsePage">
-  <div class="page-header">
-    <h1 id="browseTitle">Browse</h1>
+  <div class="category-header">
+    <h1 id="browseTitle">TV Shows</h1>
+    <div class="genre-filter-wrap" id="genreFilterWrap">
+      <label for="genreSelect" class="genre-label">Genres</label>
+      <select id="genreSelect">
+        <option value="">All Genres</option>
+        <option value="Action">Action &amp; Adventure</option>
+        <option value="Animation">Animation</option>
+        <option value="Comedy">Comedy</option>
+        <option value="Crime">Crime</option>
+        <option value="Documentary">Documentary</option>
+        <option value="Drama">Drama</option>
+        <option value="Fantasy">Fantasy</option>
+        <option value="Horror">Horror</option>
+        <option value="Mystery">Mystery</option>
+        <option value="Romance">Romance</option>
+        <option value="Sci-Fi">Sci-Fi</option>
+        <option value="Thriller">Thriller</option>
+      </select>
+    </div>
   </div>
+  <div id="browseRows"></div>
   <div id="browseGrid" class="grid6"></div>
 </section>
 
@@ -337,9 +355,7 @@
 <!-- PROFILE GATE -->
 <div id="profileGate">
   <div class="logo">
-    <svg class="nf-logo" viewBox="0 0 111 30" width="130" height="35" aria-label="Netflix">
-      <path fill="#E50914" d="M105.062 14.28L111 30c-1.78-.25-3.5-.42-5.1-.5l-3.6-9.82-3.6 9.5c-1.6.08-3.32.25-5.1.5l5.94-15.72L94.06 0h5.36l3.4 9.18L106.3 0h5.38l-6.62 14.28zM87.56 0v28.8c1.68.08 3.4.25 5.1.42V0h-5.1zM72.06 0v27.9c1.68.17 3.4.34 5.1.6V16.8h7.2v-4.5h-7.2V4.5h8.5V0h-13.6zM54.06 0v26.7c1.68.25 3.4.5 5.1.84V4.5h8.2V0h-13.3zm-17.7 0v25.2c1.7.34 3.4.67 5.1 1.09V0h-5.1zm-15.6 0v23.8c1.7.42 3.4.84 5.1 1.34V0h-5.1zM0 0v22.2c1.7.5 3.4 1.09 5.1 1.68l9.6-19.38v19.8c1.7.5 3.4 1 5.1 1.5V0h-5.1L5.1 19.38V0H0z"/>
-    </svg>
+    <span class="logo-wordmark large">NETFLIX</span>
   </div>
   <h1>Who's watching?</h1>
   <div class="avatars" id="gateAvatars"></div>

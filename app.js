@@ -11,11 +11,11 @@ const store = {
 };
 
 let myList = store.get('nf_mylist', []);
-let history = store.get('nf_history', {});   // id -> {progress, type, title, poster, ...}
+let history = store.get('nf_history', {});
 let likes = store.get('nf_likes', {});
 let dislikes = store.get('nf_dislikes', {});
 let heroItems = [], heroIdx = 0, heroTimer = null;
-let currentDetail = null;   // {meta, type, streams, ep:{s,e}}
+let currentDetail = null;
 let currentStream = null;
 let currentEmbed = null;
 
@@ -85,7 +85,6 @@ function closeAllNavDropdowns() {
   const bd = document.querySelector('.browse-dd'); if (bd) bd.classList.remove('open');
 }
 
-// Avatar dropdown
 const avatarBtn = $('avatarBtn');
 if (avatarBtn) {
   avatarBtn.onclick = (e) => {
@@ -97,7 +96,6 @@ if (avatarBtn) {
   };
 }
 
-// Notifications toggle
 const bellBtn = $('bellBtn');
 if (bellBtn) {
   bellBtn.onclick = (e) => {
@@ -109,7 +107,6 @@ if (bellBtn) {
   };
 }
 
-// Browse dropdown (mobile)
 const browseBtn = $('browseBtn');
 if (browseBtn) {
   browseBtn.onclick = (e) => {
@@ -121,7 +118,6 @@ if (browseBtn) {
   };
 }
 
-// Close dropdowns on outside click
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#profileMenu') && !e.target.closest('#notifWrap') && !e.target.closest('.browse-dd')) {
     closeAllNavDropdowns();
@@ -210,7 +206,7 @@ const backdrop = m => m.background || m.poster || '';
 function matchScore(m) {
   const r = parseFloat(m.imdbRating);
   if (!r || isNaN(r)) return 98;
-  return Math.min(99, Math.max(75, Math.round(r * 10)));
+  return Math.min(99, Math.max(78, Math.round(r * 10)));
 }
 function ageRating(m) {
   return m.certification || (m.type === 'series' ? 'TV-MA' : 'PG-13');
@@ -228,18 +224,25 @@ function metaRowHTML(m) {
   `;
 }
 
-/* ---------- HOME ROWS ---------- */
-const ROWS = [
+/* ---------- HOME ROWS (EXPANDED TO 16+ ORGANIZED CATEGORIES) ---------- */
+const HOME_ROWS = [
   { id: 'continue', title: 'Continue Watching for You', dynamic: 'history' },
-  { id: 'trending', title: 'Trending Now', url: ['movie/top', 'series/top'], mix: true, isTop10: true },
-  { id: 'mylist', title: 'My List', dynamic: 'mylist' },
-  { id: 'movies', title: 'Popular Movies', url: ['movie/top'] },
-  { id: 'series', title: 'Popular TV Shows', url: ['series/top'] },
-  { id: 'toprated', title: 'IMDb Top Rated', url: ['movie/imdbRating'] },
-  { id: 'new', title: 'New Releases', url: ['movie/year'], badge: 'NEW' },
-  { id: 'action', title: 'Action & Adventure', url: ['movie/top'], genre: 'Action' },
-  { id: 'comedy', title: 'Comedies', url: ['movie/top'], genre: 'Comedy' },
-  { id: 'doc', title: 'Documentaries', url: ['movie/top'], genre: 'Documentary' }
+  { id: 'top10', title: 'Top 10 in Movies & TV Today', url: ['movie/top', 'series/top'], mix: true, isTop10: true, limit: 10 },
+  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top'], limit: 45 },
+  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top'], limit: 45 },
+  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating'], limit: 45 },
+  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating'], limit: 45 },
+  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year'], badge: 'NEW', limit: 45 },
+  { id: 'action', title: 'Action & Adrenaline', url: ['movie/top/genre=Action'], limit: 45 },
+  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi'], limit: 45 },
+  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime'], limit: 45 },
+  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy'], limit: 45 },
+  { id: 'horror', title: 'Chilling Horror & Thrillers', url: ['movie/top/genre=Horror'], limit: 45 },
+  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama'], limit: 45 },
+  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation'], limit: 45 },
+  { id: 'fantasy', title: 'Fantasy & Epic Quests', url: ['movie/top/genre=Fantasy'], limit: 45 },
+  { id: 'doc', title: 'Captivating Documentaries', url: ['movie/top/genre=Documentary'], limit: 45 },
+  { id: 'mylist', title: 'My List', dynamic: 'mylist' }
 ];
 
 let catalogCache = {};
@@ -255,11 +258,8 @@ function skels(n) {
   return Array.from({ length: n }, () => '<div class="skel"></div>').join('');
 }
 
-async function buildHome() {
-  const wrap = $('rows');
-  if (!wrap) return;
-
-  wrap.innerHTML = ROWS.map(r => `
+function renderRowSection(r) {
+  return `
     <div class="row-sec" id="row-${r.id}" style="display:none">
       <div class="row-head">
         <div class="row-title-wrap">
@@ -278,32 +278,43 @@ async function buildHome() {
         </button>
       </div>
     </div>
-  `).join('');
+  `;
+}
 
-  wrap.querySelectorAll('.row-arrow').forEach(b => {
+function wireRowControls(sec) {
+  sec.querySelectorAll('.row-arrow').forEach(b => {
     b.onclick = () => {
       const t = b.parentElement.querySelector('.row-track');
       t.scrollBy({ left: (b.classList.contains('right') ? 1 : -1) * t.clientWidth * 0.9, behavior: 'smooth' });
     };
   });
 
-  wrap.querySelectorAll('.row-track').forEach(t => {
+  const t = sec.querySelector('.row-track');
+  if (t) {
     t.addEventListener('scroll', () => {
       const pagesCount = Math.max(1, Math.ceil(t.scrollWidth / t.clientWidth));
       const cur = Math.min(pagesCount - 1, Math.round(t.scrollLeft / t.clientWidth));
-      const dots = t.closest('.row-sec').querySelector('.row-dots');
+      const dots = sec.querySelector('.row-dots');
       if (dots && dots.childElementCount !== pagesCount) {
         dots.innerHTML = Array.from({ length: pagesCount }, (_, k) => `<span class="${k === cur ? 'on' : ''}"></span>`).join('');
       } else if (dots) {
         dots.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', k === cur));
       }
     }, { passive: true });
-  });
+  }
+}
+
+async function buildHome() {
+  const wrap = $('rows');
+  if (!wrap) return;
+
+  wrap.innerHTML = HOME_ROWS.map(r => renderRowSection(r)).join('');
+  wrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
 
   // Hero carousel init
   try {
     const top = await fetchCatalog('movie/top');
-    heroItems = top.slice(0, 7);
+    heroItems = top.slice(0, 8);
     renderHero(0);
     clearInterval(heroTimer);
     heroTimer = setInterval(() => renderHero((heroIdx + 1) % heroItems.length), 8000);
@@ -313,7 +324,7 @@ async function buildHome() {
 
   // Populate rows
   let shown = 0;
-  for (const r of ROWS) {
+  for (const r of HOME_ROWS) {
     const sec = $('row-' + r.id);
     if (!sec) continue;
     const track = sec.querySelector('.row-track');
@@ -325,17 +336,22 @@ async function buildHome() {
       items = myList;
     } else {
       let pool = [];
-      for (const u of r.url) pool = pool.concat(await fetchCatalog(u));
+      for (const u of r.url) {
+        pool = pool.concat(await fetchCatalog(u));
+      }
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
-      items = pool.slice(0, 18);
-      if (r.id === 'new') items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, 18);
+      const max = r.limit || 40;
+      items = pool.slice(0, max);
+      if (r.id === 'new_releases') {
+        items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, max);
+      }
     }
 
     if (!items.length) continue;
     sec.style.display = '';
     sec.classList.add('enter');
-    sec.style.animationDelay = (shown++ * 70) + 'ms';
+    sec.style.animationDelay = (shown++ * 60) + 'ms';
     track.innerHTML = '';
     items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
@@ -687,6 +703,9 @@ function renderMyList() {
   const g = $('mylistGrid');
   if (!g) return;
   g.innerHTML = '';
+  if ($('mylistCount')) {
+    $('mylistCount').textContent = myList.length ? `${myList.length} ${myList.length === 1 ? 'Title' : 'Titles'}` : '';
+  }
   if (!myList.length) {
     g.innerHTML = `
       <div class="empty" style="grid-column:1/-1">
@@ -701,19 +720,100 @@ function renderMyList() {
   myList.forEach(m => g.appendChild(buildCard(m)));
 }
 
-/* ---------- BROWSE ---------- */
+/* ---------- BROWSE (ORGANIZED TV SHOWS, MOVIES, NEW & POPULAR) ---------- */
+let currentBrowseKind = 'movies';
+
 async function openBrowse(kind) {
+  currentBrowseKind = kind;
   show('browse');
+
   const titles = { movies: 'Movies', series: 'TV Shows', new: 'New & Popular' };
   if ($('browseTitle')) $('browseTitle').textContent = titles[kind] || 'Browse';
-  if ($('browseGrid')) $('browseGrid').innerHTML = skels(12);
 
-  const spec = kind === 'series' ? 'series/top' : kind === 'new' ? 'movie/year' : 'movie/top';
-  const items = await fetchCatalog(spec);
-  if ($('browseGrid')) {
-    $('browseGrid').innerHTML = '';
-    items.slice(0, 60).forEach(m => $('browseGrid').appendChild(buildCard(m)));
+  const filterWrap = $('genreFilterWrap');
+  if (filterWrap) filterWrap.style.display = kind === 'new' ? 'none' : 'flex';
+
+  const genreSelect = $('genreSelect');
+  if (genreSelect) {
+    genreSelect.value = '';
+    genreSelect.onchange = () => filterBrowseByGenre(genreSelect.value);
   }
+
+  await loadCategoryRows(kind);
+}
+
+async function loadCategoryRows(kind) {
+  const rowsWrap = $('browseRows');
+  const gridWrap = $('browseGrid');
+  if (!rowsWrap || !gridWrap) return;
+
+  gridWrap.innerHTML = '';
+  rowsWrap.innerHTML = skels(6);
+
+  let categoryRows = [];
+  if (kind === 'series') {
+    categoryRows = [
+      { id: 'b_series_top', title: 'Popular TV Shows', url: 'series/top' },
+      { id: 'b_series_rated', title: 'Critically Acclaimed TV', url: 'series/imdbRating' },
+      { id: 'b_series_crime', title: 'Crime, Mystery & Thrillers', url: 'series/top/genre=Crime' },
+      { id: 'b_series_scifi', title: 'Sci-Fi & Supernatural', url: 'series/top/genre=Sci-Fi' },
+      { id: 'b_series_drama', title: 'Binge-Worthy Dramas', url: 'series/top/genre=Drama' },
+      { id: 'b_series_comedy', title: 'Sitcoms & Comedies', url: 'series/top/genre=Comedy' },
+      { id: 'b_series_anime', title: 'Anime & Animation', url: 'series/top/genre=Animation' }
+    ];
+  } else if (kind === 'movies') {
+    categoryRows = [
+      { id: 'b_mov_top', title: 'Blockbuster Movies', url: 'movie/top' },
+      { id: 'b_mov_rated', title: 'IMDb Top Rated Movies', url: 'movie/imdbRating' },
+      { id: 'b_mov_action', title: 'High-Octane Action', url: 'movie/top/genre=Action' },
+      { id: 'b_mov_scifi', title: 'Sci-Fi & Fantasy Hits', url: 'movie/top/genre=Sci-Fi' },
+      { id: 'b_mov_comedy', title: 'Comedies & Feel-Good', url: 'movie/top/genre=Comedy' },
+      { id: 'b_mov_horror', title: 'Horror & Suspense', url: 'movie/top/genre=Horror' },
+      { id: 'b_mov_doc', title: 'Documentary Films', url: 'movie/top/genre=Documentary' }
+    ];
+  } else if (kind === 'new') {
+    categoryRows = [
+      { id: 'b_new_mov', title: 'New Movie Releases', url: 'movie/year', badge: 'NEW' },
+      { id: 'b_new_series', title: 'New Series & Fresh Seasons', url: 'series/year', badge: 'NEW' },
+      { id: 'b_new_top', title: 'Trending This Week', url: 'movie/top', isTop10: true }
+    ];
+  }
+
+  rowsWrap.innerHTML = categoryRows.map(r => renderRowSection(r)).join('');
+  rowsWrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
+
+  for (const r of categoryRows) {
+    const sec = $('row-' + r.id);
+    if (!sec) continue;
+    const track = sec.querySelector('.row-track');
+    const items = await fetchCatalog(r.url);
+    if (!items.length) continue;
+    sec.style.display = '';
+    track.innerHTML = '';
+    items.slice(0, 40).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+    track.dispatchEvent(new Event('scroll'));
+  }
+}
+
+async function filterBrowseByGenre(genre) {
+  const rowsWrap = $('browseRows');
+  const gridWrap = $('browseGrid');
+  if (!rowsWrap || !gridWrap) return;
+
+  if (!genre) {
+    gridWrap.innerHTML = '';
+    await loadCategoryRows(currentBrowseKind);
+    return;
+  }
+
+  rowsWrap.innerHTML = '';
+  gridWrap.innerHTML = skels(12);
+
+  const type = currentBrowseKind === 'series' ? 'series' : 'movie';
+  const items = await fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`);
+
+  gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
+  items.slice(0, 60).forEach(m => gridWrap.appendChild(buildCard(m)));
 }
 
 /* ---------- PROFILES ---------- */

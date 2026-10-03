@@ -89,13 +89,13 @@ img {
   justify-content: space-between;
   padding: 0 var(--pad);
   z-index: 1000;
-  background: linear-gradient(180deg, rgba(0,0,0,0.7) 10%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 15%, rgba(0,0,0,0) 100%);
   transition: background-color 0.4s ease, box-shadow 0.4s ease;
 }
 
 #topnav.scrolled {
   background: var(--nf-black);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
 }
 
 .nav-left {
@@ -112,12 +112,25 @@ img {
   transition: transform 0.2s ease;
 }
 .logo:hover {
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
-.nf-logo {
-  display: block;
-  height: clamp(22px, 2.5vw, 30px);
-  width: auto;
+
+.logo-wordmark {
+  color: var(--nf-red);
+  font-family: 'Bebas Neue', Impact, 'Arial Black', sans-serif;
+  font-size: clamp(26px, 2.6vw, 36px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 1;
+  display: inline-block;
+  transform: scaleY(1.15);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.logo-wordmark.large {
+  font-size: clamp(42px, 5.5vw, 68px);
+  letter-spacing: 3px;
+  transform: scaleY(1.18);
 }
 
 .nav-links {
@@ -471,7 +484,8 @@ img {
 #hero {
   position: relative;
   height: 85vh;
-  min-height: 520px;
+  min-height: 620px;
+  max-height: 940px;
   width: 100%;
   overflow: hidden;
   background: var(--nf-pure-black);
@@ -490,42 +504,48 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.8s ease;
   transform-origin: center center;
 }
 
 .hero-bg-wrap .grad-top {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 22%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 20%, transparent 35%);
   pointer-events: none;
 }
 .hero-bg-wrap .grad-left {
   position: absolute;
   inset: 0;
-  background: linear-gradient(77deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 45%, transparent 85%);
+  background: linear-gradient(77deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.7) 25%, rgba(0,0,0,0.2) 60%, transparent 85%);
   pointer-events: none;
 }
 .hero-bg-wrap .grad-bottom {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 45%, rgba(20,20,20,0.6) 75%, var(--nf-black) 100%);
+  background: linear-gradient(180deg, transparent 40%, rgba(20,20,20,0.4) 65%, rgba(20,20,20,0.88) 85%, var(--nf-black) 100%);
   pointer-events: none;
 }
 
 .hero-content {
   position: absolute;
   left: var(--pad);
-  bottom: 14%;
+  bottom: 22%;
   max-width: 44%;
   z-index: 5;
+  animation: heroUp 0.6s var(--ease-out) both;
+}
+
+@keyframes heroUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .hero-kicker {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .hero-kicker .n-badge {
   display: flex;
@@ -540,11 +560,11 @@ img {
 }
 
 #heroTitle {
-  font-size: clamp(32px, 4.8vw, 64px);
+  font-size: clamp(32px, 4.6vw, 64px);
   font-weight: 900;
   line-height: 1.05;
   letter-spacing: -0.01em;
-  text-shadow: 2px 2px 12px rgba(0, 0, 0, 0.9);
+  text-shadow: 2px 2px 14px rgba(0, 0, 0, 0.95);
   margin-bottom: 14px;
   color: #ffffff;
 }
@@ -624,7 +644,7 @@ img {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
 }
 .btn-play:hover {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.8);
   transform: scale(1.03);
 }
 
@@ -646,11 +666,11 @@ img {
   transform: scale(1.03);
 }
 
-/* Side controls (Maturity tag + Next/Replay button) */
+/* Side controls (Maturity tag + Next button) */
 .hero-side-controls {
   position: absolute;
   right: 0;
-  bottom: 18%;
+  bottom: 22%;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -713,11 +733,11 @@ img {
 #rows {
   position: relative;
   z-index: 10;
-  margin-top: -120px;
+  margin-top: -50px;
   display: flex;
   flex-direction: column;
-  gap: 44px;
-  padding-bottom: 60px;
+  gap: 48px;
+  padding-bottom: 80px;
 }
 
 .row-sec {
@@ -730,7 +750,7 @@ img {
   align-items: baseline;
   justify-content: space-between;
   padding: 0 var(--pad);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .row-title-wrap {
   display: flex;
@@ -783,7 +803,7 @@ img {
 
 .row-track {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -796,14 +816,14 @@ img {
 /* Card base */
 .card {
   position: relative;
-  flex: 0 0 calc((100% - 30px) / 6);
+  flex: 0 0 calc((100% - 40px) / 6);
   min-width: 0;
   aspect-ratio: 2 / 3;
   border-radius: 4px;
   overflow: visible;
   background: #181818;
   cursor: pointer;
-  transition: transform 0.35s var(--ease), z-index 0.35s step-start;
+  transition: transform 0.32s var(--ease-out), z-index 0.32s step-start;
 }
 .card.landscape {
   aspect-ratio: 16 / 9;
@@ -854,7 +874,7 @@ img {
   justify-content: center;
   font-weight: 900;
   line-height: 1;
-  font-size: 9px;
+  font-size: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.7);
   z-index: 2;
 }
@@ -929,7 +949,7 @@ img {
   opacity: 1;
 }
 .row-arrow:hover {
-  background: rgba(20, 20, 20, 0.88);
+  background: rgba(20, 20, 20, 0.9);
 }
 .row-arrow svg {
   transition: transform 0.2s ease;
@@ -959,10 +979,16 @@ img {
   .card.expandable:hover {
     transform: scale(1.22);
     z-index: 50;
-    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.92);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95);
   }
   .card.expandable:hover .card-inner {
     border-radius: 6px 6px 0 0;
+  }
+  .card:first-child.expandable:hover {
+    transform-origin: left center;
+  }
+  .card:last-child.expandable:hover {
+    transform-origin: right center;
   }
 }
 
@@ -974,7 +1000,7 @@ img {
   background: var(--nf-surface);
   padding: 12px 14px 16px;
   border-radius: 0 0 6px 6px;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.92);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95);
   display: none;
   z-index: 51;
 }
@@ -1047,10 +1073,10 @@ img {
 }
 .skel-track {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 .skel {
-  flex: 0 0 calc((100% - 30px) / 6);
+  flex: 0 0 calc((100% - 40px) / 6);
   aspect-ratio: 2 / 3;
   border-radius: 4px;
   background: linear-gradient(90deg, #181818 0%, #262626 50%, #181818 100%);
@@ -1059,6 +1085,50 @@ img {
 }
 @keyframes sh {
   to { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   CATEGORY SUB-NAV (TV Shows, Movies, New & Popular)
+   ========================================================================== */
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.category-header h1 {
+  font-size: clamp(28px, 3.2vw, 42px);
+  font-weight: 800;
+  color: #ffffff;
+}
+.genre-filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.genre-label {
+  font-size: 13px;
+  color: var(--nf-gray);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.genre-filter-wrap select {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #555555;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.genre-filter-wrap select:hover {
+  border-color: #ffffff;
+  background: #181818;
 }
 
 /* ==========================================================================
@@ -1880,7 +1950,7 @@ footer {
    ========================================================================== */
 @media (max-width: 1100px) {
   .card {
-    flex-basis: calc((100% - 18px) / 4);
+    flex-basis: calc((100% - 24px) / 4);
   }
   .grid6 {
     grid-template-columns: repeat(4, 1fr);
@@ -1893,12 +1963,17 @@ footer {
   }
   .hero-content {
     max-width: 65%;
+    bottom: 20%;
   }
 }
 
 @media (max-width: 800px) {
+  #hero {
+    height: 72vh;
+    min-height: 500px;
+  }
   .card {
-    flex-basis: calc((100% - 12px) / 3);
+    flex-basis: calc((100% - 16px) / 3);
   }
   .grid6 {
     grid-template-columns: repeat(3, 1fr);
@@ -1914,21 +1989,26 @@ footer {
     grid-template-columns: repeat(2, 1fr);
   }
   .hero-content {
-    max-width: 85%;
+    max-width: 88%;
+    bottom: 18%;
+  }
+  #rows {
+    margin-top: -30px;
+    gap: 36px;
   }
 }
 
 @media (max-width: 600px) {
   #hero {
-    height: 65vh;
+    height: 68vh;
     min-height: 440px;
   }
   .hero-content {
     max-width: 95%;
-    bottom: 12%;
+    bottom: 14%;
   }
   .card {
-    flex-basis: 45%;
+    flex-basis: 46%;
   }
   .grid6 {
     grid-template-columns: repeat(2, 1fr);
