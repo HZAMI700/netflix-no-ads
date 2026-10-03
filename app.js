@@ -46,6 +46,7 @@ const pages = {
 };
 
 function show(name) {
+  closeCardPortal();
   Object.entries(pages).forEach(([k, el]) => {
     if (!el) return;
     el.classList.toggle('show', k === name || (name === 'home' && k === 'home'));
@@ -74,9 +75,34 @@ document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click',
   if (n === 'settings') renderAddons();
 }));
 
+/* ---------- SCROLL & HOVER INTENT SYSTEM ---------- */
+let activeHoverCard = null;
+let cardHoverTimer = null;
+let cardLeaveTimer = null;
+let isScrolling = false;
+let scrollEndTimer = null;
+let isRowDragging = false;
+
+function onScrollActivity() {
+  clearTimeout(cardHoverTimer);
+  closeCardPortal();
+
+  if (!isScrolling) {
+    isScrolling = true;
+    document.body.classList.add('is-scrolling');
+  }
+
+  clearTimeout(scrollEndTimer);
+  scrollEndTimer = setTimeout(() => {
+    isScrolling = false;
+    document.body.classList.remove('is-scrolling');
+  }, 120);
+}
+
 window.addEventListener('scroll', () => {
   const nav = $('topnav');
   if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
+  onScrollActivity();
 }, { passive: true });
 
 function closeAllNavDropdowns() {
@@ -282,26 +308,63 @@ function renderRowSection(r) {
 }
 
 function wireRowControls(sec) {
+  const t = sec.querySelector('.row-track');
+  if (!t) return;
+
   sec.querySelectorAll('.row-arrow').forEach(b => {
     b.onclick = () => {
-      const t = b.parentElement.querySelector('.row-track');
+      closeCardPortal();
       t.scrollBy({ left: (b.classList.contains('right') ? 1 : -1) * t.clientWidth * 0.9, behavior: 'smooth' });
     };
   });
 
-  const t = sec.querySelector('.row-track');
-  if (t) {
-    t.addEventListener('scroll', () => {
-      const pagesCount = Math.max(1, Math.ceil(t.scrollWidth / t.clientWidth));
-      const cur = Math.min(pagesCount - 1, Math.round(t.scrollLeft / t.clientWidth));
-      const dots = sec.querySelector('.row-dots');
-      if (dots && dots.childElementCount !== pagesCount) {
-        dots.innerHTML = Array.from({ length: pagesCount }, (_, k) => `<span class="${k === cur ? 'on' : ''}"></span>`).join('');
-      } else if (dots) {
-        dots.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', k === cur));
+  t.addEventListener('scroll', () => {
+    onScrollActivity();
+    const pagesCount = Math.max(1, Math.ceil(t.scrollWidth / t.clientWidth));
+    const cur = Math.min(pagesCount - 1, Math.round(t.scrollLeft / t.clientWidth));
+    const dots = sec.querySelector('.row-dots');
+    if (dots && dots.childElementCount !== pagesCount) {
+      dots.innerHTML = Array.from({ length: pagesCount }, (_, k) => `<span class="${k === cur ? 'on' : ''}"></span>`).join('');
+    } else if (dots) {
+      dots.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', k === cur));
+    }
+  }, { passive: true });
+
+  // Mouse drag-to-scroll implementation
+  let isDown = false;
+  let startX = 0;
+  let scrollStart = 0;
+  let dragDist = 0;
+
+  t.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    isDown = true;
+    startX = e.pageX;
+    scrollStart = t.scrollLeft;
+    dragDist = 0;
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    const diff = e.pageX - startX;
+    dragDist = Math.abs(diff);
+    if (dragDist > 6) {
+      isRowDragging = true;
+      closeCardPortal();
+      t.scrollLeft = scrollStart - diff;
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDown) {
+      isDown = false;
+      if (dragDist > 6) {
+        setTimeout(() => { isRowDragging = false; }, 120);
+      } else {
+        isRowDragging = false;
       }
-    }, { passive: true });
-  }
+    }
+  });
 }
 
 async function buildHome() {
@@ -358,47 +421,93 @@ async function buildHome() {
   }
 }
 
-function buildCard(m, badge, rank) {
-  const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
-  const el = document.createElement('div');
-  el.className = 'card expandable';
-  if (m._progress) el.classList.add('landscape');
+/* ---------- NETFLIX CARD HOVER PORTAL ---------- */
+function onCardMouseEnter(card, meta, badge, rank) {
+  if (isScrolling || isRowDragging) return;
+  clearTimeout(cardLeaveTimer);
+  clearTimeout(cardHoverTimer);
 
-  const prog = m._progress ? `<div class="progress"><i style="width:${Math.round(m._progress * 100)}%"></i></div>` : '';
-  const top10Html = rank && rank <= 10
-    ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
-    : '';
+  cardHoverTimer = setTimeout(() => {
+    if (isScrolling || isRowDragging) return;
+    openCardPortal(card, meta, badge, rank);
+  }, 320);
+}
+
+function onCardMouseLeave(card) {
+  clearTimeout(cardHoverTimer);
+  cardLeaveTimer = setTimeout(() => {
+    const portal = $('cardPortal');
+    if (portal && !portal.matches(':hover') && !card.matches(':hover')) {
+      closeCardPortal();
+    }
+  }, 160);
+}
+
+function openCardPortal(card, m, badge, rank) {
+  const portal = $('cardPortal');
+  if (!portal || isScrolling || isRowDragging) return;
+
+  const rect = card.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+  if (rect.bottom < 60 || rect.top > window.innerHeight - 20) return;
+
+  activeHoverCard = card;
+
+  const scale = 1.25;
+  const pw = Math.round(rect.width * scale);
+
+  const pad = 16;
+  let left = Math.round(rect.left - (pw - rect.width) / 2);
+  let originX = 'center';
+  if (left < pad) {
+    left = Math.max(pad, Math.round(rect.left));
+    originX = 'left';
+  } else if (left + pw > window.innerWidth - pad) {
+    left = Math.min(window.innerWidth - pad - pw, Math.round(rect.right - pw));
+    originX = 'right';
+  }
+
+  let top = Math.round(rect.top - 24);
+  if (top < 70) top = Math.max(70, Math.round(rect.top));
+
+  portal.style.width = `${pw}px`;
+  portal.style.left = `${left}px`;
+  portal.style.top = `${top}px`;
+  portal.style.transformOrigin = `${originX} center`;
 
   const inList = myList.some(x => x.id === m.id);
   const isLiked = !!likes[m.id];
   const genresStr = (m.genres || ['Drama', 'Thriller']).slice(0, 3).join(' • ');
+  const top10Html = rank && rank <= 10
+    ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
+    : '';
 
-  el.innerHTML = `
-    <div class="card-inner">
+  portal.innerHTML = `
+    <div class="portal-thumb-wrap">
       ${badge ? `<span class="new-badge">${badge}</span>` : ''}
       ${top10Html}
-      ${m._progress ? `<span class="remove-x" title="Remove from Continue Watching">✕</span>` : ''}
-      <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23181818%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23777%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>${encodeURIComponent((m.name || '?').slice(0, 18))}</text></svg>'">
-      ${prog}
+      <img src="${backdrop(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='${poster(m)}'">
+      <div class="portal-thumb-grad"></div>
     </div>
-    <div class="hover-pop">
+    <div class="portal-info">
+      <div class="portal-title">${m.name || 'Untitled'}</div>
       <div class="hbtns">
-        <button class="cbtn solid" data-a="play" title="Play">
+        <button class="cbtn solid" data-pa="play" title="Play">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         </button>
-        <button class="cbtn" data-a="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">
+        <button class="cbtn" data-pa="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">
           ${inList
             ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
             : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'}
         </button>
-        <button class="cbtn ${isLiked ? 'solid' : ''}" data-a="like" title="I like this">
+        <button class="cbtn ${isLiked ? 'solid' : ''}" data-pa="like" title="I like this">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
         </button>
-        <button class="cbtn" data-a="dislike" title="Not for me">
+        <button class="cbtn" data-pa="dislike" title="Not for me">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
         </button>
         <span style="flex:1"></span>
-        <button class="cbtn" data-a="info" title="Episode & Info">
+        <button class="cbtn" data-pa="info" title="Episode & Info">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
       </div>
@@ -412,9 +521,100 @@ function buildCard(m, badge, rank) {
     </div>
   `;
 
+  portal.style.display = 'block';
+  void portal.offsetWidth;
+  portal.classList.add('open');
+
+  portal.onclick = (e) => {
+    const a = e.target.closest('[data-pa]')?.dataset.pa;
+    const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
+
+    if (a === 'play') {
+      closeCardPortal();
+      if (m._embed) { playEmbedEntry(m); }
+      else { openDetail(m.id, type, true); }
+    } else if (a === 'list') {
+      toggleList(m);
+      const listBtn = portal.querySelector('[data-pa="list"]');
+      if (listBtn) {
+        const nowInList = myList.some(x => x.id === m.id);
+        listBtn.innerHTML = nowInList
+          ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
+          : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+      }
+    } else if (a === 'like') {
+      likes[m.id] = !likes[m.id];
+      delete dislikes[m.id];
+      store.set('nf_likes', likes);
+      toast(likes[m.id] ? 'Rated: I like this' : 'Rating removed');
+      const likeBtn = portal.querySelector('[data-pa="like"]');
+      if (likeBtn) likeBtn.classList.toggle('solid', !!likes[m.id]);
+    } else if (a === 'dislike') {
+      dislikes[m.id] = !dislikes[m.id];
+      delete likes[m.id];
+      store.set('nf_dislikes', dislikes);
+      toast(dislikes[m.id] ? 'Not for me' : 'Rating removed');
+      const likeBtn = portal.querySelector('[data-pa="like"]');
+      if (likeBtn) likeBtn.classList.remove('solid');
+    } else {
+      closeCardPortal();
+      if (m._embed) { playEmbedEntry(m); }
+      else { openDetail(m.id, type, false); }
+    }
+  };
+}
+
+function closeCardPortal() {
+  const portal = $('cardPortal');
+  if (!portal) return;
+  portal.classList.remove('open');
+  portal.style.display = 'none';
+  activeHoverCard = null;
+}
+
+const portalEl = $('cardPortal');
+if (portalEl) {
+  portalEl.addEventListener('mouseenter', () => {
+    clearTimeout(cardLeaveTimer);
+  });
+  portalEl.addEventListener('mouseleave', () => {
+    clearTimeout(cardLeaveTimer);
+    cardLeaveTimer = setTimeout(() => {
+      if (activeHoverCard && !activeHoverCard.matches(':hover')) {
+        closeCardPortal();
+      }
+    }, 120);
+  });
+}
+
+function buildCard(m, badge, rank) {
+  const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
+  const el = document.createElement('div');
+  el.className = 'card';
+  if (m._progress) el.classList.add('landscape');
+
+  const prog = m._progress ? `<div class="progress"><i style="width:${Math.round(m._progress * 100)}%"></i></div>` : '';
+  const top10Html = rank && rank <= 10
+    ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
+    : '';
+
+  el.innerHTML = `
+    <div class="card-inner">
+      ${badge ? `<span class="new-badge">${badge}</span>` : ''}
+      ${top10Html}
+      ${m._progress ? `<span class="remove-x" title="Remove from Continue Watching">✕</span>` : ''}
+      <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23181818%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23777%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>${encodeURIComponent((m.name || '?').slice(0, 18))}</text></svg>'">
+      ${prog}
+    </div>
+  `;
+
+  // Authentic Netflix hover intent delay
+  el.addEventListener('mouseenter', () => onCardMouseEnter(el, m, badge, rank));
+  el.addEventListener('mouseleave', () => onCardMouseLeave(el));
+
   el.onclick = e => {
+    if (isRowDragging) return;
     if (m._embed) { playEmbedEntry(m); return; }
-    const a = e.target.closest('[data-a]')?.dataset.a;
     const rx = e.target.closest('.remove-x');
 
     if (rx) {
@@ -426,29 +626,7 @@ function buildCard(m, badge, rank) {
     }
 
     const id = m.id, tp = m.type || type;
-    if (a === 'play') {
-      openDetail(id, tp, true);
-    } else if (a === 'list') {
-      toggleList(m);
-      const listBtn = el.querySelector('[data-a="list"]');
-      if (listBtn) {
-        const nowInList = myList.some(x => x.id === m.id);
-        listBtn.innerHTML = nowInList
-          ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
-          : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
-      }
-    } else if (a === 'like') {
-      likes[id] = !likes[id];
-      delete dislikes[id];
-      store.set('nf_likes', likes);
-      toast(likes[id] ? 'Rated: I like this' : 'Rating removed');
-    } else if (a === 'dislike') {
-      dislikes[id] = !dislikes[id];
-      delete likes[id];
-      toast(dislikes[id] ? 'Not for me' : 'Rating removed');
-    } else {
-      openDetail(id, tp, false);
-    }
+    openDetail(id, tp, false);
   };
 
   return el;
@@ -512,6 +690,7 @@ if (heroNext) {
 
 /* ---------- DETAIL MODAL ---------- */
 async function openDetail(id, type, autoplay) {
+  closeCardPortal();
   type = type === 'series' ? 'series' : 'movie';
   const backdropEl = $('detailBackdrop');
   if (backdropEl) backdropEl.classList.add('show');
@@ -1043,6 +1222,7 @@ function showPlayerError(msg) {
 }
 
 function openPlayerShell(title) {
+  closeCardPortal();
   _allowNavigation = false;
   closeDetail();
   hidePlayerError();

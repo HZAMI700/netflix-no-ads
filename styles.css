@@ -805,9 +805,17 @@ img {
   display: flex;
   gap: 8px;
   overflow-x: auto;
-  scroll-behavior: smooth;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+  touch-action: pan-y;
   scrollbar-width: none;
-  padding: 16px 0 24px;
+  padding: 14px 0 18px;
+  cursor: grab;
+  user-select: none;
+}
+.row-track:active {
+  cursor: grabbing;
 }
 .row-track::-webkit-scrollbar {
   display: none;
@@ -820,10 +828,11 @@ img {
   min-width: 0;
   aspect-ratio: 2 / 3;
   border-radius: 4px;
-  overflow: visible;
+  overflow: hidden;
   background: #181818;
   cursor: pointer;
-  transition: transform 0.32s var(--ease-out), z-index 0.32s step-start;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  user-select: none;
 }
 .card.landscape {
   aspect-ratio: 16 / 9;
@@ -842,6 +851,9 @@ img {
   height: 100%;
   object-fit: cover;
   transition: transform 0.4s var(--ease);
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Badges */
@@ -970,51 +982,82 @@ img {
 }
 
 /* ==========================================================================
-   NETFLIX CARD HOVER EXPANSION
+   NETFLIX CARD HOVER & SCROLL SUPPRESSION
    ========================================================================== */
 @media (hover: hover) {
-  .card.expandable {
-    transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
-  }
-  .card.expandable:hover {
-    transform: scale(1.22);
-    z-index: 50;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95);
-  }
-  .card.expandable:hover .card-inner {
-    border-radius: 6px 6px 0 0;
-  }
-  .card:first-child.expandable:hover {
-    transform-origin: left center;
-  }
-  .card:last-child.expandable:hover {
-    transform-origin: right center;
+  body:not(.is-scrolling) .card:hover {
+    transform: scale(1.03);
+    z-index: 5;
   }
 }
 
-.hover-pop {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--nf-surface);
-  padding: 12px 14px 16px;
-  border-radius: 0 0 6px 6px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.95);
+body.is-scrolling .card {
+  pointer-events: none !important;
+  transform: none !important;
+  transition: none !important;
+}
+body.is-scrolling #cardPortal {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+/* ==========================================================================
+   NETFLIX CARD HOVER PORTAL (PREVIEW CARD)
+   ========================================================================== */
+#cardPortal {
+  position: fixed;
+  z-index: 2500;
+  background: #181818;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.14);
   display: none;
-  z-index: 51;
+  opacity: 0;
+  pointer-events: auto;
+  cursor: pointer;
+  transform: scale(0.96);
+  transition: opacity 0.2s cubic-bezier(0.2, 0, 0.1, 1), transform 0.2s cubic-bezier(0.2, 0, 0.1, 1);
 }
-.card.expandable:hover .hover-pop {
+#cardPortal.open {
   display: block;
-  animation: hoverPopIn 0.2s var(--ease-out);
+  opacity: 1;
+  transform: scale(1);
+}
+#cardPortal .portal-thumb-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #141414;
+  overflow: hidden;
+}
+#cardPortal .portal-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+#cardPortal .portal-thumb-grad {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(24, 24, 24, 0.95) 100%);
+  pointer-events: none;
+}
+#cardPortal .portal-info {
+  padding: 12px 14px 16px;
+  background: #181818;
+}
+#cardPortal .portal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-@keyframes hoverPopIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.hover-pop .hbtns {
+.hbtns {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1049,7 +1092,7 @@ img {
   transform: scale(1.1);
 }
 
-.hover-pop .hm {
+.hm, .hover-pop .hm {
   font-size: 11px;
   font-weight: 600;
   color: #cccccc;
@@ -1058,7 +1101,7 @@ img {
   align-items: center;
   flex-wrap: wrap;
 }
-.hover-pop .genres-line {
+.genres-line, .hover-pop .genres-line {
   font-size: 11px;
   color: #999999;
   margin-top: 6px;
