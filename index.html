@@ -3,17 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NETFLIX — Watch Movies & TV Shows</title>
+<title>NETFLIX — Watch Movies &amp; TV Shows Online</title>
 <meta name="description" content="Netflix-style streaming portal. Educational purposes only.">
 <link rel="preconnect" href="https://v3-cinemeta.strem.io">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
+<!-- TOP NAVIGATION -->
 <header id="topnav">
   <div class="nav-left">
-    <div class="logo" data-nav="home">NETFLIX</div>
+    <div class="logo" data-nav="home" title="Netflix Home">
+      <svg class="nf-logo" viewBox="0 0 111 30" width="108" height="29" aria-label="Netflix">
+        <path fill="#E50914" d="M105.062 14.28L111 30c-1.78-.25-3.5-.42-5.1-.5l-3.6-9.82-3.6 9.5c-1.6.08-3.32.25-5.1.5l5.94-15.72L94.06 0h5.36l3.4 9.18L106.3 0h5.38l-6.62 14.28zM87.56 0v28.8c1.68.08 3.4.25 5.1.42V0h-5.1zM72.06 0v27.9c1.68.17 3.4.34 5.1.6V16.8h7.2v-4.5h-7.2V4.5h8.5V0h-13.6zM54.06 0v26.7c1.68.25 3.4.5 5.1.84V4.5h8.2V0h-13.3zm-17.7 0v25.2c1.7.34 3.4.67 5.1 1.09V0h-5.1zm-15.6 0v23.8c1.7.42 3.4.84 5.1 1.34V0h-5.1zM0 0v22.2c1.7.5 3.4 1.09 5.1 1.68l9.6-19.38v19.8c1.7.5 3.4 1 5.1 1.5V0h-5.1L5.1 19.38V0H0z"/>
+      </svg>
+    </div>
     <nav class="nav-links">
       <a href="#" data-nav="home" class="active">Home</a>
       <a href="#" data-nav="series">TV Shows</a>
@@ -23,21 +30,87 @@
       <a href="#" data-nav="settings">Settings</a>
     </nav>
     <div class="browse-dd">
-      <button class="browse-btn" id="browseBtn">Browse ▾</button>
+      <button class="browse-btn" id="browseBtn">
+        <span>Browse</span>
+        <svg class="caret" viewBox="0 0 10 6" width="10" height="6"><polygon points="0,0 10,0 5,6" fill="currentColor"/></svg>
+      </button>
+      <div class="browse-menu" id="browseMenu">
+        <a href="#" data-nav="home">Home</a>
+        <a href="#" data-nav="series">TV Shows</a>
+        <a href="#" data-nav="movies">Movies</a>
+        <a href="#" data-nav="new">New &amp; Popular</a>
+        <a href="#" data-nav="mylist">My List</a>
+        <a href="#" data-nav="settings">Settings</a>
+      </div>
     </div>
   </div>
   <div class="nav-right">
-    <div id="searchWrap"><input id="searchInput" placeholder="Titles, people, genres"></div>
-    <button class="icon-btn" id="searchBtn" title="Search">🔍</button>
-    <button class="icon-btn" id="bellBtn" title="Notifications">🔔<span class="dot"></span></button>
+    <div id="searchWrap">
+      <button class="search-lens-btn" id="searchLensBtn" aria-label="Search">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+      <input id="searchInput" placeholder="Titles, people, genres" autocomplete="off" spellcheck="false">
+      <button class="search-clear-btn" id="searchClearBtn" aria-label="Clear search">✕</button>
+    </div>
+    <button class="icon-btn" id="searchBtn" title="Search">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    </button>
+    <div class="notif-menu-wrap" id="notifWrap">
+      <button class="icon-btn" id="bellBtn" title="Notifications">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        <span class="dot"></span>
+      </button>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">Notifications</div>
+        <div class="notif-list">
+          <div class="notif-item unread">
+            <div class="notif-icon-box">N</div>
+            <div class="notif-info">
+              <div class="notif-title">New Arrival: Stranger Things</div>
+              <div class="notif-desc">Explore the final season in Hawkins.</div>
+              <div class="notif-time">2 days ago</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon-box" style="background:#1f6feb">★</div>
+            <div class="notif-info">
+              <div class="notif-title">Top 10 Today: Dune: Part Two</div>
+              <div class="notif-desc">Now ranked #1 in Movies today.</div>
+              <div class="notif-time">4 days ago</div>
+            </div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon-box" style="background:#238636">▶</div>
+            <div class="notif-info">
+              <div class="notif-title">Continue Watching</div>
+              <div class="notif-desc">Pick up right where you left off.</div>
+              <div class="notif-time">1 week ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="profile-menu" id="profileMenu">
-      <div class="avatar" id="avatarBtn">N</div>
+      <div class="avatar" id="avatarBtn">
+        <span id="avatarLetter">N</span>
+        <svg class="profile-caret" viewBox="0 0 10 6" width="10" height="6"><polygon points="0,0 10,0 5,6" fill="currentColor"/></svg>
+      </div>
       <div class="dropdown">
-        <a href="#" data-nav="profiles">Manage Profiles</a>
+        <div class="profile-switcher-list" id="profileSwitcherList">
+          <!-- Populated dynamically -->
+        </div>
+        <a href="#" data-nav="profiles" class="dd-item">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          Manage Profiles
+        </a>
+        <a href="#" class="dd-item" onclick="toast('Profile transferred')">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+          Transfer Profile
+        </a>
         <hr>
-        <a href="#" data-nav="settings">Account</a>
-        <a href="#" data-nav="settings">Help Center</a>
-        <a href="#" id="signOut">Sign out</a>
+        <a href="#" data-nav="settings" class="dd-item">Account</a>
+        <a href="#" data-nav="settings" class="dd-item">Help Center</a>
+        <a href="#" id="signOut" class="dd-item logout-link">Sign out of Netflix</a>
       </div>
     </div>
   </div>
@@ -46,20 +119,42 @@
 <!-- HOME -->
 <main id="homePage">
   <section id="hero">
-    <img id="heroBg" alt="Featured backdrop">
-    <div class="grad-left"></div><div class="grad-bottom"></div>
+    <div class="hero-bg-wrap">
+      <img id="heroBg" alt="Featured backdrop">
+      <div class="grad-top"></div>
+      <div class="grad-left"></div>
+      <div class="grad-bottom"></div>
+    </div>
     <div class="hero-content">
-      <div class="hero-kicker"><b>N</b> &nbsp;S E R I E S</div>
+      <div class="hero-kicker">
+        <span class="n-badge">
+          <svg viewBox="0 0 18 32" width="16" height="28" aria-hidden="true">
+            <path fill="#E50914" d="M0 0h4.5v19.4L13.5 0H18v32h-4.5V12.6L4.5 32H0V0z"/>
+            <path fill="#B81D24" d="M13.5 0L4.5 32H0l9-32h4.5z" opacity="0.4"/>
+          </svg>
+        </span>
+        <span class="kicker-type" id="heroKickerType">S E R I E S</span>
+      </div>
       <h1 id="heroTitle">Loading…</h1>
       <div class="meta-row" id="heroMeta"></div>
       <p id="heroDesc"></p>
       <div class="hero-btns">
-        <button class="btn-play" id="heroPlay">▶ Play</button>
-        <button class="btn-info" id="heroInfo">ⓘ More Info</button>
+        <button class="btn-play" id="heroPlay">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Play</span>
+        </button>
+        <button class="btn-info" id="heroInfo">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          <span>More Info</span>
+        </button>
       </div>
     </div>
-    <div class="maturity" id="heroMaturity">TV-MA</div>
-    <button class="mute-btn" id="heroNext" title="Next feature">↻</button>
+    <div class="hero-side-controls">
+      <button class="mute-btn" id="heroNext" title="Next feature">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      </button>
+      <div class="maturity" id="heroMaturity">TV-MA</div>
+    </div>
     <div class="hero-dots" id="heroDots"></div>
   </section>
   <div id="rows"></div>
@@ -67,45 +162,57 @@
 
 <!-- SEARCH -->
 <section class="page" id="searchPage">
-  <h1 id="searchTitle">Search</h1>
-  <div class="stream-tools">
-    <input id="searchBox" placeholder="Search movies & shows…" style="flex:1;min-width:220px">
-    <button class="btn-red" id="searchGo">Search</button>
+  <div class="page-header">
+    <h1 id="searchTitle">Search</h1>
+    <div class="search-page-box">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#808080" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="searchBox" placeholder="Search movies, TV shows, actors, genres…" autocomplete="off">
+      <button class="btn-red" id="searchGo">Search</button>
+    </div>
   </div>
-  <div id="searchResults" class="grid6" style="margin-top:16px"></div>
+  <div id="searchResults" class="grid6" style="margin-top:20px"></div>
 </section>
 
 <!-- MY LIST -->
 <section class="page" id="mylistPage">
-  <h1>My List</h1>
+  <div class="page-header">
+    <h1>My List</h1>
+  </div>
   <div id="mylistGrid" class="grid6"></div>
 </section>
 
 <!-- BROWSE (movies/series/new) -->
 <section class="page" id="browsePage">
-  <h1 id="browseTitle">Browse</h1>
+  <div class="page-header">
+    <h1 id="browseTitle">Browse</h1>
+  </div>
   <div id="browseGrid" class="grid6"></div>
 </section>
 
 <!-- PROFILES -->
 <section class="page" id="profilesPage">
-  <h1 style="text-align:center">Who's Watching?</h1>
-  <div class="avatars" id="avatars"></div>
-  <button class="btn-out" onclick="toast('Profile management is local-only in this demo')">Manage Profiles</button>
+  <div class="profiles-center">
+    <h1>Who's watching?</h1>
+    <div class="avatars" id="avatars"></div>
+    <button class="btn-out" onclick="toast('Profile management saved locally')">Manage Profiles</button>
+  </div>
 </section>
 
 <!-- SETTINGS -->
 <section class="page" id="settingsPage">
-  <h1>Settings — Addon Management</h1>
-  <p style="color:#aaa;max-width:640px;line-height:1.6">This portal runs entirely in your browser. No server, no database. Catalogs &amp; metadata come from Cinemeta; playback uses the embedded player.</p>
-  <div id="addonList" style="margin-top:18px;max-width:720px"></div>
-  <div class="stream-tools" style="margin-top:14px;max-width:720px">
-    <input id="customAddon" placeholder="Custom manifest URL, e.g. https://…/manifest.json" style="flex:1">
-    <button class="btn-red" id="addAddon">Add Addon</button>
-  </div>
-  <div style="margin-top:22px;max-width:720px">
-    <h3 style="margin-bottom:8px">Storage</h3>
-    <button class="btn-out" id="clearData">Clear My List &amp; History</button>
+  <div class="settings-wrap">
+    <h1>Settings &amp; Addon Management</h1>
+    <p class="settings-sub">This streaming portal runs entirely in your browser with zero server and zero database. Catalogs and metadata query Cinemeta directly.</p>
+    <div id="addonList" style="margin-top:22px"></div>
+    <div class="stream-tools" style="margin-top:16px">
+      <input id="customAddon" placeholder="Custom manifest URL (e.g. https://…/manifest.json)" style="flex:1">
+      <button class="btn-red" id="addAddon">Add Addon</button>
+    </div>
+    <div class="storage-section" style="margin-top:32px">
+      <h3>Local Storage</h3>
+      <p style="color:#808080;font-size:13px;margin:6px 0 12px">Clear your cached history, My List, and addon configurations.</p>
+      <button class="btn-out" id="clearData">Clear My List &amp; History</button>
+    </div>
   </div>
 </section>
 
@@ -114,84 +221,172 @@
   <div id="detailModal">
     <div class="detail-hero">
       <img id="dBackdrop" alt="backdrop">
-      <div class="fade"></div>
-      <button class="x-btn" id="dClose">✕</button>
+      <div class="detail-hero-grad"></div>
+      <button class="x-btn" id="dClose" title="Close" aria-label="Close modal">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="detail-hero-content">
+        <h1 id="dTitle"></h1>
+        <div class="m-actions">
+          <button class="btn-play" id="dPlay">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>Play</span>
+          </button>
+          <button class="cbtn" id="dList" title="My List">
+            <svg class="icon-plus" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button class="cbtn" id="dLike" title="I like this">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+          </button>
+          <button class="cbtn" id="dDl" title="Download on OmniSave ↗">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </button>
+        </div>
+      </div>
     </div>
     <div class="detail-body">
-      <div>
+      <div class="detail-left">
         <div class="meta-row" id="dMeta"></div>
-        <h1 id="dTitle"></h1>
         <p class="desc" id="dDesc"></p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn-play" id="dPlay">▶ Play</button>
-          <button class="cbtn" id="dList" title="My List">＋</button>
-          <button class="cbtn" id="dLike" title="I like this">👍</button>
-          <button class="cbtn" id="dDl" title="Download on OmniSave ↗">⬇</button>
-        </div>
         <div id="epWrap" style="display:none">
-          <h3 style="margin:20px 0 4px">Episodes <select id="seasonSel" style="background:#000;color:#fff;border:1px solid #555;border-radius:4px;padding:5px 8px;margin-left:8px"></select></h3>
+          <div class="ep-header">
+            <h3>Episodes</h3>
+            <div class="season-sel-wrap">
+              <select id="seasonSel"></select>
+            </div>
+          </div>
           <div id="epList"></div>
         </div>
-        <h3 style="margin:20px 0 4px">More Like This</h3>
+        <div class="sim-header">
+          <h3>More Like This</h3>
+        </div>
         <div class="similar-grid" id="simGrid"></div>
         <div class="about" id="dAbout"></div>
       </div>
-      <div class="rc" id="dRight"></div>
+      <div class="detail-right" id="dRight"></div>
     </div>
   </div>
 </div>
 
-<!-- PLAYER -->
+<!-- PLAYER VIEW -->
 <div id="playerView">
   <video id="playerVideo" controls playsinline></video>
   <div class="p-top" id="pTop">
-    <button class="icon-btn" id="pBack">←</button>
-    <div class="p-title" id="pTitle">Now Playing</div>
+    <button class="icon-btn p-back-btn" id="pBack" title="Back to browsing">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <div class="p-title-wrap">
+      <div class="p-title" id="pTitle">Now Playing</div>
+    </div>
     <div style="flex:1"></div>
-    <button class="icon-btn" id="pDl" title="Download on OmniSave ↗">⬇</button>
+    <button class="icon-btn" id="pDl" title="Download on OmniSave ↗">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+    </button>
   </div>
   <div id="torrentStats">connecting…</div>
   <div id="pError">
     <div id="pErrorTitle">Something went wrong</div>
     <div id="pErrorMsg">Playback failed.</div>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px">
       <button class="btn-red" id="pRetry">Try Again</button>
     </div>
   </div>
   <button id="skipIntro">Skip Intro ›</button>
-  <div id="nextEp"><img id="nextThumb" width="110" style="border-radius:4px"><div><b>Next Episode</b><div id="nextName" style="font-size:13px;color:#ccc"></div><div style="font-size:12px;color:#888">Starting in <span id="nextCount">25</span>s… <button class="btn-red" id="nextPlay" style="padding:4px 10px">Play</button></div></div></div>
+  <div id="nextEp">
+    <img id="nextThumb" width="110" alt="Next episode thumbnail">
+    <div>
+      <b>Next Episode</b>
+      <div id="nextName" style="font-size:13px;color:#ccc;margin:2px 0 6px"></div>
+      <div style="font-size:12px;color:#888;display:flex;align-items:center;gap:8px">
+        Starting in <span id="nextCount">25</span>s…
+        <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
+      </div>
+    </div>
+  </div>
   <div class="p-bottom" id="pBottom">
-    <input type="range" id="seekBar" min="0" max="1000" value="0">
+    <div class="p-progress-wrap">
+      <input type="range" id="seekBar" min="0" max="1000" value="0">
+    </div>
     <div class="p-controls">
-      <button id="ppPlay">⏸</button>
-      <button id="ppBack">↺ 10s</button>
-      <button id="ppFwd">↻ 10s</button>
-      <button id="ppMute">🔊</button>
-      <button id="ppFs">⛶</button>
+      <button id="ppPlay" title="Play / Pause">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+      </button>
+      <button id="ppBack" title="Rewind 10 seconds">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path><text x="9" y="16" fill="currentColor" font-size="7" font-weight="bold" stroke="none">10</text></svg>
+      </button>
+      <button id="ppFwd" title="Fast forward 10 seconds">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"></path><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path><text x="9" y="16" fill="currentColor" font-size="7" font-weight="bold" stroke="none">10</text></svg>
+      </button>
+      <button id="ppMute" title="Mute / Unmute">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+      </button>
+      <button id="ppFs" title="Fullscreen">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+      </button>
       <span style="flex:1"></span>
-      <button id="ppSubs" title="Subtitles (built into the player)">💬</button>
-      <button id="ppEps" title="Episodes">☰</button>
+      <button id="ppSubs" title="Subtitles (built into the player)">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="14" y1="12" x2="18" y2="12"></line><line x1="6" y1="15" x2="14" y2="15"></line></svg>
+      </button>
+      <button id="ppEps" title="Episodes">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
     </div>
   </div>
 </div>
 
 <!-- PROFILE GATE -->
 <div id="profileGate">
-  <div class="logo">NETFLIX</div>
+  <div class="logo">
+    <svg class="nf-logo" viewBox="0 0 111 30" width="130" height="35" aria-label="Netflix">
+      <path fill="#E50914" d="M105.062 14.28L111 30c-1.78-.25-3.5-.42-5.1-.5l-3.6-9.82-3.6 9.5c-1.6.08-3.32.25-5.1.5l5.94-15.72L94.06 0h5.36l3.4 9.18L106.3 0h5.38l-6.62 14.28zM87.56 0v28.8c1.68.08 3.4.25 5.1.42V0h-5.1zM72.06 0v27.9c1.68.17 3.4.34 5.1.6V16.8h7.2v-4.5h-7.2V4.5h8.5V0h-13.6zM54.06 0v26.7c1.68.25 3.4.5 5.1.84V4.5h8.2V0h-13.3zm-17.7 0v25.2c1.7.34 3.4.67 5.1 1.09V0h-5.1zm-15.6 0v23.8c1.7.42 3.4.84 5.1 1.34V0h-5.1zM0 0v22.2c1.7.5 3.4 1.09 5.1 1.68l9.6-19.38v19.8c1.7.5 3.4 1 5.1 1.5V0h-5.1L5.1 19.38V0H0z"/>
+    </svg>
+  </div>
   <h1>Who's watching?</h1>
   <div class="avatars" id="gateAvatars"></div>
+  <button class="btn-out" onclick="toast('Select a profile to continue')">Manage Profiles</button>
 </div>
 
+<!-- FOOTER -->
 <footer>
-  <div class="ficons"><span>f</span><span>📷</span><span>𝕏</span><span>▶</span></div>
-  <div>Questions? Call 1-800-XXX-XXXX</div>
-  <div class="flinks">
-    <a href="#">Audio Description</a><a href="#">Help Center</a><a href="#">Gift Cards</a><a href="#">Media Center</a>
-    <a href="#">Investor Relations</a><a href="#">Jobs</a><a href="#">Terms of Use</a><a href="#">Privacy</a>
-    <a href="#">Legal Notices</a><a href="#">Cookie Preferences</a><a href="#">Corporate Information</a><a href="#">Contact Us</a>
+  <div class="f-inner">
+    <div class="ficons">
+      <a href="#" aria-label="Facebook">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+      </a>
+      <a href="#" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      </a>
+      <a href="#" aria-label="Twitter">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a href="#" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="#000"/></svg>
+      </a>
+    </div>
+    <div class="f-contact">Questions? Call <a href="#">1-800-012-3456</a></div>
+    <div class="flinks">
+      <a href="#">Audio Description</a>
+      <a href="#">Help Center</a>
+      <a href="#">Gift Cards</a>
+      <a href="#">Media Center</a>
+      <a href="#">Investor Relations</a>
+      <a href="#">Jobs</a>
+      <a href="#">Terms of Use</a>
+      <a href="#">Privacy</a>
+      <a href="#">Legal Notices</a>
+      <a href="#">Cookie Preferences</a>
+      <a href="#">Corporate Information</a>
+      <a href="#">Contact Us</a>
+    </div>
+    <div class="f-bottom">
+      <div class="service-code-btn">Service Code</div>
+      <div class="lang">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        <span>English</span>
+      </div>
+    </div>
+    <div class="copyright">Netflix Clone &copy; 2024 &mdash; EDUCATIONAL PURPOSES ONLY. No content hosted here. Only use streams and downloads you are authorized to access.</div>
   </div>
-  <div class="lang">🌐 English</div>
-  <div class="copyright">Netflix Clone © 2024 — EDUCATIONAL PURPOSES ONLY. No content hosted here. Only use streams and downloads you are authorized to access.</div>
 </footer>
 
 <div id="toast"></div>
