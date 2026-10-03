@@ -569,12 +569,9 @@ function playVidlink(o) {
   f.src = vidlinkUrl(o);
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
-  // Block pop-unders/ads from inside the embed while keeping playback working:
-  // scripts + same-origin keep the player and postMessage progress alive,
-  // and omitting allow-popups / allow-top-navigation traps popups.
-  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   f.style.cssText = 'flex:1;width:100%;border:none';
   $('playerView').insertBefore(f, $('pTop'));
+  armVidShield();
 }
 function playStream(s) {
   currentStream = s || null;
@@ -675,6 +672,30 @@ $('pAlt').onclick = () => {
     useWebtorFallback(currentStream);
   } else showPlayerError('No alternative player is available for this title.');
 };
+/* Pop-under guard (no sandbox — the player rejects sandboxed frames).
+ * A transparent shield swallows the first tap on the player (the gesture
+ * pop-unders feed on). If a popup still steals focus, we pull the user back
+ * and re-arm the shield for the next tap. Back/title buttons sit above it. */
+function armVidShield() {
+  let shield = $('vidShield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'vidShield';
+    $('playerView').insertBefore(shield, $('pTop'));
+  }
+  shield.style.display = 'block';
+  shield.onclick = () => { shield.style.display = 'none'; };
+}
+let lastPlayerTap = 0;
+document.addEventListener('pointerdown', () => {
+  if ($('playerView').classList.contains('show')) lastPlayerTap = Date.now();
+}, true);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && $('playerView').classList.contains('show') && Date.now() - lastPlayerTap < 3000) {
+    try { window.focus(); } catch { /* ignore */ }
+    armVidShield();
+  }
+});
 /* VidLink player events (documented postMessage API): progress + ended. */
 window.addEventListener('message', (event) => {
   if (event.origin !== 'https://vidlink.pro') return;

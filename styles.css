@@ -275,6 +275,7 @@ footer .flinks{gap:14px;line-height:1.9}
 .row-arrow.right:hover{transform:translateX(3px)}
 .row-arrow.left:hover{transform:translateX(-3px)}
 #nextEp{animation:slideInRight .4s var(--ease)}
+#vidShield{position:absolute;inset:0;z-index:4;display:none}
 .pav .box{transition:transform .25s var(--ease),border-color .2s}
 .pav:hover .box{transform:scale(1.05)}
 .sim{transition:transform .25s var(--ease)}
