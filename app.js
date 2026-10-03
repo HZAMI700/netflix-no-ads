@@ -11,7 +11,74 @@ const store = {
 };
 
 let myList = store.get('nf_mylist', []);
-let history = store.get('nf_history', {});
+
+const DEFAULT_HISTORY = {
+  'tt4574334': {
+    title: 'Stranger Things',
+    type: 'series',
+    progress: 0.52,
+    finished: false,
+    poster: 'https://images.metahub.space/poster/medium/tt4574334/img',
+    season: 4,
+    episode: 4
+  },
+  'tt1375666': {
+    title: 'Inception',
+    type: 'movie',
+    progress: 0.74,
+    finished: false,
+    poster: 'https://images.metahub.space/poster/medium/tt1375666/img',
+    imdb: 'tt1375666'
+  },
+  'tt1877830': {
+    title: 'The Batman',
+    type: 'movie',
+    progress: 0.38,
+    finished: false,
+    poster: 'https://images.metahub.space/poster/medium/tt1877830/img',
+    imdb: 'tt1877830'
+  },
+  'tt0903747': {
+    title: 'Breaking Bad',
+    type: 'series',
+    progress: 1.0,
+    finished: true,
+    poster: 'https://images.metahub.space/poster/medium/tt0903747/img',
+    season: 5,
+    episode: 16
+  },
+  'tt0816692': {
+    title: 'Interstellar',
+    type: 'movie',
+    progress: 1.0,
+    finished: true,
+    poster: 'https://images.metahub.space/poster/medium/tt0816692/img',
+    imdb: 'tt0816692'
+  },
+  'tt0468569': {
+    title: 'The Dark Knight',
+    type: 'movie',
+    progress: 1.0,
+    finished: true,
+    poster: 'https://images.metahub.space/poster/medium/tt0468569/img',
+    imdb: 'tt0468569'
+  }
+};
+
+let history = store.get('nf_history', null);
+if (!history || Object.keys(history).length === 0) {
+  history = { ...DEFAULT_HISTORY };
+  store.set('nf_history', history);
+} else {
+  const hasFinished = Object.values(history).some(h => h && (h.finished || (h.progress != null && h.progress >= 0.9)));
+  if (!hasFinished) {
+    Object.entries(DEFAULT_HISTORY).forEach(([k, v]) => {
+      if (v.finished && !history[k]) history[k] = { ...v };
+    });
+    store.set('nf_history', history);
+  }
+}
+
 let likes = store.get('nf_likes', {});
 let dislikes = store.get('nf_dislikes', {});
 let heroItems = [], heroIdx = 0, heroTimer = null;
@@ -96,12 +163,16 @@ function onScrollActivity() {
   scrollEndTimer = setTimeout(() => {
     isScrolling = false;
     document.body.classList.remove('is-scrolling');
-  }, 120);
+  }, 150);
 }
 
 window.addEventListener('scroll', () => {
   const nav = $('topnav');
   if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
+  onScrollActivity();
+}, { passive: true });
+
+window.addEventListener('wheel', () => {
   onScrollActivity();
 }, { passive: true });
 
@@ -250,24 +321,32 @@ function metaRowHTML(m) {
   `;
 }
 
-/* ---------- HOME ROWS (EXPANDED TO 16+ ORGANIZED CATEGORIES) ---------- */
+/* ---------- HOME ROWS (EXPANDED TO 25 ORGANIZED NETFLIX CATEGORIES) ---------- */
 const HOME_ROWS = [
-  { id: 'continue', title: 'Continue Watching for You', dynamic: 'history' },
+  { id: 'continue', title: 'Continue Watching for You', dynamic: 'continue' },
+  { id: 'finished', title: 'Watch It Again (Finished Watching)', dynamic: 'finished' },
   { id: 'top10', title: 'Top 10 in Movies & TV Today', url: ['movie/top', 'series/top'], mix: true, isTop10: true, limit: 10 },
-  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top'], limit: 45 },
-  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top'], limit: 45 },
-  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating'], limit: 45 },
-  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating'], limit: 45 },
-  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year'], badge: 'NEW', limit: 45 },
-  { id: 'action', title: 'Action & Adrenaline', url: ['movie/top/genre=Action'], limit: 45 },
-  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi'], limit: 45 },
-  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime'], limit: 45 },
-  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy'], limit: 45 },
-  { id: 'horror', title: 'Chilling Horror & Thrillers', url: ['movie/top/genre=Horror'], limit: 45 },
-  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama'], limit: 45 },
-  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation'], limit: 45 },
-  { id: 'fantasy', title: 'Fantasy & Epic Quests', url: ['movie/top/genre=Fantasy'], limit: 45 },
-  { id: 'doc', title: 'Captivating Documentaries', url: ['movie/top/genre=Documentary'], limit: 45 },
+  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top'], limit: 60 },
+  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top'], limit: 60 },
+  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating'], limit: 60 },
+  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating'], limit: 60 },
+  { id: 'new_releases', title: 'New Releases on Netflix', url: ['movie/year', 'series/year'], badge: 'NEW', limit: 60 },
+  { id: 'action', title: 'High-Octane Action & Adrenaline', url: ['movie/top/genre=Action'], limit: 60 },
+  { id: 'action_series', title: 'Action & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure'], limit: 60 },
+  { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller'], limit: 60 },
+  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi'], limit: 60 },
+  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime'], limit: 60 },
+  { id: 'mystery', title: 'Mind-Bending Whodunits & Detective Stories', url: ['movie/top/genre=Mystery', 'series/top/genre=Mystery'], limit: 60 },
+  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy'], limit: 60 },
+  { id: 'comedy_series', title: 'Sitcoms & TV Comedy Hits', url: ['series/top/genre=Comedy'], limit: 60 },
+  { id: 'horror', title: 'Chilling Horror & Supernatural Thrillers', url: ['movie/top/genre=Horror'], limit: 60 },
+  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama'], limit: 60 },
+  { id: 'drama_movies', title: 'Award-Winning Drama Movies', url: ['movie/top/genre=Drama'], limit: 60 },
+  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation', 'movie/top/genre=Animation'], limit: 60 },
+  { id: 'family', title: 'Family Movie Night & Epic Adventures', url: ['movie/top/genre=Family', 'movie/top/genre=Adventure'], limit: 60 },
+  { id: 'fantasy', title: 'Fantasy & Mythical Quests', url: ['movie/top/genre=Fantasy', 'series/top/genre=Fantasy'], limit: 60 },
+  { id: 'romance', title: 'Romantic Movies & Heartfelt Stories', url: ['movie/top/genre=Romance'], limit: 60 },
+  { id: 'doc', title: 'Captivating Documentaries & Docuseries', url: ['movie/top/genre=Documentary', 'series/top/genre=Documentary'], limit: 60 },
   { id: 'mylist', title: 'My List', dynamic: 'mylist' }
 ];
 
@@ -330,40 +409,38 @@ function wireRowControls(sec) {
     }
   }, { passive: true });
 
-  // Mouse drag-to-scroll implementation
-  let isDown = false;
+  // High-performance drag-to-scroll (listeners attached only during active drag)
   let startX = 0;
   let scrollStart = 0;
   let dragDist = 0;
 
-  t.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return;
-    isDown = true;
-    startX = e.pageX;
-    scrollStart = t.scrollLeft;
-    dragDist = 0;
-  });
-
-  window.addEventListener('mousemove', (e) => {
-    if (!isDown) return;
+  const onMouseMove = (e) => {
     const diff = e.pageX - startX;
     dragDist = Math.abs(diff);
-    if (dragDist > 6) {
+    if (dragDist > 5) {
       isRowDragging = true;
       closeCardPortal();
       t.scrollLeft = scrollStart - diff;
     }
-  });
+  };
 
-  window.addEventListener('mouseup', () => {
-    if (isDown) {
-      isDown = false;
-      if (dragDist > 6) {
-        setTimeout(() => { isRowDragging = false; }, 120);
-      } else {
-        isRowDragging = false;
-      }
+  const onMouseUp = () => {
+    window.removeEventListener('mousemove', onMouseMove);
+    window.removeEventListener('mouseup', onMouseUp);
+    if (dragDist > 5) {
+      setTimeout(() => { isRowDragging = false; }, 100);
+    } else {
+      isRowDragging = false;
     }
+  };
+
+  t.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    startX = e.pageX;
+    scrollStart = t.scrollLeft;
+    dragDist = 0;
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   });
 }
 
@@ -393,8 +470,10 @@ async function buildHome() {
     const track = sec.querySelector('.row-track');
     let items = [];
 
-    if (r.dynamic === 'history') {
-      items = historyItems();
+    if (r.dynamic === 'continue' || r.dynamic === 'history') {
+      items = continueItems();
+    } else if (r.dynamic === 'finished') {
+      items = finishedItems();
     } else if (r.dynamic === 'mylist') {
       items = myList;
     } else {
@@ -404,7 +483,7 @@ async function buildHome() {
       }
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
-      const max = r.limit || 40;
+      const max = r.limit || 60;
       items = pool.slice(0, max);
       if (r.id === 'new_releases') {
         items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, max);
@@ -429,8 +508,9 @@ function onCardMouseEnter(card, meta, badge, rank) {
 
   cardHoverTimer = setTimeout(() => {
     if (isScrolling || isRowDragging) return;
+    if (!card.matches(':hover')) return;
     openCardPortal(card, meta, badge, rank);
-  }, 320);
+  }, 380);
 }
 
 function onCardMouseLeave(card) {
@@ -482,9 +562,24 @@ function openCardPortal(card, m, badge, rank) {
     ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
     : '';
 
+  const isFinished = !!m._finished;
+  const isContinue = (m._progress != null && !isFinished);
+
+  let badgeMarkup = '';
+  if (isFinished) {
+    badgeMarkup = `<span class="watched-badge"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Finished</span>`;
+  } else if (badge) {
+    badgeMarkup = `<span class="new-badge">${badge}</span>`;
+  }
+
+  const playBtnTitle = isFinished ? 'Watch Again' : (isContinue ? 'Resume' : 'Play');
+  const matchTag = isFinished
+    ? `<span class="match" style="color:#46D369">✓ Watched</span>`
+    : `<span class="match">${matchScore(m)}% Match</span>`;
+
   portal.innerHTML = `
     <div class="portal-thumb-wrap">
-      ${badge ? `<span class="new-badge">${badge}</span>` : ''}
+      ${badgeMarkup}
       ${top10Html}
       <img src="${backdrop(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='${poster(m)}'">
       <div class="portal-thumb-grad"></div>
@@ -492,7 +587,7 @@ function openCardPortal(card, m, badge, rank) {
     <div class="portal-info">
       <div class="portal-title">${m.name || 'Untitled'}</div>
       <div class="hbtns">
-        <button class="cbtn solid" data-pa="play" title="Play">
+        <button class="cbtn solid" data-pa="play" title="${playBtnTitle}">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         </button>
         <button class="cbtn" data-pa="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">
@@ -512,7 +607,7 @@ function openCardPortal(card, m, badge, rank) {
         </button>
       </div>
       <div class="hm">
-        <span class="match">${matchScore(m)}% Match</span>
+        ${matchTag}
         <span class="age-badge">${ageRating(m)}</span>
         <span>${(m.releaseInfo || m.year || '').toString().slice(0, 4)}</span>
         <span class="hd-badge">HD</span>
@@ -531,8 +626,12 @@ function openCardPortal(card, m, badge, rank) {
 
     if (a === 'play') {
       closeCardPortal();
-      if (m._embed) { playEmbedEntry(m); }
-      else { openDetail(m.id, type, true); }
+      if (m._embed) {
+        if (isFinished) m._progress = 0;
+        playEmbedEntry(m);
+      } else {
+        openDetail(m.id, type, true);
+      }
     } else if (a === 'list') {
       toggleList(m);
       const listBtn = portal.querySelector('[data-pa="list"]');
@@ -574,6 +673,7 @@ function closeCardPortal() {
 
 const portalEl = $('cardPortal');
 if (portalEl) {
+  portalEl.addEventListener('wheel', () => onScrollActivity(), { passive: true });
   portalEl.addEventListener('mouseenter', () => {
     clearTimeout(cardLeaveTimer);
   });
@@ -591,18 +691,40 @@ function buildCard(m, badge, rank) {
   const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
   const el = document.createElement('div');
   el.className = 'card';
-  if (m._progress) el.classList.add('landscape');
+  if (m._progress || m._finished) el.classList.add('landscape');
 
-  const prog = m._progress ? `<div class="progress"><i style="width:${Math.round(m._progress * 100)}%"></i></div>` : '';
+  const isContinue = (m._progress != null && !m._finished);
+  const isFinished = !!m._finished;
+
+  let badgeMarkup = '';
+  if (isFinished) {
+    badgeMarkup = `<span class="watched-badge"><svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Finished</span>`;
+  } else if (badge) {
+    badgeMarkup = `<span class="new-badge">${badge}</span>`;
+  }
+
+  const prog = isContinue
+    ? `<div class="progress"><i style="width:${Math.round(m._progress * 100)}%"></i></div>`
+    : '';
+
+  const removeBtn = (isContinue || isFinished)
+    ? `<span class="remove-x" title="${isFinished ? 'Remove from Finished Watching' : 'Remove from Continue Watching'}">✕</span>`
+    : '';
+
+  const finishToggleBtn = isContinue
+    ? `<span class="finish-check" title="Mark as Finished">✓</span>`
+    : '';
+
   const top10Html = rank && rank <= 10
     ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
     : '';
 
   el.innerHTML = `
     <div class="card-inner">
-      ${badge ? `<span class="new-badge">${badge}</span>` : ''}
+      ${badgeMarkup}
       ${top10Html}
-      ${m._progress ? `<span class="remove-x" title="Remove from Continue Watching">✕</span>` : ''}
+      ${finishToggleBtn}
+      ${removeBtn}
       <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23181818%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23777%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>${encodeURIComponent((m.name || '?').slice(0, 18))}</text></svg>'">
       ${prog}
     </div>
@@ -615,12 +737,36 @@ function buildCard(m, badge, rank) {
   el.onclick = e => {
     if (isRowDragging) return;
     if (m._embed) { playEmbedEntry(m); return; }
+    
     const rx = e.target.closest('.remove-x');
-
     if (rx) {
       delete history[m.id];
       store.set('nf_history', history);
-      buildHome();
+      renderContinueRow();
+      toast(`Removed "${m.name || 'title'}" from list`);
+      e.stopPropagation();
+      return;
+    }
+
+    const fc = e.target.closest('.finish-check');
+    if (fc) {
+      if (!history[m.id]) {
+        history[m.id] = {
+          title: m.name,
+          type: m.type || type,
+          progress: 1.0,
+          finished: true,
+          poster: poster(m),
+          imdb: m.imdb || (m.id.startsWith('tt') ? m.id : null),
+          tmdbId: m.tmdbId
+        };
+      } else {
+        history[m.id].finished = true;
+        history[m.id].progress = 1.0;
+      }
+      store.set('nf_history', history);
+      renderContinueRow();
+      toast(`Marked "${m.name}" as finished`);
       e.stopPropagation();
       return;
     }
@@ -935,26 +1081,34 @@ async function loadCategoryRows(kind) {
       { id: 'b_series_top', title: 'Popular TV Shows', url: 'series/top' },
       { id: 'b_series_rated', title: 'Critically Acclaimed TV', url: 'series/imdbRating' },
       { id: 'b_series_crime', title: 'Crime, Mystery & Thrillers', url: 'series/top/genre=Crime' },
+      { id: 'b_series_action', title: 'Action & Adventure Series', url: 'series/top/genre=Action' },
       { id: 'b_series_scifi', title: 'Sci-Fi & Supernatural', url: 'series/top/genre=Sci-Fi' },
       { id: 'b_series_drama', title: 'Binge-Worthy Dramas', url: 'series/top/genre=Drama' },
       { id: 'b_series_comedy', title: 'Sitcoms & Comedies', url: 'series/top/genre=Comedy' },
-      { id: 'b_series_anime', title: 'Anime & Animation', url: 'series/top/genre=Animation' }
+      { id: 'b_series_anime', title: 'Anime & Animation Hits', url: 'series/top/genre=Animation' },
+      { id: 'b_series_fantasy', title: 'Fantasy & Epic Sagas', url: 'series/top/genre=Fantasy' },
+      { id: 'b_series_doc', title: 'Docuseries & Real Stories', url: 'series/top/genre=Documentary' }
     ];
   } else if (kind === 'movies') {
     categoryRows = [
       { id: 'b_mov_top', title: 'Blockbuster Movies', url: 'movie/top' },
       { id: 'b_mov_rated', title: 'IMDb Top Rated Movies', url: 'movie/imdbRating' },
       { id: 'b_mov_action', title: 'High-Octane Action', url: 'movie/top/genre=Action' },
-      { id: 'b_mov_scifi', title: 'Sci-Fi & Fantasy Hits', url: 'movie/top/genre=Sci-Fi' },
+      { id: 'b_mov_scifi', title: 'Sci-Fi & Futuristic Hits', url: 'movie/top/genre=Sci-Fi' },
+      { id: 'b_mov_thriller', title: 'Suspense & Psychological Thrillers', url: 'movie/top/genre=Thriller' },
       { id: 'b_mov_comedy', title: 'Comedies & Feel-Good', url: 'movie/top/genre=Comedy' },
-      { id: 'b_mov_horror', title: 'Horror & Suspense', url: 'movie/top/genre=Horror' },
+      { id: 'b_mov_horror', title: 'Horror & Paranormal', url: 'movie/top/genre=Horror' },
+      { id: 'b_mov_romance', title: 'Romantic Favorites', url: 'movie/top/genre=Romance' },
+      { id: 'b_mov_family', title: 'Family Movie Night', url: 'movie/top/genre=Family' },
       { id: 'b_mov_doc', title: 'Documentary Films', url: 'movie/top/genre=Documentary' }
     ];
   } else if (kind === 'new') {
     categoryRows = [
       { id: 'b_new_mov', title: 'New Movie Releases', url: 'movie/year', badge: 'NEW' },
       { id: 'b_new_series', title: 'New Series & Fresh Seasons', url: 'series/year', badge: 'NEW' },
-      { id: 'b_new_top', title: 'Trending This Week', url: 'movie/top', isTop10: true }
+      { id: 'b_new_top', title: 'Trending Movies This Week', url: 'movie/top', isTop10: true },
+      { id: 'b_new_top_series', title: 'Trending Series This Week', url: 'series/top', isTop10: true },
+      { id: 'b_new_action', title: 'New Action & Thrillers', url: 'movie/year/genre=Action', badge: 'NEW' }
     ];
   }
 
@@ -969,7 +1123,7 @@ async function loadCategoryRows(kind) {
     if (!items.length) continue;
     sec.style.display = '';
     track.innerHTML = '';
-    items.slice(0, 40).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+    items.slice(0, 60).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
   }
 }
@@ -992,7 +1146,7 @@ async function filterBrowseByGenre(genre) {
   const items = await fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`);
 
   gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
-  items.slice(0, 60).forEach(m => gridWrap.appendChild(buildCard(m)));
+  items.slice(0, 100).forEach(m => gridWrap.appendChild(buildCard(m)));
 }
 
 /* ---------- PROFILES ---------- */
@@ -1192,6 +1346,7 @@ if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
   _allowNavigation = true;
+  disarmVidShield();
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
@@ -1307,11 +1462,12 @@ function readProgressStore() {
 function historyItems() {
   return Object.entries(history).map(([id, h]) => ({
     id,
-    type: h.type,
+    type: h.type || 'movie',
     name: h.title,
     poster: h.poster,
     background: h.poster,
     _progress: h.progress,
+    _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
     _embed: !!h._embed,
     tmdbId: h.tmdbId,
     imdb: h.imdb || (id.startsWith('tt') ? id : null),
@@ -1320,15 +1476,38 @@ function historyItems() {
   }));
 }
 
+function continueItems() {
+  return historyItems().filter(m => !m._finished);
+}
+
+function finishedItems() {
+  return historyItems().filter(m => m._finished);
+}
+
 function renderContinueRow() {
-  const sec = $('row-continue');
-  if (!sec) return;
-  const track = sec.querySelector('.row-track');
-  const items = historyItems();
-  sec.style.display = items.length ? '' : 'none';
-  track.innerHTML = '';
-  items.forEach(m => track.appendChild(buildCard(m)));
-  track.dispatchEvent(new Event('scroll'));
+  const cSec = $('row-continue');
+  if (cSec) {
+    const track = cSec.querySelector('.row-track');
+    const items = continueItems();
+    cSec.style.display = items.length ? '' : 'none';
+    if (track) {
+      track.innerHTML = '';
+      items.forEach(m => track.appendChild(buildCard(m)));
+      track.dispatchEvent(new Event('scroll'));
+    }
+  }
+
+  const fSec = $('row-finished');
+  if (fSec) {
+    const track = fSec.querySelector('.row-track');
+    const items = finishedItems();
+    fSec.style.display = items.length ? '' : 'none';
+    if (track) {
+      track.innerHTML = '';
+      items.forEach(m => track.appendChild(buildCard(m)));
+      track.dispatchEvent(new Event('scroll'));
+    }
+  }
 }
 
 function syncEmbedProgress() {
@@ -1338,8 +1517,11 @@ function syncEmbedProgress() {
     if (!entry || entry.id == null) return;
     const dur = entry.progress?.duration || 0, watched = entry.progress?.watched || 0;
     if (!dur || watched < 5) return;
+    const p = Math.min(.98, watched / dur);
+    const isFinished = p >= 0.9;
     history[`tmdb:${entry.id}`] = {
-      progress: Math.min(.98, watched / dur),
+      progress: p,
+      finished: isFinished,
       type: entry.type === 'tv' ? 'series' : 'movie',
       title: entry.title || 'Title',
       poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '',
@@ -1412,6 +1594,12 @@ window.addEventListener('beforeunload', (e) => {
 let shieldDisarmTimer = null;
 let shieldClickCount = 0;
 
+function disarmVidShield() {
+  const shield = $('vidShield');
+  if (shield) shield.style.display = 'none';
+  clearTimeout(shieldDisarmTimer);
+}
+
 function armVidShield() {
   let shield = $('vidShield');
   if (!shield) {
@@ -1427,19 +1615,14 @@ function armVidShield() {
     e.stopPropagation();
     shieldClickCount++;
 
-    // Streaming embeds typically stack 2-3 transparent overlay click traps.
-    // Absorbing the first 2 taps neutralizes ad-trigger gestures completely.
-    // On the 2nd/3rd tap, briefly allow direct player control and auto-rearm within 1000ms!
-    if (shieldClickCount >= 2) {
-      shield.style.display = 'none';
-      clearTimeout(shieldDisarmTimer);
-      shieldDisarmTimer = setTimeout(() => {
-        if ($('playerView')?.classList.contains('show')) {
-          armVidShield();
-        }
-      }, 1000);
-    } else {
-      toast('Click to play');
+    // Streaming embeds typically stack an overlay click trap on initial load.
+    // Absorbing the initial tap neutralizes the ad trigger and disarms the shield permanently,
+    // allowing unobstructed player control, scrubbing, and subtitle/audio language selection.
+    shield.style.display = 'none';
+    clearTimeout(shieldDisarmTimer);
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe) {
+      try { iframe.focus(); } catch {}
     }
   };
 }
@@ -1450,23 +1633,6 @@ document.addEventListener('pointerdown', () => {
     lastPlayerTap = Date.now();
   }
 }, true);
-
-// Focus Reclaim & Blur Trap: detects popunder opening and instantly regains focus
-window.addEventListener('blur', () => {
-  if ($('playerView')?.classList.contains('show')) {
-    setTimeout(() => {
-      try { window.focus(); } catch {}
-      armVidShield();
-    }, 30);
-  }
-});
-
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && $('playerView')?.classList.contains('show')) {
-    try { window.focus(); } catch {}
-    armVidShield();
-  }
-});
 
 window.addEventListener('message', (event) => {
   if (!EMBED_ORIGINS.includes(event.origin)) return;
@@ -1536,7 +1702,16 @@ if (ppFs) {
 }
 
 const ppSubs = $('ppSubs');
-if (ppSubs) ppSubs.onclick = () => toast('Subtitles are accessible via the CC button inside the player');
+if (ppSubs) {
+  ppSubs.onclick = () => {
+    disarmVidShield();
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe) {
+      try { iframe.focus(); } catch {}
+    }
+    toast('Select subtitles or audio in the CC menu inside the player');
+  };
+}
 
 const ppEps = $('ppEps');
 if (ppEps) {

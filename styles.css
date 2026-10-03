@@ -806,8 +806,6 @@ img {
   gap: 8px;
   overflow-x: auto;
   overflow-y: hidden;
-  overscroll-behavior-x: contain;
-  overscroll-behavior-y: auto;
   touch-action: pan-y;
   scrollbar-width: none;
   padding: 14px 0 18px;
@@ -941,6 +939,52 @@ img {
   border-color: #ffffff;
 }
 
+.card .watched-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(38, 166, 75, 0.95);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+  text-transform: uppercase;
+}
+
+.card .finish-check {
+  position: absolute;
+  top: 8px;
+  right: 38px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  color: #46D369;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: bold;
+  z-index: 3;
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.card:hover .finish-check {
+  display: flex;
+}
+.card .finish-check:hover {
+  transform: scale(1.15);
+  border-color: #46D369;
+  background: rgba(70, 211, 105, 0.25);
+}
+
 /* Row navigation arrows */
 .row-arrow {
   position: absolute;
@@ -992,13 +1036,13 @@ img {
 }
 
 body.is-scrolling .card {
-  pointer-events: none !important;
   transform: none !important;
   transition: none !important;
 }
 body.is-scrolling #cardPortal {
   display: none !important;
   opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* ==========================================================================
