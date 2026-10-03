@@ -1012,6 +1012,7 @@ const pBack = $('pBack');
 if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
+  _allowNavigation = true;
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
@@ -1042,6 +1043,7 @@ function showPlayerError(msg) {
 }
 
 function openPlayerShell(title) {
+  _allowNavigation = false;
   closeDetail();
   hidePlayerError();
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
@@ -1199,25 +1201,88 @@ if (pRetry) {
   };
 }
 
+/* ---------- BULLETPROOF POP-UNDER & AD BLOCKING SYSTEM ----------
+ * 1. Global window.open trap: Blocks all pop-ups/pop-unders in our window context,
+ *    permitting ONLY intentional user actions (like OmniSave downloads).
+ * 2. Navigation lock: Prevents rogue embed redirects from hijacking the parent window.
+ * 3. Multi-layer Click Shield: Absorbs consecutive ad-triggering click traps and
+ *    auto-rearms immediately after any interaction.
+ * 4. Window Focus Guardian: Instantly detects focus loss/blur caused by popunders
+ *    and snaps focus right back to the player while re-arming the shield.
+ */
+const _nativeWindowOpen = window.open;
+window.open = function(url, target, features) {
+  const urlStr = String(url || '');
+  if (urlStr.includes('videodownloader.site') || urlStr.includes('omnisave')) {
+    return _nativeWindowOpen.call(window, url, target, features);
+  }
+  console.warn('[AdBlock] Blocked unauthorized window.open popup attempt:', url);
+  return null;
+};
+
+let _allowNavigation = false;
+window.addEventListener('beforeunload', (e) => {
+  if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+});
+
+let shieldDisarmTimer = null;
+let shieldClickCount = 0;
+
 function armVidShield() {
   let shield = $('vidShield');
   if (!shield) {
     shield = document.createElement('div');
     shield.id = 'vidShield';
-    shield.style.cssText = 'position:absolute;inset:0;z-index:4;display:block';
+    shield.style.cssText = 'position:absolute;inset:0;z-index:4;display:block;cursor:pointer;background:transparent';
     $('playerView').insertBefore(shield, $('pTop'));
   }
   shield.style.display = 'block';
-  shield.onclick = () => { shield.style.display = 'none'; };
+  shieldClickCount = 0;
+
+  shield.onclick = (e) => {
+    e.stopPropagation();
+    shieldClickCount++;
+
+    // Streaming embeds typically stack 2-3 transparent overlay click traps.
+    // Absorbing the first 2 taps neutralizes ad-trigger gestures completely.
+    // On the 2nd/3rd tap, briefly allow direct player control and auto-rearm within 1000ms!
+    if (shieldClickCount >= 2) {
+      shield.style.display = 'none';
+      clearTimeout(shieldDisarmTimer);
+      shieldDisarmTimer = setTimeout(() => {
+        if ($('playerView')?.classList.contains('show')) {
+          armVidShield();
+        }
+      }, 1000);
+    } else {
+      toast('Click to play');
+    }
+  };
 }
 
 let lastPlayerTap = 0;
 document.addEventListener('pointerdown', () => {
-  if ($('playerView')?.classList.contains('show')) lastPlayerTap = Date.now();
+  if ($('playerView')?.classList.contains('show')) {
+    lastPlayerTap = Date.now();
+  }
 }, true);
 
+// Focus Reclaim & Blur Trap: detects popunder opening and instantly regains focus
+window.addEventListener('blur', () => {
+  if ($('playerView')?.classList.contains('show')) {
+    setTimeout(() => {
+      try { window.focus(); } catch {}
+      armVidShield();
+    }, 30);
+  }
+});
+
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && $('playerView')?.classList.contains('show') && Date.now() - lastPlayerTap < 3000) {
+  if (!document.hidden && $('playerView')?.classList.contains('show')) {
     try { window.focus(); } catch {}
     armVidShield();
   }
