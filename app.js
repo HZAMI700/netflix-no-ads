@@ -1,16 +1,6 @@
-/* Netflix-style Stremio + Torrentio portal — 100% client-side */
+/* Netflix-style streaming portal — 100% client-side.
+ * Streaming: VidAPI/Vaplayer embeds only. Downloads: OmniSave redirect only. */
 const CINEMETA = 'https://v3-cinemeta.strem.io';
-const TORRENTIO = 'https://torrentio.strem.fun';
-const TRACKERS = [
-  'wss://tracker.openwebtorrent.com',
-  'wss://tracker.btorrent.xyz',
-  'wss://tracker.fastcast.nz',
-  'udp://tracker.opentrackr.org:1337/announce',
-  'udp://open.tracker.cl:1337/announce',
-  'udp://9.rarbg.com:2810/announce',
-  'udp://tracker.openbittorrent.com:6969/announce',
-  'udp://exodus.desync.com:6969/announce'
-].map(t => 'tr=' + encodeURIComponent(t)).join('&');
 
 const $ = id => document.getElementById(id);
 const store = {
@@ -45,7 +35,6 @@ document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click',
   else if (n === 'new') openBrowse('new'); else show(n === 'home' ? 'home' : n);
   if (n === 'mylist') renderMyList(); if (n === 'profiles') renderProfiles(); if (n === 'settings') renderAddons();
 }));
-$('logo') && 0;
 window.addEventListener('scroll', () => $('topnav').classList.toggle('scrolled', window.scrollY > 0));
 $('avatarBtn').onclick = () => $('profileMenu').classList.toggle('open');
 $('signOut').onclick = e => { e.preventDefault(); show('profiles'); renderProfiles(); };
@@ -162,7 +151,7 @@ function buildCard(m, badge) {
     <div class="hm" style="margin-top:4px">${(m.genres || []).slice(0, 3).join(' • ')}</div></div>`;
   el.onclick = e => {
     // Continue-Watching cards from player progress resume directly.
-    if (m._vidlink) { playVidlinkEntry(m); return; }
+    if (m._embed) { playEmbedEntry(m); return; }
     const a = e.target.closest('[data-a]')?.dataset.a;
     const rx = e.target.closest('.remove-x');
     if (rx) { delete history[m.id]; store.set('nf_history', history); buildHome(); e.stopPropagation(); return; }
@@ -198,7 +187,6 @@ $('heroNext').onclick = () => renderHero((heroIdx + 1) % heroItems.length);
 async function openDetail(id, type, autoplay) {
   type = type === 'series' ? 'series' : 'movie';
   $('detailBackdrop').classList.add('show'); document.body.style.overflow = 'hidden';
-  $('streamList').innerHTML = '<p style="color:#888">Loading streams…</p>';
   $('dTitle').textContent = 'Loading…'; $('dDesc').textContent = '';
   try {
     const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
@@ -223,10 +211,15 @@ async function openDetail(id, type, autoplay) {
           d.innerHTML = `<div class="ep-thumb"><img src="${v.thumbnail || m.background || m.poster}"><div class="ep-play"><i>▶</i></div></div><div style="flex:1"><b>${v.episode}. ${v.title || v.name || 'Episode ' + v.episode}</b><div style="color:#888;font-size:12px;margin-top:4px">${v.released || ''}</div><div style="color:#bbb;font-size:12px;margin-top:4px">${(v.overview || '').slice(0, 140)}</div></div><span style="color:#888">${v.runtime || ''}</span>`;
           d.onclick = () => {
             currentDetail.ep = { s: v.season, e: v.episode };
-            const tmdbId = currentDetail.meta.moviedb_id;
-            if (!tmdbId) { toast('Streaming is unavailable for this title.'); return; }
-            playVidlink({ tmdbId, type: 'series', season: v.season, episode: v.episode, title: currentDetail.meta.name });
+            playEpisode(v.season, v.episode);
           };
+          const dl = document.createElement('button');
+          dl.className = 'cbtn'; dl.textContent = '⬇'; dl.title = 'Download on OmniSave ↗';
+          dl.onclick = (e) => {
+            e.stopPropagation();
+            downloadEpisode(currentDetail.meta.name, v.season, v.episode);
+          };
+          d.appendChild(dl);
           $('epList').appendChild(d);
         });
       };
@@ -243,53 +236,17 @@ async function openDetail(id, type, autoplay) {
     $('dList').textContent = myList.some(x => x.id === id) ? '✓' : '＋';
     $('dList').onclick = () => toggleList(m);
     $('dLike').onclick = () => toast('Thanks for rating!');
-    $('dPlay').onclick = () => loadStreams(true);
-    $('dDl').onclick = () => openDownload(currentStream || (currentDetail.streams[0]));
-    await loadStreams(autoplay);
+    // Watch availability depends on the required embed ID being present.
+    const canWatch = type === 'movie'
+      ? !!MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id })
+      : !!m.moviedb_id;
+    $('dPlay').disabled = !canWatch;
+    $('dPlay').title = canWatch ? 'Watch' : 'Streaming is unavailable for this title';
+    $('dPlay').onclick = () => playStream();
+    $('dDl').onclick = () => downloadCurrent();
+    if (autoplay && canWatch) playStream();
   } catch { $('dTitle').textContent = 'Failed to load title'; }
 }
-function parseStream(s) {
-  const name = (s.name || '') + '\n' + (s.title || '');
-  const q = /2160|4k/i.test(name) ? 2160 : /1080/i.test(name) ? 1080 : /720/i.test(name) ? 720 : /480/i.test(name) ? 480 : 0;
-  const seedM = name.match(/👤\s*(\d+)/) || name.match(/(\d+)\s*seed/i);
-  const seeds = seedM ? +seedM[1] : 0;
-  const sizeM = name.match(/💾\s*([\d.]+\s*\w+)/) || name.match(/(\d+\.?\d*\s*(GB|MB))/i);
-  const size = sizeM ? sizeM[0] : (s.behaviorHints?.videoSize ? (s.behaviorHints.videoSize / 1e9).toFixed(2) + ' GB' : '—');
-  const prov = (s.name || '').split('\n')[0] || 'Torrentio';
-  return { q, seeds, size, prov, file: s.behaviorHints?.filename || s.title || 'stream' };
-}
-async function loadStreams(autoplay) {
-  const { meta, type, ep } = currentDetail;
-  const imdb = meta.id || meta.imdb_id;
-  const url = type === 'movie' ? `${TORRENTIO}/stream/movie/${imdb}.json` : `${TORRENTIO}/stream/series/${imdb}:${ep.s}:${ep.e}.json`;
-  try {
-    const j = await getJSON(url);
-    currentDetail.streams = (j.streams || []).map(s => ({ ...s, _p: parseStream(s) }));
-    renderStreams();
-    if (autoplay && currentDetail.streams.length) playStream(currentDetail.streams[0]);
-    else if (!currentDetail.streams.length) $('streamList').innerHTML = '<p style="color:#888">No streams found for this title/episode. Try another episode or open in Stremio.</p>';
-  } catch { $('streamList').innerHTML = '<p style="color:#888">Stream lookup failed (network/CORS). Try again.</p>'; }
-}
-function qLabel(q) { return q >= 2160 ? '4K' : q >= 1080 ? '1080p' : q >= 720 ? '720p' : q >= 480 ? '480p' : 'CAM'; }
-function qClass(q) { return q >= 2160 ? 'q-4k' : q >= 1080 ? 'q-1080' : q >= 720 ? 'q-720' : q >= 480 ? 'q-480' : 'q-cam'; }
-function renderStreams() {
-  const minQ = +$('sortSel') ? 0 : 0;
-  const q = +$('qSel').value, minS = +$('sSel').value, sort = $('sortSel').value;
-  let arr = currentDetail.streams.filter(s => s._p.q >= q && s._p.seeds >= minS);
-  arr.sort((a, b) => sort === 'seeders' ? b._p.seeds - a._p.seeds : sort === 'size' ? (parseFloat(a._p.size) || 9e9) - (parseFloat(b._p.size) || 9e9) : b._p.q - a._p.q || b._p.seeds - a._p.seeds);
-  $('streamList').innerHTML = '';
-  arr.slice(0, 40).forEach(s => {
-    const d = document.createElement('div'); d.className = 'stream-card';
-    const seedC = s._p.seeds > 50 ? 'seed-hi' : s._p.seeds >= 10 ? 'seed-mid' : 'seed-lo';
-    d.innerHTML = `<span class="qbadge ${qClass(s._p.q)}">${qLabel(s._p.q)}</span><div class="smeta"><div class="fn">${s._p.file}</div><div class="ss"><span class="${seedC}">👤 ${s._p.seeds} seeders</span> · 💾 ${s._p.size} · ${s._p.prov}</div></div>`;
-    const pb = document.createElement('button'); pb.className = 'btn-red'; pb.textContent = '▶ Play'; pb.onclick = () => playStream(s);
-    const db = document.createElement('button'); db.className = 'btn-out'; db.textContent = '⬇'; db.title = 'Download MP4'; db.onclick = () => startMP4Download(s);
-    const wrap = document.createElement('div'); wrap.className = 'sbtns'; wrap.append(pb, db);
-    d.appendChild(wrap); $('streamList').appendChild(d);
-  });
-  if (!arr.length) $('streamList').innerHTML = '<p style="color:#888">No streams match filters.</p>';
-}
-['sortSel', 'qSel', 'sSel'].forEach(id => $(id).onchange = renderStreams);
 $('dClose').onclick = closeDetail;
 $('detailBackdrop').addEventListener('click', e => { if (e.target.id === 'detailBackdrop') closeDetail(); });
 function closeDetail() { $('detailBackdrop').classList.remove('show'); document.body.style.overflow = ''; }
@@ -333,7 +290,6 @@ function renderProfiles() {
 }
 const DEFAULT_ADDONS = [
   { name: 'Cinemeta', url: CINEMETA + '/manifest.json', info: 'Metadata + catalogs' },
-  { name: 'Torrentio', url: TORRENTIO + '/manifest.json', info: 'Torrent streams (10+ providers)' },
   { name: 'OpenSubtitles v3', url: 'https://opensubtitles-v3.strem.io/manifest.json', info: 'Subtitles' }
 ];
 function renderAddons() {
@@ -354,150 +310,45 @@ $('addAddon').onclick = () => {
 };
 $('clearData').onclick = () => { myList = []; history = {}; store.set('nf_mylist', []); store.set('nf_history', {}); toast('Cleared'); renderMyList(); };
 
-/* ---------- DOWNLOAD ---------- */
-function magnet(s) {
-  if (!s?.infoHash) return '';
-  return `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(s._p?.file || 'download')}&${TRACKERS}`;
-}
-function openDownload(s) {
-  if (!s) { toast('Open a title first to see streams'); return; }
-  currentStream = s;
-  $('dlFile').textContent = `${s._p?.file || ''} · ${s._p?.size || ''} · ${qLabel(s._p?.q || 0)}`;
-  $('dlBackdrop').classList.add('show');
-}
-$('dlClose').onclick = () => $('dlBackdrop').classList.remove('show');
-$('dlCopy').onclick = async () => { await navigator.clipboard.writeText(magnet(currentStream)).catch(() => {}); toast('Magnet link copied'); };
-$('dlHash').onclick = async () => { await navigator.clipboard.writeText(currentStream.infoHash || '').catch(() => {}); toast('Hash copied'); };
-$('dlTorrent').onclick = () => { if (currentStream?.infoHash) window.open(`https://itorrents.org/torrent/${currentStream.infoHash.toUpperCase()}.torrent`, '_blank'); };
-$('dlStremio').onclick = () => { const m = currentDetail?.meta; if (m) window.open(`stremio:///detail/${m.type}/${m.id}`, '_blank'); };
-$('pDl').onclick = () => openDownload(currentStream);
-$('dlMP4').onclick = () => startMP4Download(currentStream);
-
-/* ---------- DIRECT MP4 DOWNLOAD (video file, not .torrent) ---------- */
-let dlState = null; // { client, torrent, url, name, timer }
-let dlLastStream = null;
-const WT_CDNS = [
-  'https://cdn.jsdelivr.net/npm/webtorrent@2/dist/webtorrent.min.js',
-  'https://unpkg.com/webtorrent@2/dist/webtorrent.min.js',
-  'https://cdn.jsdelivr.net/npm/webtorrent@2.8.5/dist/webtorrent.min.js'
-];
-let wtLoading = null;
-/* Guarantees the download engine is loaded, trying mirror CDNs in turn */
-function ensureWebTorrent() {
-  if (window.WebTorrent) return Promise.resolve();
-  if (wtLoading) return wtLoading;
-  wtLoading = new Promise((resolve, reject) => {
-    let i = 0;
-    const next = () => {
-      if (window.WebTorrent) return resolve();
-      if (i >= WT_CDNS.length) return reject(new Error('no-engine'));
-      const s = document.createElement('script');
-      s.src = WT_CDNS[i++];
-      s.onload = () => (window.WebTorrent ? resolve() : next());
-      s.onerror = next;
-      document.head.appendChild(s);
-      setTimeout(() => { if (!window.WebTorrent && s.parentNode) { s.remove(); next(); } }, 15000);
-    };
-    next();
-  }).catch(e => { wtLoading = null; throw e; });
-  return wtLoading;
-}
-function mp4Name(s) {
-  const raw = String(s?._p?.file || s?.behaviorHints?.filename || 'video').split('/').pop();
-  const base = raw.replace(/\.[a-z0-9]{2,4}$/i, '').replace(/[<>:"/\\|?*\x00-\x1F]/g, '').trim().slice(0, 120) || 'video';
-  return base + '.mp4';
-}
-function pickVideoFile(t, idx) {
-  if (typeof idx === 'number' && t.files[idx]) return t.files[idx];
-  const vids = t.files.filter(f => /\.(mp4|mkv|avi|mov|webm|m4v)$/i.test(f.name));
-  const pool = vids.length ? vids : t.files;
-  return pool.reduce((a, b) => (a.length > b.length ? a : b));
-}
-function fmtSpeed(bps) {
-  if (!bps || bps <= 0) return '0 KB/s';
-  return bps > 1048576 ? (bps / 1048576).toFixed(2) + ' MB/s' : Math.round(bps / 1024) + ' KB/s';
-}
-function fmtETA(t, done, total, speed) {
-  if (!speed || speed <= 0 || done >= total) return '';
-  const s = Math.round((total - done) / speed);
-  return s > 3600 ? ` · ETA ${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m` : s > 60 ? ` · ETA ${Math.floor(s / 60)}m ${s % 60}s` : ` · ETA ${s}s`;
-}
-function setMP4(pct, stats) {
-  $('mp4Fill').style.width = Math.min(100, pct) + '%';
-  $('mp4Stats').textContent = stats;
-}
-function triggerMP4Save() {
-  if (!dlState?.url) return;
-  const a = document.createElement('a');
-  a.href = dlState.url; a.download = dlState.name;
-  document.body.appendChild(a); a.click(); a.remove();
-}
-function cancelMP4() {
-  if (dlState?.timer) clearTimeout(dlState.timer);
-  try { dlState?.torrent?.destroy?.(); } catch { }
-  try { dlState?.client?.destroy?.(); } catch { }
-  dlState = null;
-  $('mp4Backdrop').classList.remove('show');
-}
-async function startMP4Download(s) {
-  if (!s?.infoHash) { toast('No torrent found for this stream'); return; }
-  if (dlState) cancelMP4();
-  dlLastStream = s;
-  $('dlBackdrop').classList.remove('show');
-  if ($('detailBackdrop').classList.contains('show')) closeDetail();
-  const name = mp4Name(s);
-  $('mp4Name').textContent = name;
-  $('mp4Warn').style.display = 'none';
-  $('mp4Done').style.display = 'none';
-  $('mp4Cancel').style.display = '';
-  setMP4(0, 'Connecting to peers…');
-  $('mp4Backdrop').classList.add('show');
-  $('mp4Magnet').onclick = async () => { await navigator.clipboard.writeText(magnet(s)).catch(() => {}); toast('Magnet link copied'); };
-  $('mp4Stremio').onclick = () => { const m = currentDetail?.meta; if (m) window.open(`stremio:///detail/${m.type}/${m.id}`, '_blank'); };
-  setMP4(0, 'Loading download engine…');
-  $('mp4Retry').style.display = 'none';
-  let client;
+/* ---------- DOWNLOAD = OmniSave redirect only ----------
+ * The Download button never downloads through this site. It opens the
+ * external OmniSave website in a new tab with the title search ready
+ * (their declared ?q= search target), and copies the query to the
+ * clipboard as a fallback. */
+function openOmnisave(query) {
+  window.open(MediaLinks.omnisaveUrl(query), '_blank', 'noopener');
+  if (!query) { toast('OmniSave opened in a new tab'); return; }
   try {
-    await ensureWebTorrent();
-    client = new WebTorrent();
-  } catch { setMP4(0, 'Download engine failed to load. Check connection and retry.'); $('mp4Retry').style.display = ''; $('mp4Warn').style.display = ''; return; }
-  const state = dlState = { client, torrent: null, url: null, name, timer: null };
-  state.timer = setTimeout(() => {
-    if (dlState === state && !state.done && (!state.torrent || (state.torrent.progress === 0 && state.torrent.numPeers === 0)))
-      $('mp4Warn').style.display = '';
-  }, 20000);
-  try {
-    const torrent = state.torrent = client.add(magnet(s), t => {
-      const file = pickVideoFile(t, s.fileIdx);
-      t.on('download', () => {
-        if (dlState !== state || state.done) return;
-        const pct = Math.round(t.progress * 100);
-        setMP4(pct, `👥 ${t.numPeers} peers · ${fmtSpeed(t.downloadSpeed)} · ${pct}% of ${(file.length / 1073741824).toFixed(2)} GB${fmtETA(0, t.downloaded, file.length, t.downloadSpeed)}`);
-      });
-      t.on('done', () => {
-        if (dlState !== state || state.done) return;
-        state.done = true;
-        setMP4(100, 'Assembling MP4 file…');
-        file.getBlob((err, blob) => {
-          if (dlState !== state) return;
-          if (err || !blob) { setMP4(100, 'Could not assemble file. Try again or use the magnet link.'); $('mp4Warn').style.display = ''; return; }
-          if (state.timer) clearTimeout(state.timer);
-          state.url = URL.createObjectURL(new Blob([blob], { type: 'video/mp4' }));
-          triggerMP4Save();
-          setMP4(100, `Complete — ${name} (${(blob.size / 1048576).toFixed(1)} MB)`);
-          $('mp4Done').style.display = '';
-          $('mp4Cancel').style.display = 'none';
-          toast('MP4 download started');
-        });
-      });
-    });
-    torrent.on('error', () => { if (dlState === state && !state.done) { setMP4(0, 'Torrent error. Try another stream or use the magnet link.'); $('mp4Warn').style.display = ''; } });
-  } catch { setMP4(0, 'Could not start download. Try another stream.'); $('mp4Warn').style.display = ''; }
+    const done = navigator.clipboard && navigator.clipboard.writeText(query);
+    if (done && done.then) done.then(
+      () => toast('OmniSave opened — title copied, paste it into search'),
+      () => toast('OmniSave opened in a new tab'),
+    );
+    else toast('OmniSave opened in a new tab');
+  } catch { toast('OmniSave opened in a new tab'); }
 }
-$('mp4Save').onclick = triggerMP4Save;
-$('mp4Retry').onclick = () => { if (dlLastStream) startMP4Download(dlLastStream); };
-$('mp4Cancel').onclick = () => { cancelMP4(); toast('Download cancelled'); };
-$('mp4Close').onclick = () => $('mp4Backdrop').classList.remove('show');
+/** Title context for downloads: detail modal first, player second. */
+function currentTitleContext() {
+  if (currentDetail?.meta) {
+    return { title: currentDetail.meta.name, type: currentDetail.type, season: currentDetail.ep.s, episode: currentDetail.ep.e };
+  }
+  if (currentEmbed) {
+    return { title: currentEmbed.title, type: currentEmbed.type, season: currentEmbed.season, episode: currentEmbed.episode };
+  }
+  return null;
+}
+function downloadCurrent() {
+  const ctx = currentTitleContext();
+  if (!ctx) { toast('Open a title first'); return; }
+  const query = ctx.type === 'series'
+    ? MediaLinks.getEpisodeDownloadSearch({ title: ctx.title }, ctx.season, ctx.episode)
+    : MediaLinks.getMovieDownloadSearch({ title: ctx.title });
+  openOmnisave(query);
+}
+function downloadEpisode(seriesTitle, season, episode) {
+  openOmnisave(MediaLinks.getEpisodeDownloadSearch({ title: seriesTitle }, season, episode));
+}
+$('pDl').onclick = () => downloadCurrent();
 
 /* ---------- PLAYER ---------- */
 let hideT = null;
@@ -509,7 +360,7 @@ function wakeChrome() {
 document.addEventListener('mousemove', e => { if ($('playerView').classList.contains('show')) wakeChrome(); });
 $('pBack').onclick = closePlayer;
 function closePlayer() {
-  syncVidlinkProgress();
+  syncEmbedProgress();
   $('playerView').classList.remove('show');
   hidePlayerError();
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
@@ -520,28 +371,17 @@ function closePlayer() {
   v.style.display = '';
   $('pBottom').style.display = '';
   $('torrentStats').style.display = '';
-  currentVidlink = null;
+  currentEmbed = null;
 }
 
-/* ---------- PRIMARY WATCH FLOW (VidLink embed — frontend only, no backend) ---------- */
-let currentVidlink = null;
+/* ---------- PRIMARY WATCH FLOW (VidAPI/Vaplayer embed ONLY) ----------
+ * The ONLY streaming provider. Movies use the IMDb embed, episodes the
+ * TMDB embed. No fallbacks, no proxy, no direct media URLs. */
+let currentEmbed = null;
 function hidePlayerError() { $('pError').classList.remove('show'); }
 function showPlayerError(msg) {
   $('pErrorMsg').textContent = msg || 'This title is not available for streaming right now.';
   $('pError').classList.add('show');
-}
-/** Official VidLink embed URL, styled to match this site (Netflix red). */
-function vidlinkUrl(o) {
-  const base = o.type === 'series'
-    ? `https://vidlink.pro/tv/${o.tmdbId}/${o.season || 1}/${o.episode || 1}`
-    : `https://vidlink.pro/movie/${o.tmdbId}`;
-  const p = new URLSearchParams({
-    primaryColor: 'E50914', secondaryColor: '808080', iconColor: 'FFFFFF',
-    icons: 'default', title: 'true', poster: 'true', autoplay: 'true',
-  });
-  if (o.type === 'series') p.set('nextbutton', 'true');
-  if (o.startAt > 0) p.set('startAt', String(Math.floor(o.startAt)));
-  return `${base}?${p.toString()}`;
 }
 function openPlayerShell(title) {
   closeDetail();
@@ -550,7 +390,7 @@ function openPlayerShell(title) {
   $('playerView').classList.add('show');
   $('pTitle').textContent = title;
   wakeChrome();
-  // embed mode: VidLink brings its own controls — hide the native chrome
+  // embed mode: the provider brings its own controls — hide the native chrome
   $('playerVideo').style.display = 'none';
   $('pBottom').style.display = 'none';
   $('torrentStats').style.display = 'none';
@@ -558,56 +398,79 @@ function openPlayerShell(title) {
   $('nextEp').style.display = 'none';
 }
 /**
- * PRIMARY Watch entry: every Play button ends up here.
- * Catalog (Cinemeta IMDb id) → TMDB id → VidLink embed → iframe player.
+ * PRIMARY Watch entry for movies. Requires an IMDb ID.
+ * PRIMARY Watch entry for episodes is playEpisode().
  */
-function playVidlink(o) {
-  if (!o || !o.tmdbId) { showPlayerError('This title is not available for streaming right now.'); return; }
-  currentVidlink = { ...o };
-  openPlayerShell(o.title + (o.type === 'series' ? ` — S${o.season || 1}:E${o.episode || 1}` : ''));
+function playStream() {
+  const m = currentDetail?.meta;
+  if (!m) return;
+  if (currentDetail.type === 'series') {
+    playEpisode(currentDetail.ep.s, currentDetail.ep.e);
+    return;
+  }
+  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id });
+  if (!url) {
+    closeDetail();
+    $('playerView').classList.add('show');
+    $('pTitle').textContent = m.name;
+    showPlayerError('Streaming is unavailable for this title (missing ID).');
+    return;
+  }
+  playEmbed({ url, type: 'movie', imdb: m.id || m.imdb_id, title: m.name });
+}
+function playEpisode(season, episode) {
+  const m = currentDetail?.meta;
+  if (!m) return;
+  currentDetail.ep = { s: season, e: episode };
+  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: m.moviedb_id }, season, episode);
+  if (!url) {
+    toast('Streaming is unavailable for this episode (missing ID).');
+    return;
+  }
+  playEmbed({ url, type: 'series', tmdbId: m.moviedb_id, season, episode, title: m.name });
+}
+function playEmbed(o) {
+  if (!o || !o.url) { showPlayerError('This title is not available for streaming right now.'); return; }
+  currentEmbed = { ...o };
+  currentStream = o;
+  openPlayerShell(o.title + (o.type === 'series' ? ` — S${o.season}:E${o.episode}` : ''));
   const f = document.createElement('iframe');
-  f.src = vidlinkUrl(o);
+  f.src = o.url;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
   f.style.cssText = 'flex:1;width:100%;border:none';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
 }
-function playStream(s) {
-  currentStream = s || null;
-  const m = currentDetail?.meta;
-  if (!m) return;
-  const tmdbId = m.moviedb_id;
-  if (!tmdbId) {
-    closeDetail();
-    $('playerView').classList.add('show');
-    $('pTitle').textContent = m.name;
-    showPlayerError('This title is not available for streaming right now.');
+/** Continue-Watching card → resume in place (only if still playable). */
+function playEmbedEntry(m) {
+  if (m.type === 'series') {
+    if (!m.tmdbId) { toast('Streaming is unavailable for this title (missing ID).'); return; }
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: m.tmdbId }, m.season || 1, m.episode || 1);
+    if (!url) { toast('Streaming is unavailable for this episode.'); return; }
+    playEmbed({ url, type: 'series', tmdbId: m.tmdbId, season: m.season || 1, episode: m.episode || 1, title: m.name });
     return;
   }
-  playVidlink({
-    tmdbId, type: currentDetail.type,
-    season: currentDetail.ep.s, episode: currentDetail.ep.e, title: m.name,
-  });
+  const imdb = m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
+  const url = MediaLinks.getMovieStreamUrl({ imdb });
+  if (!url) { toast('Streaming is unavailable for this title (missing ID).'); return; }
+  playEmbed({ url, type: 'movie', imdb, title: m.name });
 }
-/** Continue-Watching card (built from VidLink progress) → resume in place. */
-function playVidlinkEntry(m) {
-  playVidlink({
-    tmdbId: m.tmdbId, type: m.type === 'series' ? 'series' : 'movie',
-    season: m.season || 1, episode: m.episode || 1,
-    startAt: m._resume || 0, title: m.name,
-  });
-}
-/* VidLink progress → our Continue Watching (their documented MEDIA_DATA events). */
-function readVidlinkStore() {
+/* Embed-player progress → our Continue Watching.
+ * Accepts the documented MEDIA_DATA shape from the embed provider only.
+ * Legacy vidlink-pro progress entries already stored locally are migrated
+ * when still playable, then never written again. */
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru'];
+function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
 }
 function historyItems() {
   return Object.entries(history).map(([id, h]) => ({
     id, type: h.type, name: h.title, poster: h.poster, background: h.poster,
-    _progress: h.progress, _vidlink: !!h._vidlink, tmdbId: h.tmdbId,
-    season: h.season, episode: h.episode, _resume: h._resume,
+    _progress: h.progress, _embed: !!h._embed, tmdbId: h.tmdbId,
+    imdb: h.imdb || (id.startsWith('tt') ? id : null),
+    season: h.season, episode: h.episode,
   }));
 }
 function renderContinueRow() {
@@ -620,8 +483,8 @@ function renderContinueRow() {
   items.forEach(m => track.appendChild(buildCard(m)));
   track.dispatchEvent(new Event('scroll'));
 }
-function syncVidlinkProgress() {
-  const data = readVidlinkStore();
+function syncEmbedProgress() {
+  const data = readProgressStore();
   let changed = false;
   Object.values(data).forEach(entry => {
     if (!entry || entry.id == null) return;
@@ -632,8 +495,9 @@ function syncVidlinkProgress() {
       type: entry.type === 'tv' ? 'series' : 'movie',
       title: entry.title || 'Title',
       poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '',
-      tmdbId: entry.id, season: +(entry.last_season_watched || 1),
-      episode: +(entry.last_episode_watched || 1), _vidlink: true, _resume: watched,
+      tmdbId: entry.id, imdb: entry.imdb || null,
+      season: +(entry.last_season_watched || 1),
+      episode: +(entry.last_episode_watched || 1), _embed: true,
     };
     changed = true;
   });
@@ -642,35 +506,23 @@ function syncVidlinkProgress() {
     renderContinueRow();
   }
 }
-function useWebtorFallback(s) {
-  if (!s?.infoHash) return;
-  $('torrentStats').textContent = 'WebRTC peers unavailable — relay via webtor.io';
-  $('playerVideo').style.display = 'none';
-  const f = document.createElement('iframe');
-  f.src = `https://webtor.io/${s.infoHash}/embed`;
-  f.allowFullscreen = true;
-  $('playerView').insertBefore(f, $('pTop'));
-}
+/* Embed-player events: progress + ended. Only the documented provider origins. */
 function nextEpisode() {
   $('nextEp').style.display = 'none';
-  if (currentVidlink?.type === 'series') {
-    const ep = (currentVidlink.episode || 1) + 1;
+  const e = currentEmbed;
+  if (e?.type === 'series' && e.tmdbId) {
+    const ep = (e.episode || 1) + 1;
     toast(`Loading episode ${ep}…`);
-    playVidlink({ ...currentVidlink, episode: ep, startAt: 0 });
-  } else if (currentDetail?.type === 'series') {
-    currentDetail.ep.e += 1;
-    playStream(null);
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: e.tmdbId }, e.season || 1, ep);
+    if (url) playEmbed({ ...e, url, episode: ep });
+    else toast('Streaming is unavailable for this episode.');
   }
 }
 $('nextPlay').onclick = nextEpisode;
-$('pRetry').onclick = () => { hidePlayerError(); playStream(currentStream); };
-$('pAlt').onclick = () => {
+$('pRetry').onclick = () => {
   hidePlayerError();
-  if (currentStream?.infoHash) {
-    // legacy torrent fallback for the selected stream
-    $('playerVideo').style.display = 'none';
-    useWebtorFallback(currentStream);
-  } else showPlayerError('No alternative player is available for this title.');
+  if (currentEmbed) playEmbed({ ...currentEmbed });
+  else playStream();
 };
 /* Pop-under guard (no sandbox — the player rejects sandboxed frames).
  * A transparent shield swallows the first tap on the player (the gesture
@@ -696,20 +548,25 @@ document.addEventListener('visibilitychange', () => {
     armVidShield();
   }
 });
-/* VidLink player events (documented postMessage API): progress + ended. */
+/* Embed-player events: progress + ended. Only the documented provider origins. */
 window.addEventListener('message', (event) => {
-  if (event.origin !== 'https://vidlink.pro') return;
+  if (!EMBED_ORIGINS.includes(event.origin)) return;
   const msg = event.data || {};
   if (msg.type === 'MEDIA_DATA' && msg.data) {
     try {
-      const cur = readVidlinkStore();
-      cur[msg.data.id] = msg.data;
+      const cur = readProgressStore();
+      cur[msg.data.id] = { ...msg.data, imdb: msg.data.imdb || msg.data.imdb_id || undefined };
       localStorage.setItem('vidLinkProgress', JSON.stringify(cur));
     } catch { /* storage full/blocked */ }
-    syncVidlinkProgress();
-  } else if (msg.type === 'PLAYER_EVENT' && msg.data?.event === 'ended' && currentVidlink?.type === 'series') {
-    toast('Playing next episode…');
-    playVidlink({ ...currentVidlink, episode: (currentVidlink.episode || 1) + 1, startAt: 0 });
+    syncEmbedProgress();
+  } else if (msg.type === 'PLAYER_EVENT' && msg.data?.event === 'ended') {
+    const e = currentEmbed;
+    if (e?.type === 'series' && e.tmdbId) {
+      toast('Playing next episode…');
+      const ep = (e.episode || 1) + 1;
+      const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: e.tmdbId }, e.season || 1, ep);
+      if (url) playEmbed({ ...e, url, episode: ep });
+    }
   }
 });
 $('ppPlay').onclick = () => { const v = $('playerVideo'); v.paused ? v.play() : v.pause(); $('ppPlay').textContent = v.paused ? '▶' : '⏸'; };
@@ -719,13 +576,6 @@ $('ppMute').onclick = () => $('playerVideo').muted = !$('playerVideo').muted;
 $('ppFs').onclick = () => document.fullscreenElement ? document.exitFullscreen() : $('playerView').requestFullscreen?.();
 $('ppSubs').onclick = () => toast('Subtitles are built into the player — use the CC button');
 $('ppEps').onclick = () => { closePlayer(); if (currentDetail) openDetail(currentDetail.meta.id, currentDetail.type, false); };
-
-/* ---------- VPN ---------- */
-if (!localStorage.getItem('vpn_ack')) $('vpnBackdrop').classList.add('show');
-if (!localStorage.getItem('vpn_banner_dismissed')) $('vpnBanner').classList.add('show');
-$('vpnOk').onclick = () => { localStorage.setItem('vpn_ack', 'true'); $('vpnBackdrop').classList.remove('show'); };
-$('vpnLearn').onclick = () => toast('A VPN encrypts traffic and hides your IP from torrent peers');
-$('vpnDismiss').onclick = () => { localStorage.setItem('vpn_banner_dismissed', 'true'); $('vpnBanner').classList.remove('show'); };
 
 /* ---------- PROFILE GATE + LIVE SEARCH ---------- */
 function renderGate() {
@@ -758,7 +608,18 @@ function armLiveSearch(input, box) {
 }
 
 /* ---------- INIT ---------- */
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); $('dlBackdrop').classList.remove('show'); if ($('playerView').classList.contains('show')) closePlayer(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeDetail(); if ($('playerView').classList.contains('show')) closePlayer(); } });
+// One-time migration: drop legacy progress entries that have no playable ID
+// under the current provider (TMDB-only movies predate IMDb-based playback).
+(function migrateHistory() {
+  let changed = false;
+  Object.entries(history).forEach(([k, h]) => {
+    if (!h) return;
+    const playable = h.type === 'series' ? !!h.tmdbId : !!(h.imdb || k.startsWith('tt'));
+    if (!playable) { delete history[k]; changed = true; }
+  });
+  if (changed) store.set('nf_history', history);
+})();
 show('home');
 buildHome();
 renderProfiles();
@@ -766,4 +627,3 @@ renderGate();
 armLiveSearch($('searchInput'), $('searchBox'));
 armLiveSearch($('searchBox'), null);
 $('avatarBtn').textContent = store.get('nf_profile', 'N');
-ensureWebTorrent().catch(() => {}); /* preload download engine in background */

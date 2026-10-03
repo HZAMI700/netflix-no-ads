@@ -4,15 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NETFLIX — Watch Movies & TV Shows</title>
-<meta name="description" content="Netflix-style streaming portal powered by Stremio + Torrentio. Educational purposes only.">
+<meta name="description" content="Netflix-style streaming portal. Educational purposes only.">
 <link rel="preconnect" href="https://v3-cinemeta.strem.io">
-<link rel="preconnect" href="https://torrentio.strem.fun">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<script>
-/* WebTorrent loader with multi-CDN fallback — guarantees window.WebTorrent */
-(function(){var urls=["https://cdn.jsdelivr.net/npm/webtorrent@2/dist/webtorrent.min.js","https://unpkg.com/webtorrent@2/dist/webtorrent.min.js","https://cdn.jsdelivr.net/npm/webtorrent@2.8.5/dist/webtorrent.min.js"];var i=0;function next(){if(window.WebTorrent||i>=urls.length)return;var s=document.createElement("script");s.src=urls[i++];s.onload=function(){if(!window.WebTorrent)next();};s.onerror=next;document.head.appendChild(s);}next();})();
-</script>
 </head>
 <body>
 
@@ -47,10 +42,6 @@
     </div>
   </div>
 </header>
-
-<div id="vpnBanner">🛡️ Protect your privacy with a VPN — torrent streaming exposes your IP to peers &amp; your ISP.
-  <button id="vpnDismiss">Dismiss</button>
-</div>
 
 <!-- HOME -->
 <main id="homePage">
@@ -106,7 +97,7 @@
 <!-- SETTINGS -->
 <section class="page" id="settingsPage">
   <h1>Settings — Addon Management</h1>
-  <p style="color:#aaa;max-width:640px;line-height:1.6">This portal speaks the Stremio addon protocol directly from your browser. No server, no database. Catalogs &amp; metadata come from Cinemeta, streams from Torrentio, subtitles from OpenSubtitles — all CORS-enabled.</p>
+  <p style="color:#aaa;max-width:640px;line-height:1.6">This portal runs entirely in your browser. No server, no database. Catalogs &amp; metadata come from Cinemeta; playback uses the embedded player.</p>
   <div id="addonList" style="margin-top:18px;max-width:720px"></div>
   <div class="stream-tools" style="margin-top:14px;max-width:720px">
     <input id="customAddon" placeholder="Custom manifest URL, e.g. https://…/manifest.json" style="flex:1">
@@ -135,19 +126,8 @@
           <button class="btn-play" id="dPlay">▶ Play</button>
           <button class="cbtn" id="dList" title="My List">＋</button>
           <button class="cbtn" id="dLike" title="I like this">👍</button>
-          <button class="cbtn" id="dDl" title="Download options">⬇</button>
+          <button class="cbtn" id="dDl" title="Download on OmniSave ↗">⬇</button>
         </div>
-        <h3 style="margin:20px 0 8px">Available Streams <span style="color:#888;font-weight:400;font-size:12px">via Torrentio</span></h3>
-        <div class="stream-tools">
-          <select id="sortSel">
-            <option value="quality">Quality (high→low)</option>
-            <option value="seeders">Seeders (high→low)</option>
-            <option value="size">Size (small→large)</option>
-          </select>
-          <select id="qSel"><option value="0">Min: Any</option><option value="480">Min: 480p</option><option value="720">Min: 720p</option><option value="1080">Min: 1080p</option><option value="2160">Min: 4K</option></select>
-          <select id="sSel"><option value="0">Seeders: Any</option><option value="5">5+</option><option value="10">10+</option><option value="50">50+</option></select>
-        </div>
-        <div id="streamList"><p style="color:#888">Loading streams…</p></div>
         <div id="epWrap" style="display:none">
           <h3 style="margin:20px 0 4px">Episodes <select id="seasonSel" style="background:#000;color:#fff;border:1px solid #555;border-radius:4px;padding:5px 8px;margin-left:8px"></select></h3>
           <div id="epList"></div>
@@ -161,61 +141,6 @@
   </div>
 </div>
 
-<!-- DOWNLOAD MODAL -->
-<div class="backdrop" id="dlBackdrop">
-  <div id="dlBox">
-    <h3>Download options</h3>
-    <p id="dlFile">—</p>
-    <div class="dl-row">
-      <button class="btn-red" id="dlMP4">⬇ Download MP4 Now</button>
-    </div>
-    <div class="dl-row">
-      <button class="btn-out" id="dlCopy">⧉ Copy Magnet Link</button>
-      <button class="btn-out" id="dlTorrent">⬇ .torrent File</button>
-    </div>
-    <div class="dl-row">
-      <button class="btn-out" id="dlStremio">Open in Stremio</button>
-      <button class="btn-out" id="dlHash">Copy Info Hash</button>
-    </div>
-    <div class="vpn-note">⚠️ Torrenting exposes your IP address. Use a VPN. Downloading copyrighted content without permission is illegal in most jurisdictions. Educational use only.</div>
-    <div style="text-align:right;margin-top:14px"><button class="btn-out" id="dlClose">Close</button></div>
-  </div>
-</div>
-
-<!-- MP4 DOWNLOAD PROGRESS -->
-<div class="backdrop" id="mp4Backdrop">
-  <div id="mp4Box">
-    <h3>⬇ Downloading MP4</h3>
-    <p id="mp4Name">—</p>
-    <div id="mp4Bar"><i id="mp4Fill"></i></div>
-    <div id="mp4Stats">Connecting…</div>
-    <div id="mp4Warn" class="vpn-note" style="display:none">⚠️ No browser-connectable peers yet. Most public torrents use standard BitTorrent, not WebRTC — if this stalls, use the magnet link in a torrent client instead.
-      <div class="dl-row" style="margin-bottom:0">
-        <button class="btn-out" id="mp4Magnet">⧉ Copy Magnet</button>
-        <button class="btn-out" id="mp4Stremio">Open in Stremio</button>
-      </div>
-    </div>
-    <div id="mp4Done" style="display:none;background:rgba(70,211,105,.1);border:1px solid #1f6f3a;border-radius:6px;padding:10px;font-size:13px;margin-top:12px">✅ Your MP4 download has started. <button class="btn-red" id="mp4Save" style="padding:5px 12px;margin-left:6px">Save again</button></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-      <button class="btn-red" id="mp4Retry" style="display:none">Try Again</button>
-      <button class="btn-out" id="mp4Cancel">Cancel</button>
-      <button class="btn-out" id="mp4Close">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- VPN MODAL -->
-<div class="backdrop" id="vpnBackdrop">
-  <div id="vpnModalBox">
-    <h2>⚠️ Privacy &amp; Legal Warning</h2>
-    <p>This site uses torrent technology. Your IP address is visible to peers, ISPs, and copyright holders. A VPN is <b>STRONGLY RECOMMENDED</b>. Downloading copyrighted content without permission is illegal in most jurisdictions. This project is for <b>educational purposes only</b>.</p>
-    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-      <button class="btn-red" id="vpnOk">I Understand — Continue</button>
-      <button class="btn-out" id="vpnLearn">Learn More</button>
-    </div>
-  </div>
-</div>
-
 <!-- PLAYER -->
 <div id="playerView">
   <video id="playerVideo" controls playsinline></video>
@@ -223,7 +148,7 @@
     <button class="icon-btn" id="pBack">←</button>
     <div class="p-title" id="pTitle">Now Playing</div>
     <div style="flex:1"></div>
-    <button class="icon-btn" id="pDl" title="Download">⬇</button>
+    <button class="icon-btn" id="pDl" title="Download on OmniSave ↗">⬇</button>
   </div>
   <div id="torrentStats">connecting…</div>
   <div id="pError">
@@ -231,7 +156,6 @@
     <div id="pErrorMsg">Playback failed.</div>
     <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
       <button class="btn-red" id="pRetry">Try Again</button>
-      <button class="btn-out" id="pAlt">Try alternative player</button>
     </div>
   </div>
   <button id="skipIntro">Skip Intro ›</button>
@@ -245,7 +169,7 @@
       <button id="ppMute">🔊</button>
       <button id="ppFs">⛶</button>
       <span style="flex:1"></span>
-      <button id="ppSubs" title="Subtitles via OpenSubtitles">💬</button>
+      <button id="ppSubs" title="Subtitles (built into the player)">💬</button>
       <button id="ppEps" title="Episodes">☰</button>
     </div>
   </div>
@@ -267,10 +191,11 @@
     <a href="#">Legal Notices</a><a href="#">Cookie Preferences</a><a href="#">Corporate Information</a><a href="#">Contact Us</a>
   </div>
   <div class="lang">🌐 English</div>
-  <div class="copyright">Netflix Clone © 2024 — EDUCATIONAL PURPOSES ONLY. No content hosted here; streams via public Stremio addons (Cinemeta / Torrentio). Respect copyright laws &amp; use a VPN.</div>
+  <div class="copyright">Netflix Clone © 2024 — EDUCATIONAL PURPOSES ONLY. No content hosted here. Only use streams and downloads you are authorized to access.</div>
 </footer>
 
 <div id="toast"></div>
+<script src="services/media-links.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

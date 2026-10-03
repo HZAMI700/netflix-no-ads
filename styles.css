@@ -35,11 +35,6 @@ img{display:block;max-width:100%}
 .dropdown a{display:block;padding:9px 16px;font-size:13px;color:var(--nf-text2)}.dropdown a:hover{text-decoration:underline}
 .dropdown hr{border:none;border-top:1px solid #333;margin:6px 0}
 
-/* VPN banner */
-#vpnBanner{display:none;margin-top:var(--nav-h);background:rgba(229,9,20,.15);border-left:3px solid var(--nf-red);padding:10px 4%;font-size:13px;color:#fff;align-items:center;gap:10px}
-#vpnBanner.show{display:flex}
-#vpnBanner button{margin-left:auto;background:none;border:1px solid #666;color:#fff;border-radius:4px;padding:4px 10px;font-size:12px}
-
 /* ---------- HERO ---------- */
 #hero{position:relative;height:85vh;min-height:500px;width:100%;overflow:hidden;background:#000}
 #heroBg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .6s}
@@ -116,11 +111,8 @@ img{display:block;max-width:100%}
 .stream-tools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .stream-tools select,.stream-tools input{background:#000;border:1px solid #555;color:#fff;border-radius:4px;padding:7px 10px;font-size:13px}
 .stream-card{display:flex;align-items:center;gap:12px;background:#222;border-radius:6px;padding:10px 12px;margin-bottom:8px}
-.qbadge{font-size:11px;font-weight:800;padding:4px 8px;border-radius:3px;min-width:56px;text-align:center}
-.q-4k{background:gold;color:#000}.q-1080{background:#1f6feb;color:#fff}.q-720{background:#238636;color:#fff}.q-480{background:#555;color:#fff}.q-cam{background:#7a2e2e;color:#fff}
 .smeta{flex:1;min-width:0}.smeta .fn{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
-.smeta .ss{font-size:11px;color:#aaa}.seed-hi{color:var(--nf-green)}.seed-mid{color:#e3b341}.seed-lo{color:#f85149}
-.sbtns{display:flex;gap:6px}
+.smeta .ss{font-size:11px;color:#aaa}
 .btn-red{background:var(--nf-red);color:#fff;border:none;border-radius:4px;padding:8px 14px;font-weight:700}.btn-red:hover{background:var(--nf-red-hover)}
 .btn-out{background:transparent;color:#fff;border:1px solid #888;border-radius:4px;padding:8px 14px}.btn-out:hover{border-color:#fff}
 .ep-card{display:flex;gap:12px;padding:12px 0;border-top:1px solid #333;cursor:pointer;align-items:center}
@@ -157,16 +149,6 @@ img{display:block;max-width:100%}
 .pav{cursor:pointer}.pav .box{width:140px;height:140px;border-radius:8px;font-size:52px;display:flex;align-items:center;justify-content:center;border:3px solid transparent}
 .pav:hover .box{border-color:#fff}.pav div:last-child{margin-top:8px;color:var(--nf-muted)}.pav:hover div:last-child{color:#fff}
 
-/* download modal */
-#dlBox{background:#181818;border-radius:8px;padding:26px;width:min(500px,94vw);animation:pop .3s var(--ease)}
-#dlBox h3{margin-bottom:6px}#dlBox p{color:#aaa;font-size:13px;margin-bottom:14px;word-break:break-all}
-.dl-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-.vpn-note{background:rgba(229,9,20,.12);border:1px solid #5a1114;border-radius:6px;padding:10px;font-size:12px;color:#ffb4a2;margin-top:12px}
-
-/* vpn modal */
-#vpnModalBox{background:#0a0a0a;border:1px solid #333;border-radius:10px;padding:34px;width:min(560px,94vw);text-align:center;animation:pop .3s var(--ease)}
-#vpnModalBox h2{margin-bottom:12px}#vpnModalBox p{color:#ccc;line-height:1.6;font-size:14px;margin-bottom:20px}
-
 /* footer */
 footer{background:#000;padding:60px var(--pad) 30px;color:var(--nf-gray);font-size:13px}
 footer .ficons{display:flex;gap:18px;font-size:20px;margin-bottom:16px}
@@ -174,12 +156,6 @@ footer .flinks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-wid
 footer .flinks a:hover{text-decoration:underline}
 .lang{border:1px solid #808080;padding:8px 16px;display:inline-block;margin:10px 0;color:#808080}
 .copyright{margin-top:14px;font-size:12px}
-
-#mp4Box{background:#181818;border-radius:8px;padding:26px;width:min(500px,94vw);animation:pop .3s var(--ease)}
-#mp4Box h3{margin-bottom:6px}#mp4Box p{color:#aaa;font-size:13px;margin-bottom:4px;word-break:break-all}
-#mp4Bar{height:8px;background:#333;border-radius:4px;overflow:hidden;margin:14px 0 8px}
-#mp4Fill{display:block;height:100%;width:0;background:var(--nf-red);transition:width .3s}
-#mp4Stats{font-size:12px;color:var(--nf-muted)}
 
 #pError{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:rgba(0,0,0,.88);z-index:6;text-align:center;padding:0 8%}
 #pError.show{display:flex;animation:fade .3s}
@@ -269,6 +245,7 @@ footer .flinks{gap:14px;line-height:1.9}
 .page.show{animation:fadeUp .45s var(--ease)}
 .backdrop.show{backdrop-filter:blur(6px)}
 .btn-play:active,.btn-info:active,.btn-red:active,.btn-out:active{transform:scale(.96)}
+.btn-play:disabled{opacity:.35;cursor:not-allowed;transform:none}
 .cbtn{transition:transform .15s,border-color .15s,background .15s}
 .cbtn:hover{transform:scale(1.12)}
 .row-arrow{transition:opacity .2s,background .2s,transform .2s}
