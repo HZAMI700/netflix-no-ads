@@ -1,0 +1,8 @@
+# Runtime + build output + secrets. Frontend files stay tracked.
+node_modules/
+dist/
+.env
+backend/data/
+*.log
+.DS_Store
+Thumbs.db
