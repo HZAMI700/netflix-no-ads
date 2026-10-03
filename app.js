@@ -618,8 +618,8 @@ function openCardPortal(card, m, badge, rank) {
             ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
             : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'}
         </button>
-        <button class="cbtn ${isLiked ? 'solid' : ''}" data-pa="like" title="I like this">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+        <button class="cbtn ${isLiked ? 'solid liked' : ''}" data-pa="like" title="${isLiked ? 'Remove from Favourites' : 'Add to Favourites'}">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="${isLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
         </button>
         <button class="cbtn" data-pa="dislike" title="Not for me">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>
@@ -662,25 +662,38 @@ function openCardPortal(card, m, badge, rank) {
       toggleList(m);
       const listBtn = portal.querySelector('[data-pa="list"]');
       if (listBtn) {
+        listBtn.classList.add('anim-pop');
+        setTimeout(() => listBtn.classList.remove('anim-pop'), 400);
         const nowInList = myList.some(x => x.id === m.id);
         listBtn.innerHTML = nowInList
           ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
           : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+        listBtn.classList.toggle('solid', nowInList);
       }
     } else if (a === 'like') {
       likes[m.id] = !likes[m.id];
       delete dislikes[m.id];
       store.set('nf_likes', likes);
-      toast(likes[m.id] ? 'Rated: I like this' : 'Rating removed');
+      toast(likes[m.id] ? `Added "${m.name || 'title'}" to Favourites` : `Removed "${m.name || 'title'}" from Favourites`);
       const likeBtn = portal.querySelector('[data-pa="like"]');
-      if (likeBtn) likeBtn.classList.toggle('solid', !!likes[m.id]);
+      if (likeBtn) {
+        likeBtn.classList.add('anim-pop');
+        setTimeout(() => likeBtn.classList.remove('anim-pop'), 400);
+        likeBtn.classList.toggle('solid', !!likes[m.id]);
+        likeBtn.classList.toggle('liked', !!likes[m.id]);
+      }
+      if (currentDetail?.meta?.id === m.id) updateModalLikeButton(m.id);
     } else if (a === 'dislike') {
       dislikes[m.id] = !dislikes[m.id];
       delete likes[m.id];
-      store.set('nf_dislikes', dislikes);
+      store.set('nf_likes', likes);
       toast(dislikes[m.id] ? 'Not for me' : 'Rating removed');
       const likeBtn = portal.querySelector('[data-pa="like"]');
-      if (likeBtn) likeBtn.classList.remove('solid');
+      if (likeBtn) {
+        likeBtn.classList.remove('solid');
+        likeBtn.classList.remove('liked');
+      }
+      if (currentDetail?.meta?.id === m.id) updateModalLikeButton(m.id);
     } else if (a === 'dl') {
       closeCardPortal();
       const rawImdb = m.id || m.imdb_id;
@@ -795,11 +808,13 @@ function buildCard(m, badge, rank) {
           finished: true,
           poster: poster(m),
           imdb: m.imdb || (m.id.startsWith('tt') ? m.id : null),
-          tmdbId: m.tmdbId
+          tmdbId: m.tmdbId,
+          lastWatched: Date.now()
         };
       } else {
         history[m.id].finished = true;
         history[m.id].progress = 1.0;
+        history[m.id].lastWatched = Date.now();
       }
       store.set('nf_history', history);
       renderContinueRow();
@@ -807,6 +822,16 @@ function buildCard(m, badge, rank) {
       e.stopPropagation();
       return;
     }
+
+    if (m._finished && history[m.id]) {
+      history[m.id].finished = false;
+      history[m.id].progress = 0.08;
+      history[m.id].lastWatched = Date.now();
+      store.set('nf_history', history);
+      renderContinueRow();
+    }
+
+    if (m._embed) { playEmbedEntry(m); return; }
 
     const id = m.id, tp = m.type || type;
     openDetail(id, tp, false);
@@ -824,12 +849,18 @@ function renderHero(i) {
   const bg = $('heroBg');
   if (bg) {
     bg.style.opacity = '0';
-    bg.style.animation = 'none';
+    bg.style.transform = 'scale(1.05)';
     void bg.offsetWidth;
     setTimeout(() => {
       bg.src = backdrop(m);
-      bg.onload = () => { bg.style.opacity = '1'; };
-      setTimeout(() => { bg.style.opacity = '1'; }, 300);
+      bg.onload = () => {
+        bg.style.opacity = '1';
+        bg.style.transform = 'scale(1)';
+      };
+      setTimeout(() => {
+        bg.style.opacity = '1';
+        bg.style.transform = 'scale(1)';
+      }, 300);
     }, 200);
   }
 
@@ -848,6 +879,19 @@ function renderHero(i) {
 
   if ($('heroPlay')) $('heroPlay').onclick = () => openDetail(m.id, m.type || 'movie', true);
   if ($('heroInfo')) $('heroInfo').onclick = () => openDetail(m.id, m.type || 'movie', false);
+
+  const heroListBtn = $('heroList');
+  if (heroListBtn) {
+    const inList = myList.some(x => x.id === m.id);
+    heroListBtn.innerHTML = inList
+      ? `<svg class="icon-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="hero-list-txt">In My List</span>`
+      : `<svg class="icon-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span class="hero-list-txt">My List</span>`;
+    heroListBtn.onclick = () => {
+      toggleList(m);
+      heroListBtn.classList.add('anim-pop');
+      setTimeout(() => heroListBtn.classList.remove('anim-pop'), 400);
+    };
+  }
 
   const dots = $('heroDots');
   if (dots) {
@@ -993,8 +1037,9 @@ async function openDetail(id, type, autoplay) {
     }
 
     updateModalListButton(id);
-    if ($('dList')) $('dList').onclick = () => { toggleList(m); updateModalListButton(id); };
-    if ($('dLike')) $('dLike').onclick = () => toast('Thanks for rating!');
+    updateModalLikeButton(id);
+    if ($('dList')) $('dList').onclick = () => toggleList(m);
+    if ($('dLike')) $('dLike').onclick = () => toggleLike(m);
     if ($('dDl')) $('dDl').onclick = () => downloadCurrent();
 
     const canWatch = type === 'movie'
@@ -1017,10 +1062,37 @@ function updateModalListButton(id) {
   const dList = $('dList');
   if (!dList) return;
   const inList = myList.some(x => x.id === id);
+  dList.classList.toggle('solid', inList);
   dList.innerHTML = inList
     ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
     : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
   dList.title = inList ? 'Remove from My List' : 'Add to My List';
+}
+
+function updateModalLikeButton(id) {
+  const dLike = $('dLike');
+  if (!dLike) return;
+  const isLiked = !!likes[id];
+  dLike.classList.toggle('solid', isLiked);
+  dLike.classList.toggle('liked', isLiked);
+  dLike.innerHTML = isLiked
+    ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>'
+    : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>';
+  dLike.title = isLiked ? 'Remove from Favourites' : 'Add to Favourites';
+}
+
+function toggleLike(m) {
+  if (!m || !m.id) return;
+  likes[m.id] = !likes[m.id];
+  delete dislikes[m.id];
+  store.set('nf_likes', likes);
+  toast(likes[m.id] ? `Added "${m.name || 'title'}" to Favourites` : `Removed "${m.name || 'title'}" from Favourites`);
+  updateModalLikeButton(m.id);
+  const dLike = $('dLike');
+  if (dLike) {
+    dLike.classList.add('anim-pop');
+    setTimeout(() => dLike.classList.remove('anim-pop'), 400);
+  }
 }
 
 const dClose = $('dClose');
@@ -1059,6 +1131,19 @@ function toggleList(m) {
     toast('Added to My List');
   }
   store.set('nf_mylist', myList);
+  const dList = $('dList');
+  if (dList) {
+    dList.classList.add('anim-pop');
+    setTimeout(() => dList.classList.remove('anim-pop'), 400);
+  }
+  if (currentDetail?.meta?.id === m.id) updateModalListButton(m.id);
+  const heroListBtn = $('heroList');
+  if (heroListBtn && heroItems[heroIdx]?.id === m.id) {
+    const inList = myList.some(x => x.id === m.id);
+    heroListBtn.innerHTML = inList
+      ? `<svg class="icon-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg><span class="hero-list-txt">In My List</span>`
+      : `<svg class="icon-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span class="hero-list-txt">My List</span>`;
+  }
   if (pages.mylist.classList.contains('show')) renderMyList();
 }
 
@@ -1598,7 +1683,15 @@ function playStream() {
     showPlayerError('Streaming is unavailable for this title (missing valid IMDb ID).');
     return;
   }
-  playEmbed({ url, type: 'movie', imdb: m.id || m.imdb_id, title: m.name });
+  playEmbed({
+    url,
+    type: 'movie',
+    id: m.id,
+    imdb: m.id || m.imdb_id,
+    title: m.name,
+    poster: poster(m),
+    tmdbId: m.moviedb_id
+  });
 }
 
 function playEpisode(season, episode) {
@@ -1610,13 +1703,68 @@ function playEpisode(season, episode) {
     toast('Streaming is unavailable for this episode (missing ID).');
     return;
   }
-  playEmbed({ url, type: 'series', tmdbId: m.moviedb_id, season, episode, title: m.name });
+  playEmbed({
+    url,
+    type: 'series',
+    id: m.id,
+    tmdbId: m.moviedb_id,
+    imdb: m.id || m.imdb_id,
+    season,
+    episode,
+    title: m.name,
+    poster: poster(m)
+  });
+}
+
+function recordWatchStart(o) {
+  if (!o) return;
+  const key = o.type === 'series'
+    ? (o.tmdbId ? `tmdb:${o.tmdbId}` : (o.id || o.imdb || `series:${o.title}`))
+    : (o.imdb || o.id || (o.tmdbId ? `tmdb:${o.tmdbId}` : `movie:${o.title}`));
+
+  const existing = history[key] || {};
+  const currentProg = existing.progress != null ? existing.progress : 0.12;
+  const safeProg = (currentProg > 0.05 && currentProg < 0.95) ? currentProg : 0.12;
+
+  history[key] = {
+    ...existing,
+    progress: safeProg,
+    finished: false,
+    type: o.type || existing.type || 'movie',
+    title: o.title || existing.title || 'Title',
+    poster: o.poster || existing.poster || '',
+    tmdbId: o.tmdbId || existing.tmdbId,
+    imdb: o.imdb || existing.imdb || (typeof key === 'string' && key.startsWith('tt') ? key : null),
+    season: +(o.season || existing.season || 1),
+    episode: +(o.episode || existing.episode || 1),
+    lastWatched: Date.now(),
+    _embed: true
+  };
+  store.set('nf_history', history);
+  renderContinueRow();
+}
+
+function recordWatchFinish(id) {
+  if (!id) return;
+  let targetKey = id;
+  if (!history[targetKey]) {
+    const found = Object.keys(history).find(k => k === id || k === `tmdb:${id}` || history[k].tmdbId === id || history[k].imdb === id);
+    if (found) targetKey = found;
+  }
+  if (history[targetKey]) {
+    history[targetKey].finished = true;
+    history[targetKey].progress = 1.0;
+    history[targetKey].lastWatched = Date.now();
+    store.set('nf_history', history);
+    renderContinueRow();
+  }
 }
 
 function playEmbed(o) {
   if (!o || !o.url) { showPlayerError('This title is unavailable.'); return; }
   currentEmbed = { ...o };
   currentStream = o;
+  recordWatchStart(o);
   openPlayerShell(o.title + (o.type === 'series' ? ` — S${o.season}:E${o.episode}` : ''));
 
   const f = document.createElement('iframe');
@@ -1633,13 +1781,31 @@ function playEmbedEntry(m) {
     if (!m.tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
     const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: m.tmdbId }, m.season || 1, m.episode || 1);
     if (!url) { toast('Streaming unavailable for this episode.'); return; }
-    playEmbed({ url, type: 'series', tmdbId: m.tmdbId, season: m.season || 1, episode: m.episode || 1, title: m.name });
+    playEmbed({
+      url,
+      type: 'series',
+      id: m.id,
+      tmdbId: m.tmdbId,
+      imdb: m.imdb,
+      season: m.season || 1,
+      episode: m.episode || 1,
+      title: m.name,
+      poster: poster(m)
+    });
     return;
   }
   const imdb = m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
   const url = MediaLinks.getMovieStreamUrl({ imdb });
   if (!url) { toast('Streaming unavailable (missing IMDb ID).'); return; }
-  playEmbed({ url, type: 'movie', imdb, title: m.name });
+  playEmbed({
+    url,
+    type: 'movie',
+    id: m.id,
+    imdb,
+    title: m.name,
+    poster: poster(m),
+    tmdbId: m.tmdbId
+  });
 }
 
 const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru'];
@@ -1649,20 +1815,22 @@ function readProgressStore() {
 }
 
 function historyItems() {
-  return Object.entries(history).map(([id, h]) => ({
-    id,
-    type: h.type || 'movie',
-    name: h.title,
-    poster: h.poster,
-    background: h.poster,
-    _progress: h.progress,
-    _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
-    _embed: !!h._embed,
-    tmdbId: h.tmdbId,
-    imdb: h.imdb || (id.startsWith('tt') ? id : null),
-    season: h.season,
-    episode: h.episode
-  }));
+  return Object.entries(history)
+    .sort(([, a], [, b]) => (b.lastWatched || 0) - (a.lastWatched || 0))
+    .map(([id, h]) => ({
+      id,
+      type: h.type || 'movie',
+      name: h.title,
+      poster: h.poster,
+      background: h.poster,
+      _progress: h.progress,
+      _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
+      _embed: !!h._embed,
+      tmdbId: h.tmdbId,
+      imdb: h.imdb || (id.startsWith('tt') ? id : null),
+      season: h.season,
+      episode: h.episode
+    }));
 }
 
 function continueItems() {
@@ -1708,16 +1876,20 @@ function syncEmbedProgress() {
     if (!dur || watched < 5) return;
     const p = Math.min(.98, watched / dur);
     const isFinished = p >= 0.9;
-    history[`tmdb:${entry.id}`] = {
+    const key = `tmdb:${entry.id}`;
+    const existing = history[key] || {};
+    history[key] = {
+      ...existing,
       progress: p,
       finished: isFinished,
       type: entry.type === 'tv' ? 'series' : 'movie',
-      title: entry.title || 'Title',
-      poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '',
+      title: entry.title || existing.title || 'Title',
+      poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : (existing.poster || ''),
       tmdbId: entry.id,
-      imdb: entry.imdb || null,
-      season: +(entry.last_season_watched || 1),
-      episode: +(entry.last_episode_watched || 1),
+      imdb: entry.imdb || existing.imdb || null,
+      season: +(entry.last_season_watched || existing.season || 1),
+      episode: +(entry.last_episode_watched || existing.episode || 1),
+      lastWatched: Date.now(),
       _embed: true
     };
     changed = true;
@@ -1915,6 +2087,10 @@ window.addEventListener('message', (event) => {
     syncEmbedProgress();
   } else if (msg.type === 'PLAYER_EVENT' && msg.data?.event === 'ended') {
     const e = currentEmbed;
+    if (e) {
+      const key = e.type === 'series' ? (e.tmdbId ? `tmdb:${e.tmdbId}` : e.id) : (e.imdb || e.id);
+      recordWatchFinish(key);
+    }
     if (e?.type === 'series' && e.tmdbId) {
       toast('Starting next episode…');
       const ep = (e.episode || 1) + 1;
@@ -1992,6 +2168,8 @@ if (ppEps) {
 
 /* ---------- PROFILE GATE ---------- */
 function renderGate() {
+  const gate = $('profileGate');
+  if (!gate) return;
   const av = $('gateAvatars');
   if (!av) return;
   av.innerHTML = '';
@@ -2007,8 +2185,7 @@ function renderGate() {
     `;
     d.onclick = () => {
       selectProfile(p);
-      const gate = $('profileGate');
-      if (gate) gate.classList.add('hide');
+      gate.classList.add('hide');
     };
     if (p.id === saved) {
       setTimeout(() => {
@@ -2055,12 +2232,11 @@ document.addEventListener('keydown', e => {
   if (changed) store.set('nf_history', history);
 })();
 
-// Initialize app
+// Initialize app directly to home screen
 show('home');
 buildHome();
 renderProfiles();
 renderProfileSwitcherDropdown();
-renderGate();
 armLiveSearch($('searchInput'), $('searchBox'));
 armLiveSearch($('searchBox'), null);
 

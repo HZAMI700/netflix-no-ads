@@ -505,7 +505,7 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: opacity 0.8s ease;
+  transition: opacity 0.8s ease, transform 8s cubic-bezier(0.25, 1, 0.5, 1);
   transform-origin: center center;
 }
 
@@ -906,14 +906,19 @@ img {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  z-index: 2;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.25);
+  z-index: 3;
+  overflow: hidden;
+  border-radius: 0 0 4px 4px;
 }
 .card .progress i {
   display: block;
   height: 100%;
-  background: var(--nf-red);
+  background: linear-gradient(90deg, #E50914 0%, #ff3b45 100%);
+  box-shadow: 0 0 6px rgba(229, 9, 20, 0.85);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.3s ease;
 }
 
 .card .remove-x {
@@ -945,7 +950,7 @@ img {
   position: absolute;
   top: 8px;
   left: 8px;
-  background: rgba(38, 166, 75, 0.95);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: #fff;
   font-size: 10px;
   font-weight: 800;
@@ -956,8 +961,9 @@ img {
   align-items: center;
   gap: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
-  z-index: 2;
+  z-index: 3;
   text-transform: uppercase;
+  backdrop-filter: blur(4px);
 }
 
 .card .finish-check {
@@ -968,23 +974,23 @@ img {
   height: 26px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(70, 211, 105, 0.85);
   color: #46D369;
   display: none;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  font-weight: bold;
+  font-weight: 800;
   z-index: 3;
-  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.15s, background-color 0.15s;
 }
 .card:hover .finish-check {
   display: flex;
 }
 .card .finish-check:hover {
   transform: scale(1.15);
-  border-color: #46D369;
-  background: rgba(70, 211, 105, 0.25);
+  background: rgba(70, 211, 105, 0.35);
+  color: #ffffff;
 }
 
 /* Row navigation arrows */
@@ -1128,6 +1134,11 @@ body.is-scrolling #cardPortal {
   color: #000000;
   border-color: #ffffff;
 }
+.cbtn.liked, .cbtn.solid.liked {
+  background: var(--nf-red);
+  color: #ffffff;
+  border-color: var(--nf-red);
+}
 .cbtn:hover {
   border-color: #ffffff;
   transform: scale(1.1);
@@ -1136,6 +1147,20 @@ body.is-scrolling #cardPortal {
 .cbtn.solid:hover {
   background: rgba(255, 255, 255, 0.85);
   transform: scale(1.1);
+}
+.cbtn.liked:hover, .cbtn.solid.liked:hover {
+  background: #ff202c;
+  border-color: #ff202c;
+  transform: scale(1.15);
+}
+
+@keyframes btnPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+.anim-pop {
+  animation: btnPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
 .hm, .hover-pop .hm {
