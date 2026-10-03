@@ -227,6 +227,15 @@
     <button class="icon-btn" id="pDl" title="Download">⬇</button>
   </div>
   <div id="torrentStats">connecting…</div>
+  <div id="pLoading"><div class="spinner"></div><div id="pLoadingText">Resolving playable source…</div></div>
+  <div id="pError">
+    <div id="pErrorTitle">Something went wrong</div>
+    <div id="pErrorMsg">Playback failed.</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-red" id="pRetry">Try Again</button>
+      <button class="btn-out" id="pAlt">Try alternative player</button>
+    </div>
+  </div>
   <button id="skipIntro">Skip Intro ›</button>
   <div id="nextEp"><img id="nextThumb" width="110" style="border-radius:4px"><div><b>Next Episode</b><div id="nextName" style="font-size:13px;color:#ccc"></div><div style="font-size:12px;color:#888">Starting in <span id="nextCount">25</span>s… <button class="btn-red" id="nextPlay" style="padding:4px 10px">Play</button></div></div></div>
   <div class="p-bottom" id="pBottom">
@@ -264,6 +273,7 @@
 </footer>
 
 <div id="toast"></div>
+<script src="services/playback.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

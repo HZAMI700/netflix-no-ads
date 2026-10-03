@@ -517,43 +517,117 @@ document.addEventListener('mousemove', e => { if ($('playerView').classList.cont
 $('pBack').onclick = closePlayer;
 function closePlayer() {
   $('playerView').classList.remove('show');
-  $('playerVideo').pause(); $('playerVideo').removeAttribute('src'); $('playerVideo').load();
-  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
+  hidePlayerLoading(); hidePlayerError();
+  // save progress before tearing down the media
+  try {
+    const v = $('playerVideo');
+    if (currentDetail && v.currentTime > 30 && v.duration) {
+      const m = currentDetail.meta;
+      history[m.id] = { progress: Math.min(.98, v.currentTime / v.duration), type: m.type, title: m.name, poster: poster(m) };
+      store.set('nf_history', history);
+    }
+  } catch { /* ignore */ }
+  clearPlayerMedia();
   try { wtClient?.destroy(); } catch { }
-  // save progress
-  if (currentDetail && $('playerVideo').currentTime > 30) {
-    const m = currentDetail.meta;
-    history[m.id] = { progress: Math.min(.98, $('playerVideo').currentTime / ($('playerVideo').duration || 1)), type: m.type, title: m.name, poster: poster(m) };
-    store.set('nf_history', history);
-  }
+  wtClient = null;
 }
-function playStream(s) {
-  currentStream = s; closeDetail();
+
+/* ---------- PRIMARY WATCH FLOW (Playback service → custom player) ---------- */
+let hlsRef = null, hlsScriptLoading = null;
+function showPlayerLoading(text) {
+  hidePlayerError();
+  $('pLoadingText').textContent = text || 'Resolving playable source…';
+  $('pLoading').classList.add('show');
+}
+function hidePlayerLoading() { $('pLoading').classList.remove('show'); }
+function showPlayerError(msg) {
+  hidePlayerLoading();
+  $('pErrorMsg').textContent = msg || 'No playable source exists for this title right now.';
+  $('pError').classList.add('show');
+}
+function hidePlayerError() { $('pError').classList.remove('show'); }
+function clearPlayerMedia() {
+  try { hlsRef?.destroy(); } catch { }
+  hlsRef = null;
+  const v = $('playerVideo');
+  try { v.pause(); } catch { }
+  v.removeAttribute('src'); v.load();
+  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
+  v.style.display = '';
+}
+/* Lazy-load hls.js only when an HLS source actually needs it. */
+function ensureHls() {
+  if (window.Hls) return Promise.resolve();
+  if (hlsScriptLoading) return hlsScriptLoading;
+  hlsScriptLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
+    s.onload = () => (window.Hls ? resolve() : reject(new Error('The video player failed to load.')));
+    s.onerror = () => reject(new Error('The video player failed to load. Check your connection.'));
+    document.head.appendChild(s);
+    setTimeout(() => reject(new Error('The video player timed out. Please try again.')), 15000);
+  }).catch(e => { hlsScriptLoading = null; throw e; });
+  return hlsScriptLoading;
+}
+/** Play a resolved PlaybackSource ({url, type}) with native + hls.js support. */
+async function playSource(src) {
+  clearPlayerMedia(); hidePlayerError();
+  const v = $('playerVideo');
+  $('torrentStats').textContent = src.quality ? `${src.quality} · loading…` : 'loading…';
+  if (!src || !/^https?:\/\//i.test(src.url)) throw new Error('The stream URL is invalid.');
+  if (src.type === 'hls') {
+    if (v.canPlayType('application/vnd.apple.mpegurl')) {
+      v.src = src.url;
+    } else {
+      await ensureHls();
+      const hls = hlsRef = new Hls({ enableWorker: true });
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data && data.fatal) showPlayerError('The stream stopped unexpectedly. Try again or pick another stream.');
+      });
+      hls.loadSource(src.url);
+      hls.attachMedia(v);
+      await new Promise((resolve, reject) => {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => resolve());
+        setTimeout(() => reject(new Error('The stream timed out. Please try again.')), 30000);
+      });
+    }
+  } else if (src.type === 'mp4') {
+    v.src = src.url;
+  } else {
+    throw new Error('This format is not supported on your device.');
+  }
+  try {
+    await v.play();
+  } catch {
+    // Autoplay blocked — show controls state, user can press play.
+  }
+  hidePlayerLoading();
+  $('torrentStats').textContent = src.quality || 'playing';
+}
+/**
+ * PRIMARY Watch entry: every Play button ends up here.
+ * UI → Playback.getPlaybackSource() → playSource() → custom player.
+ */
+async function playStream(s) {
+  currentStream = s || null; closeDetail();
   const m = currentDetail.meta;
   $('playerView').classList.add('show');
   $('pTitle').textContent = `${m.name}${currentDetail.type === 'series' ? ` S${currentDetail.ep.s}:E${currentDetail.ep.e}` : ''}`;
-  $('torrentStats').textContent = 'connecting to peers…';
   wakeChrome();
-  document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
-  $('playerVideo').style.display = '';
-  // Try WebTorrent, fallback to webtor.io after 10s
-  let fallback = setTimeout(() => useWebtorFallback(s), 10000);
+  clearPlayerMedia();
+  showPlayerLoading('Resolving playable source…');
   try {
-    if (!window.WebTorrent) throw 0;
-    wtClient?.destroy?.(); wtClient = new WebTorrent();
-    const uri = magnet(s);
-    $('torrentStats').textContent = 'contacting trackers…';
-    wtClient.add(uri, t => {
-      const file = (typeof s.fileIdx === 'number' ? t.files[s.fileIdx] : null) || t.files.reduce((a, b) => (a.length > b.length ? a : b));
-      if (!file) { useWebtorFallback(s); clearTimeout(fallback); return; }
-      clearTimeout(fallback);
-      file.renderTo('#playerVideo', { autoplay: true, controls: false });
-      $('playerVideo').play().catch(() => {});
-      t.on('download', () => { $('torrentStats').textContent = `👥 ${t.numPeers} peers · ${(t.downloadSpeed / 1048576).toFixed(2)} MB/s · ${Math.round(t.progress * 100)}%`; });
-      t.on('wire', () => { $('torrentStats').textContent = `👥 ${t.numPeers} peers · buffering…`; });
-      t.on('done', () => { $('torrentStats').textContent = `👥 ${t.numPeers} peers · complete`; });
+    const src = await Playback.getPlaybackSource({
+      id: m.id,
+      type: currentDetail.type,
+      season: currentDetail.ep.s,
+      episode: currentDetail.ep.e,
+      ...(s?.infoHash ? { stream: { infoHash: s.infoHash, fileIdx: s.fileIdx, title: s._p?.file, quality: s._p ? qLabel(s._p.q) : undefined } } : {}),
     });
-  } catch { clearTimeout(fallback); useWebtorFallback(s); }
+    await playSource(src);
+  } catch (err) {
+    showPlayerError(err?.message);
+  }
   $('skipIntro').style.display = 'block';
   $('skipIntro').onclick = () => { $('playerVideo').currentTime += 85; $('skipIntro').style.display = 'none'; };
   // next-episode overlay in last 30s
@@ -581,6 +655,16 @@ function nextEpisode() {
   toast(`Loading S${currentDetail.ep.s} E${currentDetail.ep.e}…`);
 }
 $('nextPlay').onclick = nextEpisode;
+$('pRetry').onclick = () => playStream(currentStream);
+$('pAlt').onclick = () => {
+  hidePlayerError();
+  if (currentStream?.infoHash) useWebtorFallback(currentStream);
+  else showPlayerError('No alternative player is available for this title.');
+};
+$('playerVideo').addEventListener('error', () => {
+  if ($('playerView').classList.contains('show') && $('pLoading').classList.contains('show'))
+    showPlayerError('The video failed to load. Try again or pick another stream.');
+});
 $('ppPlay').onclick = () => { const v = $('playerVideo'); v.paused ? v.play() : v.pause(); $('ppPlay').textContent = v.paused ? '▶' : '⏸'; };
 $('ppBack').onclick = () => $('playerVideo').currentTime -= 10;
 $('ppFwd').onclick = () => $('playerVideo').currentTime += 10;
