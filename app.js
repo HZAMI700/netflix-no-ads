@@ -1622,7 +1622,8 @@ function playEmbed(o) {
   const f = document.createElement('iframe');
   f.src = o.url;
   f.allowFullscreen = true;
-  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   f.style.cssText = 'flex:1;width:100%;border:none;background:#000';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
@@ -1775,6 +1776,74 @@ window.open = function(url, target, features) {
   console.warn('[AdBlock] Blocked unauthorized window.open popup attempt:', url);
   return null;
 };
+try { Window.prototype.open = window.open; } catch {}
+
+// Intercept programmatic anchor clicks targeting _blank or _top
+const _nativeAnchorClick = HTMLAnchorElement.prototype.click;
+HTMLAnchorElement.prototype.click = function() {
+  const href = String(this.href || '');
+  const target = String(this.target || '');
+  if (target === '_blank' || target === '_top') {
+    if (!href.includes('vidvault.to') &&
+        !href.includes('02moviedownloader.site') &&
+        !href.includes('videodownloader.site') &&
+        !href.includes('omnisave') &&
+        !href.includes(window.location.host)) {
+      console.warn('[AdBlock] Blocked programmatic anchor click:', href);
+      return;
+    }
+  }
+  return _nativeAnchorClick.apply(this, arguments);
+};
+
+// Intercept programmatic form submissions targeting _blank or _top
+const _nativeFormSubmit = HTMLFormElement.prototype.submit;
+HTMLFormElement.prototype.submit = function() {
+  const action = String(this.action || '');
+  const target = String(this.target || '');
+  if (target === '_blank' || target === '_top') {
+    if (!action.includes('vidvault.to') &&
+        !action.includes('02moviedownloader.site') &&
+        !action.includes('videodownloader.site') &&
+        !action.includes('omnisave')) {
+      console.warn('[AdBlock] Blocked programmatic form popup submission:', action);
+      return;
+    }
+  }
+  return _nativeFormSubmit.apply(this, arguments);
+};
+
+// Global click capture to prevent unexpected rogue blank-target tabs
+['click', 'auxclick'].forEach(evt => {
+  document.addEventListener(evt, (e) => {
+    const a = e.target.closest('a');
+    if (a) {
+      const target = a.getAttribute('target');
+      const href = a.getAttribute('href') || '';
+      if (target === '_blank' || target === '_top') {
+        if (!href.includes('vidvault.to') &&
+            !href.includes('02moviedownloader.site') &&
+            !href.includes('videodownloader.site') &&
+            !href.includes('omnisave') &&
+            href !== '#' &&
+            !href.startsWith('javascript:')) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.warn('[AdBlock] Blocked unauthorized link popup:', href);
+        }
+      }
+    }
+  }, true);
+});
+
+// Snap focus back if popunder attempts to blur the window during active playback
+window.addEventListener('blur', () => {
+  if ($('playerView')?.classList.contains('show')) {
+    setTimeout(() => {
+      window.focus();
+    }, 25);
+  }
+});
 
 let _allowNavigation = false;
 window.addEventListener('beforeunload', (e) => {
@@ -1805,7 +1874,7 @@ function armVidShield() {
   shield.style.display = 'block';
   shieldClickCount = 0;
 
-  shield.onclick = (e) => {
+  const handleShieldInteraction = (e) => {
     e.stopPropagation();
     shieldClickCount++;
 
@@ -1818,6 +1887,13 @@ function armVidShield() {
     if (iframe) {
       try { iframe.focus(); } catch {}
     }
+  };
+
+  shield.onclick = handleShieldInteraction;
+  shield.ontouchstart = (e) => { e.stopPropagation(); };
+  shield.ontouchend = (e) => {
+    e.stopPropagation();
+    handleShieldInteraction(e);
   };
 }
 
