@@ -2115,112 +2115,34 @@ function closePlayerCustomModal() {
 }
 
 /* ---------- PLAYER CHROME & WAKE SYSTEM ---------- */
-let isPlayerPaused = false;
 let hideT = null;
-
-function setPlayerPlayPauseState(paused) {
-  isPlayerPaused = !!paused;
-
-  // Top play button
-  const pPlayTop = $('pPlayTop');
-  if (pPlayTop) {
-    const playIcon = pPlayTop.querySelector('.p-icon-play');
-    const pauseIcon = pPlayTop.querySelector('.p-icon-pause');
-    const textSpan = $('pPlayTopText');
-    if (playIcon) playIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
-    if (pauseIcon) pauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
-    if (textSpan) textSpan.textContent = isPlayerPaused ? 'Play' : 'Pause';
-    pPlayTop.setAttribute('title', isPlayerPaused ? 'Resume Playback' : 'Pause Playback');
-    pPlayTop.classList.toggle('is-paused', isPlayerPaused);
-  }
-
-  // Bottom play button
-  const ppPlay = $('ppPlay');
-  if (ppPlay) {
-    const bPlayIcon = ppPlay.querySelector('.pp-play-icon');
-    const bPauseIcon = ppPlay.querySelector('.pp-pause-icon');
-    if (bPlayIcon) bPlayIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
-    if (bPauseIcon) bPauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
-    ppPlay.setAttribute('title', isPlayerPaused ? 'Play' : 'Pause');
-  }
-
-  // Center play badge
-  const centerBadge = $('pCenterPlayBadge');
-  if (centerBadge) {
-    centerBadge.classList.toggle('active', isPlayerPaused);
-    const badgePlayIcon = centerBadge.querySelector('.badge-play-icon');
-    const badgePauseIcon = centerBadge.querySelector('.badge-pause-icon');
-    if (badgePlayIcon) badgePlayIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
-    if (badgePauseIcon) badgePauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
-  }
-
-  // When paused, keep chrome awake so pause button and controls are always visible
-  wakeChrome(isPlayerPaused);
-}
-
-function wakeChrome(keepAwake = false) {
+function wakeChrome() {
   const pTop = $('pTop');
-  const pBottom = $('pBottom');
   if (pTop) {
     pTop.classList.remove('hidden');
     pTop.style.opacity = '1';
     pTop.style.pointerEvents = 'auto';
   }
-  if (pBottom) {
-    pBottom.classList.remove('hidden');
-    pBottom.style.opacity = '1';
-    pBottom.style.pointerEvents = 'auto';
-  }
   clearTimeout(hideT);
-  if (isPlayerPaused || keepAwake) return;
-
   hideT = setTimeout(() => {
-    if (isPlayerPaused) return;
     if (pTop) {
       pTop.classList.add('hidden');
       pTop.style.opacity = '0';
       pTop.style.pointerEvents = 'none';
     }
-    if (pBottom) {
-      pBottom.classList.add('hidden');
-      pBottom.style.opacity = '0';
-      pBottom.style.pointerEvents = 'none';
-    }
   }, 4000);
 }
 
-function togglePlayerPlayback(targetPaused) {
-  const v = $('playerVideo');
-  const hasNativeVideo = v && v.style.display !== 'none' && (v.src || v.currentSrc);
-
-  if (hasNativeVideo) {
-    if (typeof targetPaused === 'boolean') {
-      targetPaused ? v.pause() : v.play();
-    } else {
-      v.paused ? v.play() : v.pause();
-    }
-    setPlayerPlayPauseState(v.paused);
-  } else {
-    // Cross-origin iframe embed control
-    const nextPaused = (typeof targetPaused === 'boolean') ? targetPaused : !isPlayerPaused;
-    setPlayerPlayPauseState(nextPaused);
-
-    const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe && iframe.contentWindow) {
-      const cmd = nextPaused ? 'pause' : 'play';
-      try { iframe.contentWindow.postMessage({ type: 'PLAYER_CONTROL', event: cmd, action: cmd }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage({ method: cmd }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage({ api: cmd }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: nextPaused ? 'pauseVideo' : 'playVideo', args: '' }), '*'); } catch {}
-      try { iframe.contentWindow.postMessage({ event: cmd }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage(cmd, '*'); } catch {}
-    }
-
-    toast(nextPaused ? 'Paused' : 'Playing');
+function togglePlayerPlayback() {
+  const iframe = $('playerView')?.querySelector('iframe');
+  if (iframe && iframe.contentWindow) {
+    try { iframe.contentWindow.postMessage({ type: 'PLAYER_CONTROL', event: 'toggle', action: 'toggle' }, '*'); } catch {}
+    try { iframe.contentWindow.postMessage({ method: 'toggle' }, '*'); } catch {}
+    try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'togglePlay', args: '' }), '*'); } catch {}
   }
 }
 
-['pTop', 'pBottom', 'pTopSensor', 'pBottomSensor', 'pCenterPlayBadge'].forEach(id => {
+['pTop', 'pTopSensor'].forEach(id => {
   const el = $(id);
   if (el) {
     ['mousemove', 'touchstart', 'pointerdown', 'click'].forEach(evt => {
@@ -2255,12 +2177,10 @@ function closePlayer() {
     try { v.pause(); } catch {}
     v.removeAttribute('src');
     v.load();
-    v.style.display = '';
+    v.style.display = 'none';
   }
-  if ($('pBottom')) $('pBottom').style.display = '';
-  if ($('pProgressWrap')) $('pProgressWrap').style.display = '';
-  if ($('torrentStats')) $('torrentStats').style.display = '';
-  setPlayerPlayPauseState(false);
+  if ($('pBottom')) $('pBottom').style.display = 'none';
+  if ($('torrentStats')) $('torrentStats').style.display = 'none';
   currentEmbed = null;
 }
 
@@ -2287,18 +2207,11 @@ function openPlayerShell(title, subTitle) {
   if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • OpenSubtitles v3';
 
   if ($('playerVideo')) $('playerVideo').style.display = 'none';
-  if ($('pBottom')) $('pBottom').style.display = 'block';
-  if ($('pProgressWrap')) $('pProgressWrap').style.display = 'none';
+  if ($('pBottom')) $('pBottom').style.display = 'none';
   if ($('torrentStats')) $('torrentStats').style.display = 'none';
   if ($('skipIntro')) $('skipIntro').style.display = 'none';
   if ($('nextEp')) $('nextEp').style.display = 'none';
 
-  if ($('ppEps')) {
-    const isSeries = (currentDetail?.type === 'series' || currentEmbed?.type === 'series');
-    $('ppEps').style.display = isSeries ? 'flex' : 'none';
-  }
-
-  setPlayerPlayPauseState(false);
   wakeChrome();
 }
 
@@ -2747,87 +2660,7 @@ window.addEventListener('message', (event) => {
   }
 });
 
-// Player controls
-const ppPlay = $('ppPlay');
-if (ppPlay) {
-  ppPlay.onclick = (e) => {
-    if (e) e.stopPropagation();
-    togglePlayerPlayback();
-  };
-}
 
-const pPlayTop = $('pPlayTop');
-if (pPlayTop) {
-  pPlayTop.onclick = (e) => {
-    if (e) e.stopPropagation();
-    togglePlayerPlayback();
-  };
-}
-
-const pCenterPlayBadge = $('pCenterPlayBadge');
-if (pCenterPlayBadge) {
-  pCenterPlayBadge.onclick = (e) => {
-    if (e) e.stopPropagation();
-    togglePlayerPlayback(false);
-  };
-}
-
-const nativeVid = $('playerVideo');
-if (nativeVid) {
-  nativeVid.addEventListener('play', () => setPlayerPlayPauseState(false));
-  nativeVid.addEventListener('pause', () => setPlayerPlayPauseState(true));
-}
-
-const ppBack = $('ppBack');
-if (ppBack) {
-  ppBack.onclick = () => {
-    const v = $('playerVideo');
-    if (v) v.currentTime = Math.max(0, v.currentTime - 10);
-  };
-}
-
-const ppFwd = $('ppFwd');
-if (ppFwd) {
-  ppFwd.onclick = () => {
-    const v = $('playerVideo');
-    if (v) v.currentTime += 10;
-  };
-}
-
-const ppMute = $('ppMute');
-if (ppMute) {
-  ppMute.onclick = () => {
-    const v = $('playerVideo');
-    if (v) v.muted = !v.muted;
-  };
-}
-
-const ppFs = $('ppFs');
-if (ppFs) {
-  ppFs.onclick = () => {
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      $('playerView')?.requestFullscreen?.();
-    }
-  };
-}
-
-const ppSubs = $('ppSubs');
-if (ppSubs) {
-  ppSubs.onclick = (e) => {
-    if (e) e.stopPropagation();
-    openCaptionsModal();
-  };
-}
-
-const ppEps = $('ppEps');
-if (ppEps) {
-  ppEps.onclick = () => {
-    closePlayer();
-    if (currentDetail) openDetail(currentDetail.meta.id, currentDetail.type, false);
-  };
-}
 
 /* ---------- PROFILE GATE ---------- */
 function renderGate() {

@@ -1583,10 +1583,7 @@ body.is-scrolling #cardPortal {
   display: flex;
 }
 #playerVideo {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  background: #000000;
+  display: none !important;
 }
 #playerView iframe {
   position: absolute;
@@ -1706,98 +1703,11 @@ body.is-scrolling #cardPortal {
   background: #ff202c;
   border-color: #ff202c;
 }
-.player-pill-btn.p-play-pill {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.35);
-}
-.player-pill-btn.p-play-pill:hover {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.6);
-}
-.p-bottom-sensor {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(70px + env(safe-area-inset-bottom, 0));
-  z-index: 5;
-  background: transparent;
-  pointer-events: auto;
-}
-.p-center-play-badge {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%) scale(0.85);
-  z-index: 15;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.25s ease, transform 0.25s ease;
-}
-.p-center-play-badge.active {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
-  pointer-events: auto;
-  cursor: pointer;
-}
-.p-center-circle {
-  width: 74px;
-  height: 74px;
-  border-radius: 50%;
-  background: rgba(20, 20, 20, 0.88);
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
-}
-.p-center-circle:hover {
-  transform: scale(1.08);
-  background: rgba(229, 9, 20, 0.95);
-  border-color: #ffffff;
-}
-
-.p-bottom {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20px var(--pad) 28px;
-  background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-  transition: opacity 0.35s ease;
-  z-index: 10;
-}
-.p-progress-wrap {
-  width: 100%;
-  margin-bottom: 12px;
-}
-#seekBar {
-  width: 100%;
-  accent-color: var(--nf-red);
-  cursor: pointer;
-  height: 4px;
-}
-
-.p-controls {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-.p-controls button {
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  transition: transform 0.15s, opacity 0.15s;
-}
-.p-controls button:hover {
-  opacity: 0.8;
-  transform: scale(1.1);
+.p-bottom,
+.p-bottom-sensor,
+.p-center-play-badge,
+.p-play-pill {
+  display: none !important;
 }
 
 #skipIntro {
@@ -3335,12 +3245,7 @@ footer {
     width: 13px;
     height: 13px;
   }
-  .p-bottom {
-    padding: 10px 12px calc(14px + env(safe-area-inset-bottom, 0));
-  }
-  .p-controls {
-    gap: 12px;
-  }
+
   #skipIntro, #nextEp {
     bottom: 74px;
     right: 12px;
