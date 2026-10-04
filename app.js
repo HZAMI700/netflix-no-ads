@@ -170,6 +170,15 @@ window.addEventListener('scroll', () => {
   const nav = $('topnav');
   if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
   onScrollActivity();
+
+  // Smooth virtual infinite scrolling for search results and browse grid
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 800) {
+    if (typeof renderSearchChunk === 'function' && $('searchView') && $('searchView').style.display !== 'none') {
+      renderSearchChunk();
+    } else if (typeof renderBrowseChunk === 'function' && $('browseView') && $('browseView').style.display !== 'none' && $('browseGrid') && $('browseGrid').innerHTML !== '') {
+      renderBrowseChunk();
+    }
+  }
 }, { passive: true });
 
 window.addEventListener('wheel', () => {
@@ -268,6 +277,19 @@ if (searchGo && searchBox) {
   });
 }
 
+let currentSearchResults = [];
+let currentSearchOffset = 0;
+const SEARCH_PAGE_SIZE = 48;
+
+function renderSearchChunk() {
+  const container = $('searchResults');
+  if (!container || !currentSearchResults || !currentSearchResults.length) return;
+  const nextChunk = currentSearchResults.slice(currentSearchOffset, currentSearchOffset + SEARCH_PAGE_SIZE);
+  if (!nextChunk.length) return;
+  nextChunk.forEach(meta => container.appendChild(buildCard(meta)));
+  currentSearchOffset += nextChunk.length;
+}
+
 async function doSearch(q) {
   q = (q || '').trim();
   if (!q) return;
@@ -284,7 +306,7 @@ async function doSearch(q) {
       fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
       fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
     ]);
-    const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) ? CuratedCatalog.searchCurated(q) : [];
+    const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) ? CuratedCatalog.searchCurated(q, 300) : [];
     const all = dedupeMetas([
       ...curatedMatches,
       ...(m1.metas || []),
@@ -295,7 +317,9 @@ async function doSearch(q) {
     $('searchResults').innerHTML = all.length
       ? ''
       : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${q}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
-    all.forEach(meta => $('searchResults').appendChild(buildCard(meta)));
+    currentSearchResults = all;
+    currentSearchOffset = 0;
+    renderSearchChunk();
   } catch {
     $('searchResults').innerHTML = '<p style="color:#888;grid-column:1/-1;text-align:center">Search failed. Please check your internet connection.</p>';
   }
@@ -985,29 +1009,20 @@ async function openDetail(id, type, autoplay) {
     }
 
     // Series episodes (Strictly filter out Season 0 / specials)
-    const rawVids = m.videos || [];
+    let rawVids = m.videos || [];
+    if ((!rawVids || !rawVids.length) && type === 'series' && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos) {
+      rawVids = CuratedCatalog.getSeriesVideos(m);
+    }
     let vids = rawVids.filter(v => {
       const s = Number(v.season);
       const ep = Number(v.episode);
       return Number.isInteger(s) && s > 0 && Number.isInteger(ep) && ep > 0;
     });
 
-    if (!vids.length && rawVids.length) {
-      vids = rawVids.map((v, idx) => ({
-        ...v,
-        season: Math.max(1, Number(v.season) || 1),
-        episode: Math.max(1, Number(v.episode) || (idx + 1))
-      }));
-    }
-
     if (type === 'series' && !vids.length) {
-      vids = Array.from({ length: 8 }, (_, idx) => ({
-        season: 1,
-        episode: idx + 1,
-        name: `Episode ${idx + 1}`,
-        overview: `Season 1, Episode ${idx + 1} of ${m.name}.`,
-        thumbnail: m.background || m.poster
-      }));
+      vids = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos)
+        ? CuratedCatalog.getSeriesVideos(m)
+        : [];
     }
 
     // Deduplicate and sort
@@ -1072,9 +1087,9 @@ async function openDetail(id, type, autoplay) {
             };
 
             const dl = document.createElement('button');
-            dl.className = 'cbtn';
+            dl.className = 'cbtn ep-dl-btn';
             dl.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-            dl.title = 'Download Episode';
+            dl.title = `Download S${s}:E${epNum}`;
             dl.onclick = (e) => {
               e.stopPropagation();
               downloadEpisode(currentDetail.meta.name, s, epNum);
@@ -1340,6 +1355,19 @@ async function loadCategoryRows(kind) {
   }
 }
 
+let currentBrowseResults = [];
+let currentBrowseOffset = 0;
+const BROWSE_PAGE_SIZE = 48;
+
+function renderBrowseChunk() {
+  const container = $('browseGrid');
+  if (!container || !currentBrowseResults || !currentBrowseResults.length) return;
+  const nextChunk = currentBrowseResults.slice(currentBrowseOffset, currentBrowseOffset + BROWSE_PAGE_SIZE);
+  if (!nextChunk.length) return;
+  nextChunk.forEach(meta => container.appendChild(buildCard(meta)));
+  currentBrowseOffset += nextChunk.length;
+}
+
 async function filterBrowseByGenre(genre) {
   const rowsWrap = $('browseRows');
   const gridWrap = $('browseGrid');
@@ -1347,6 +1375,8 @@ async function filterBrowseByGenre(genre) {
 
   if (!genre) {
     gridWrap.innerHTML = '';
+    currentBrowseResults = [];
+    currentBrowseOffset = 0;
     await loadCategoryRows(currentBrowseKind);
     return;
   }
@@ -1366,7 +1396,9 @@ async function filterBrowseByGenre(genre) {
   const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
 
   gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
-  items.slice(0, 150).forEach(m => gridWrap.appendChild(buildCard(m)));
+  currentBrowseResults = items;
+  currentBrowseOffset = 0;
+  renderBrowseChunk();
 }
 
 /* ---------- PROFILES ---------- */
