@@ -250,7 +250,7 @@
         <div class="settings-field-row">
           <label for="settingSubLang">Default Subtitle Language</label>
           <select id="settingSubLang" class="settings-select">
-            <option value="off">Off</option>
+            <option value="off">Off (Subtitles Disabled)</option>
             <option value="en" selected>English</option>
             <option value="ar">Arabic (العربية)</option>
             <option value="es">Spanish (Español)</option>
@@ -263,6 +263,15 @@
             <option value="ja">Japanese (日本語)</option>
             <option value="ko">Korean (한국어)</option>
             <option value="zh">Chinese (中文)</option>
+            <option value="hi">Hindi (हिन्दी)</option>
+            <option value="nl">Dutch (Nederlands)</option>
+            <option value="pl">Polish (Polski)</option>
+            <option value="sv">Swedish (Svenska)</option>
+            <option value="id">Indonesian (Bahasa)</option>
+            <option value="vi">Vietnamese (Tiếng Việt)</option>
+            <option value="el">Greek (Ελληνικά)</option>
+            <option value="fa">Persian (فارسی)</option>
+            <option value="he">Hebrew (עברית)</option>
           </select>
         </div>
         <div class="settings-field-row">
@@ -548,12 +557,28 @@
         </label>
       </div>
 
+      <!-- Instant Language Search & Quick Pick -->
+      <div class="caption-search-section">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <label for="captionLangSearch" class="caption-field-title">Subtitle Language Filter</label>
+          <span id="captionLangCount" style="font-size:11px;color:#888">21 languages</span>
+        </div>
+        <div class="caption-search-bar">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="captionLangSearch" class="caption-search-input" placeholder="Type language (e.g. English, Arabic, Spanish, French)..." autocomplete="off" spellcheck="false">
+          <button type="button" id="captionLangSearchClear" class="caption-clear-btn" style="display:none" aria-label="Clear search">✕</button>
+        </div>
+        <div class="caption-pills-list" id="captionLangPills">
+          <!-- Populated dynamically with interactive badges -->
+        </div>
+      </div>
+
       <!-- Language & Size -->
       <div class="caption-grid-two">
         <div class="caption-pref-group">
           <label for="captionModalLangSelect">Default Subtitle Language</label>
           <select id="captionModalLangSelect" class="settings-select">
-            <option value="off">Off</option>
+            <option value="off">Off (Subtitles Disabled)</option>
             <option value="en" selected>English</option>
             <option value="ar">Arabic (العربية)</option>
             <option value="es">Spanish (Español)</option>
@@ -567,6 +592,14 @@
             <option value="ko">Korean (한국어)</option>
             <option value="zh">Chinese (中文)</option>
             <option value="hi">Hindi (हिन्दी)</option>
+            <option value="nl">Dutch (Nederlands)</option>
+            <option value="pl">Polish (Polski)</option>
+            <option value="sv">Swedish (Svenska)</option>
+            <option value="id">Indonesian (Bahasa)</option>
+            <option value="vi">Vietnamese (Tiếng Việt)</option>
+            <option value="el">Greek (Ελληνικά)</option>
+            <option value="fa">Persian (فارسی)</option>
+            <option value="he">Hebrew (עברית)</option>
           </select>
         </div>
         <div class="caption-pref-group">
@@ -687,6 +720,11 @@
       <div class="p-sub-title" id="pSubTitle">Streaming in Full HD</div>
     </div>
     <div class="p-actions-wrap">
+      <button class="player-pill-btn p-play-pill" id="pPlayTop" title="Play / Pause">
+        <svg class="p-icon-play" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" style="display:none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        <svg class="p-icon-pause" viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        <span id="pPlayTopText">Pause</span>
+      </button>
       <button class="player-pill-btn" id="pSubsTop" title="OpenSubtitles &amp; Audio">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="14" y1="12" x2="18" y2="12"></line><line x1="6" y1="15" x2="14" y2="15"></line></svg>
         <span>Captions</span>
@@ -702,6 +740,13 @@
     </div>
   </div>
   <div id="pTopSensor" class="p-top-sensor" aria-hidden="true"></div>
+  <div id="pBottomSensor" class="p-bottom-sensor" aria-hidden="true"></div>
+  <div id="pCenterPlayBadge" class="p-center-play-badge" aria-label="Play / Pause toggle">
+    <div class="p-center-circle">
+      <svg class="badge-play-icon" viewBox="0 0 24 24" width="38" height="38" fill="currentColor"><polygon points="7 5 19 12 7 19 7 5"/></svg>
+      <svg class="badge-pause-icon" viewBox="0 0 24 24" width="38" height="38" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+    </div>
+  </div>
   <div id="torrentStats">connecting…</div>
   <div id="pError">
     <div id="pErrorTitle">Something went wrong</div>
@@ -728,7 +773,8 @@
     </div>
     <div class="p-controls">
       <button id="ppPlay" title="Play / Pause">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        <svg class="pp-play-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" style="display:none"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        <svg class="pp-pause-icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
       </button>
       <button id="ppBack" title="Rewind 10 seconds">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"></path><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path><text x="9" y="16" fill="currentColor" font-size="7" font-weight="bold" stroke="none">10</text></svg>

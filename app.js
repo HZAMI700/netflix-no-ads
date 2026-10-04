@@ -939,9 +939,15 @@ async function openDetail(id, type, autoplay) {
 
   try {
     let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
-    if (!m) {
-      const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
-      m = j.meta;
+    if (!m || (type === 'series' && (!m.videos || !m.videos.length))) {
+      try {
+        const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
+        if (j && j.meta) {
+          m = m ? { ...j.meta, ...m, videos: (j.meta.videos && j.meta.videos.length) ? j.meta.videos : (m.videos || []) } : j.meta;
+        }
+      } catch (err) {
+        console.warn('Cinemeta series metadata fetch fallback:', err);
+      }
     }
     if (!m || !isCleanSafe(m)) {
       if ($('dTitle')) $('dTitle').textContent = 'Content Unavailable';
@@ -1004,6 +1010,19 @@ async function openDetail(id, type, autoplay) {
       }));
     }
 
+    // Deduplicate and sort
+    const seenEpKeys = new Set();
+    vids = vids.filter(v => {
+      const key = `${v.season}:${v.episode}`;
+      if (seenEpKeys.has(key)) return false;
+      seenEpKeys.add(key);
+      return true;
+    }).sort((a, b) => {
+      const sDiff = Number(a.season) - Number(b.season);
+      if (sDiff !== 0) return sDiff;
+      return Number(a.episode) - Number(b.episode);
+    });
+
     if (type === 'series' && vids.length) {
       if ($('epWrap')) $('epWrap').style.display = '';
       const seasons = [...new Set(vids.map(v => Number(v.season)))].filter(s => s > 0).sort((a, b) => a - b);
@@ -1020,7 +1039,7 @@ async function openDetail(id, type, autoplay) {
           if (!list) return;
           list.innerHTML = '';
 
-          const seasonVids = vids.filter(v => Number(v.season) === s);
+          const seasonVids = vids.filter(v => Number(v.season) === s).sort((a, b) => Number(a.episode) - Number(b.episode));
           if (seasonVids.length && seasonVids[0].episode) {
             currentDetail.ep.e = Math.max(1, Number(seasonVids[0].episode));
           }
@@ -1767,6 +1786,78 @@ function updateSubPreview() {
   }
 }
 
+const SUBTITLE_LANGUAGES = [
+  { code: 'off', label: 'Off', sub: 'Subtitles Disabled' },
+  { code: 'en', label: 'English', sub: 'English' },
+  { code: 'ar', label: 'Arabic', sub: 'العربية' },
+  { code: 'es', label: 'Spanish', sub: 'Español' },
+  { code: 'fr', label: 'French', sub: 'Français' },
+  { code: 'de', label: 'German', sub: 'Deutsch' },
+  { code: 'it', label: 'Italian', sub: 'Italiano' },
+  { code: 'pt', label: 'Portuguese', sub: 'Português' },
+  { code: 'ru', label: 'Russian', sub: 'Русский' },
+  { code: 'tr', label: 'Turkish', sub: 'Türkçe' },
+  { code: 'ja', label: 'Japanese', sub: '日本語' },
+  { code: 'ko', label: 'Korean', sub: '한국어' },
+  { code: 'zh', label: 'Chinese', sub: '中文' },
+  { code: 'hi', label: 'Hindi', sub: 'हिन्दी' },
+  { code: 'nl', label: 'Dutch', sub: 'Nederlands' },
+  { code: 'pl', label: 'Polish', sub: 'Polski' },
+  { code: 'sv', label: 'Swedish', sub: 'Svenska' },
+  { code: 'id', label: 'Indonesian', sub: 'Bahasa' },
+  { code: 'vi', label: 'Vietnamese', sub: 'Tiếng Việt' },
+  { code: 'el', label: 'Greek', sub: 'Ελληνικά' },
+  { code: 'fa', label: 'Persian', sub: 'فارسی' },
+  { code: 'he', label: 'Hebrew', sub: 'עברית' }
+];
+
+function renderCaptionLangPills(filter = '') {
+  const container = $('captionLangPills');
+  if (!container) return;
+  const currentLang = store.get('nf_sub_lang', 'en');
+  const term = String(filter || '').trim().toLowerCase();
+
+  const matches = SUBTITLE_LANGUAGES.filter(item => {
+    if (!term) return true;
+    return item.label.toLowerCase().includes(term) ||
+           item.sub.toLowerCase().includes(term) ||
+           item.code.toLowerCase().includes(term);
+  });
+
+  const countEl = $('captionLangCount');
+  if (countEl) countEl.textContent = `${matches.length} language${matches.length === 1 ? '' : 's'}`;
+
+  container.innerHTML = '';
+  if (!matches.length) {
+    container.innerHTML = '<div style="font-size:12px;color:#888;padding:6px">No matching languages found</div>';
+    return;
+  }
+
+  matches.forEach(item => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `caption-lang-pill ${item.code === currentLang ? 'active' : ''}`;
+    btn.innerHTML = `${item.label} <span style="font-size:10px;opacity:0.75">(${item.sub})</span>`;
+    btn.onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      selectCaptionLanguage(item.code, item.label);
+    };
+    container.appendChild(btn);
+  });
+}
+
+function selectCaptionLanguage(langCode, optLabel) {
+  store.set('nf_sub_lang', langCode);
+  const sLang = $('settingSubLang');
+  const mLang = $('captionModalLangSelect');
+  if (sLang) sLang.value = langCode;
+  if (mLang) mLang.value = langCode;
+  updateSubPreview();
+  renderCaptionLangPills($('captionLangSearch')?.value || '');
+  toast(`Subtitles set to: ${optLabel || langCode}`);
+}
+
 function initSubtitlesAndPreferences() {
   const savedLang = store.get('nf_sub_lang', 'en');
   const savedSize = store.get('nf_sub_size', 'medium');
@@ -1791,6 +1882,7 @@ function initSubtitlesAndPreferences() {
   if (mOS) mOS.checked = savedOS !== false;
 
   updateSubPreview();
+  renderCaptionLangPills('');
 
   const onSettingChange = () => {
     const lang = sLang ? sLang.value : 'en';
@@ -1800,11 +1892,40 @@ function initSubtitlesAndPreferences() {
     if (mLang) mLang.value = lang;
     if (mSize) mSize.value = size;
     updateSubPreview();
+    renderCaptionLangPills($('captionLangSearch')?.value || '');
     toast('Subtitle preferences updated');
   };
 
   if (sLang) sLang.onchange = onSettingChange;
   if (sSize) sSize.onchange = onSettingChange;
+
+  if (mLang) {
+    mLang.onchange = () => {
+      selectCaptionLanguage(mLang.value, mLang.selectedOptions?.[0]?.text);
+    };
+  }
+
+  // Interactive Live Language Search
+  const searchInput = $('captionLangSearch');
+  const clearBtn = $('captionLangSearchClear');
+  if (searchInput) {
+    searchInput.oninput = () => {
+      const val = searchInput.value;
+      if (clearBtn) clearBtn.style.display = val ? 'inline-block' : 'none';
+      renderCaptionLangPills(val);
+    };
+  }
+  if (clearBtn) {
+    clearBtn.onclick = (e) => {
+      e.preventDefault();
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
+      clearBtn.style.display = 'none';
+      renderCaptionLangPills('');
+    };
+  }
 
   ['captionModalColorSelect', 'captionModalSizeSelect', 'captionModalStyleSelect'].forEach(id => {
     const el = $(id);
@@ -1847,6 +1968,12 @@ function initSubtitlesAndPreferences() {
     captionsBackdrop.onclick = (e) => {
       if (e.target === captionsBackdrop) closeCaptionsModal();
     };
+  }
+
+  const captionsModal = $('captionsModal');
+  if (captionsModal) {
+    captionsModal.addEventListener('click', (e) => e.stopPropagation());
+    captionsModal.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
   }
 
   const applyBtn = $('captionModalApply');
@@ -1955,6 +2082,12 @@ function openCaptionsModal() {
   if ($('captionModalStyleSelect')) $('captionModalStyleSelect').value = savedStyle;
   if ($('subAutoFetchOS')) $('subAutoFetchOS').checked = savedOS !== false;
 
+  const sInput = $('captionLangSearch');
+  if (sInput) sInput.value = '';
+  const cBtn = $('captionLangSearchClear');
+  if (cBtn) cBtn.style.display = 'none';
+  renderCaptionLangPills('');
+
   updateSubPreview();
   backdrop.classList.add('show');
 }
@@ -1982,8 +2115,50 @@ function closePlayerCustomModal() {
 }
 
 /* ---------- PLAYER CHROME & WAKE SYSTEM ---------- */
+let isPlayerPaused = false;
 let hideT = null;
-function wakeChrome() {
+
+function setPlayerPlayPauseState(paused) {
+  isPlayerPaused = !!paused;
+
+  // Top play button
+  const pPlayTop = $('pPlayTop');
+  if (pPlayTop) {
+    const playIcon = pPlayTop.querySelector('.p-icon-play');
+    const pauseIcon = pPlayTop.querySelector('.p-icon-pause');
+    const textSpan = $('pPlayTopText');
+    if (playIcon) playIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
+    if (pauseIcon) pauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
+    if (textSpan) textSpan.textContent = isPlayerPaused ? 'Play' : 'Pause';
+    pPlayTop.setAttribute('title', isPlayerPaused ? 'Resume Playback' : 'Pause Playback');
+    pPlayTop.classList.toggle('is-paused', isPlayerPaused);
+  }
+
+  // Bottom play button
+  const ppPlay = $('ppPlay');
+  if (ppPlay) {
+    const bPlayIcon = ppPlay.querySelector('.pp-play-icon');
+    const bPauseIcon = ppPlay.querySelector('.pp-pause-icon');
+    if (bPlayIcon) bPlayIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
+    if (bPauseIcon) bPauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
+    ppPlay.setAttribute('title', isPlayerPaused ? 'Play' : 'Pause');
+  }
+
+  // Center play badge
+  const centerBadge = $('pCenterPlayBadge');
+  if (centerBadge) {
+    centerBadge.classList.toggle('active', isPlayerPaused);
+    const badgePlayIcon = centerBadge.querySelector('.badge-play-icon');
+    const badgePauseIcon = centerBadge.querySelector('.badge-pause-icon');
+    if (badgePlayIcon) badgePlayIcon.style.display = isPlayerPaused ? 'inline-block' : 'none';
+    if (badgePauseIcon) badgePauseIcon.style.display = isPlayerPaused ? 'none' : 'inline-block';
+  }
+
+  // When paused, keep chrome awake so pause button and controls are always visible
+  wakeChrome(isPlayerPaused);
+}
+
+function wakeChrome(keepAwake = false) {
   const pTop = $('pTop');
   const pBottom = $('pBottom');
   if (pTop) {
@@ -1991,13 +2166,16 @@ function wakeChrome() {
     pTop.style.opacity = '1';
     pTop.style.pointerEvents = 'auto';
   }
-  if (pBottom && $('playerVideo')?.style.display !== 'none') {
+  if (pBottom) {
     pBottom.classList.remove('hidden');
     pBottom.style.opacity = '1';
     pBottom.style.pointerEvents = 'auto';
   }
   clearTimeout(hideT);
+  if (isPlayerPaused || keepAwake) return;
+
   hideT = setTimeout(() => {
+    if (isPlayerPaused) return;
     if (pTop) {
       pTop.classList.add('hidden');
       pTop.style.opacity = '0';
@@ -2011,7 +2189,38 @@ function wakeChrome() {
   }, 4000);
 }
 
-['pTop', 'pBottom', 'pTopSensor'].forEach(id => {
+function togglePlayerPlayback(targetPaused) {
+  const v = $('playerVideo');
+  const hasNativeVideo = v && v.style.display !== 'none' && (v.src || v.currentSrc);
+
+  if (hasNativeVideo) {
+    if (typeof targetPaused === 'boolean') {
+      targetPaused ? v.pause() : v.play();
+    } else {
+      v.paused ? v.play() : v.pause();
+    }
+    setPlayerPlayPauseState(v.paused);
+  } else {
+    // Cross-origin iframe embed control
+    const nextPaused = (typeof targetPaused === 'boolean') ? targetPaused : !isPlayerPaused;
+    setPlayerPlayPauseState(nextPaused);
+
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe && iframe.contentWindow) {
+      const cmd = nextPaused ? 'pause' : 'play';
+      try { iframe.contentWindow.postMessage({ type: 'PLAYER_CONTROL', event: cmd, action: cmd }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage({ method: cmd }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage({ api: cmd }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: nextPaused ? 'pauseVideo' : 'playVideo', args: '' }), '*'); } catch {}
+      try { iframe.contentWindow.postMessage({ event: cmd }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage(cmd, '*'); } catch {}
+    }
+
+    toast(nextPaused ? 'Paused' : 'Playing');
+  }
+}
+
+['pTop', 'pBottom', 'pTopSensor', 'pBottomSensor', 'pCenterPlayBadge'].forEach(id => {
   const el = $(id);
   if (el) {
     ['mousemove', 'touchstart', 'pointerdown', 'click'].forEach(evt => {
@@ -2049,7 +2258,9 @@ function closePlayer() {
     v.style.display = '';
   }
   if ($('pBottom')) $('pBottom').style.display = '';
+  if ($('pProgressWrap')) $('pProgressWrap').style.display = '';
   if ($('torrentStats')) $('torrentStats').style.display = '';
+  setPlayerPlayPauseState(false);
   currentEmbed = null;
 }
 
@@ -2074,13 +2285,21 @@ function openPlayerShell(title, subTitle) {
   if (pv) pv.classList.add('show');
   if ($('pTitle')) $('pTitle').textContent = title || 'Now Playing';
   if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • OpenSubtitles v3';
-  wakeChrome();
 
   if ($('playerVideo')) $('playerVideo').style.display = 'none';
-  if ($('pBottom')) $('pBottom').style.display = 'none';
+  if ($('pBottom')) $('pBottom').style.display = 'block';
+  if ($('pProgressWrap')) $('pProgressWrap').style.display = 'none';
   if ($('torrentStats')) $('torrentStats').style.display = 'none';
   if ($('skipIntro')) $('skipIntro').style.display = 'none';
   if ($('nextEp')) $('nextEp').style.display = 'none';
+
+  if ($('ppEps')) {
+    const isSeries = (currentDetail?.type === 'series' || currentEmbed?.type === 'series');
+    $('ppEps').style.display = isSeries ? 'flex' : 'none';
+  }
+
+  setPlayerPlayPauseState(false);
+  wakeChrome();
 }
 
 function playStream() {
@@ -2368,7 +2587,9 @@ window.open = function(url, target, features) {
     urlStr.includes('vidvault.to') ||
     urlStr.includes('02moviedownloader.site') ||
     urlStr.includes('videodownloader.site') ||
-    urlStr.includes('omnisave')
+    urlStr.includes('omnisave') ||
+    urlStr.includes('opensubtitles.org') ||
+    urlStr.includes('strem.io')
   ) {
     return _nativeWindowOpen.call(window, url, target, features);
   }
@@ -2387,6 +2608,7 @@ HTMLAnchorElement.prototype.click = function() {
         !href.includes('02moviedownloader.site') &&
         !href.includes('videodownloader.site') &&
         !href.includes('omnisave') &&
+        !href.includes('opensubtitles.org') &&
         !href.includes(window.location.host)) {
       console.warn('[AdBlock] Blocked programmatic anchor click:', href);
       return;
@@ -2406,6 +2628,7 @@ HTMLAnchorElement.prototype.dispatchEvent = function(event) {
           !href.includes('02moviedownloader.site') &&
           !href.includes('videodownloader.site') &&
           !href.includes('omnisave') &&
+          !href.includes('opensubtitles.org') &&
           !href.includes(window.location.host)) {
         console.warn('[AdBlock] Blocked dispatched click on anchor:', href);
         return false;
@@ -2424,7 +2647,8 @@ HTMLFormElement.prototype.submit = function() {
     if (!action.includes('vidvault.to') &&
         !action.includes('02moviedownloader.site') &&
         !action.includes('videodownloader.site') &&
-        !action.includes('omnisave')) {
+        !action.includes('omnisave') &&
+        !action.includes('opensubtitles.org')) {
       console.warn('[AdBlock] Blocked programmatic form popup submission:', action);
       return;
     }
@@ -2444,6 +2668,7 @@ HTMLFormElement.prototype.submit = function() {
             !href.includes('02moviedownloader.site') &&
             !href.includes('videodownloader.site') &&
             !href.includes('omnisave') &&
+            !href.includes('opensubtitles.org') &&
             href !== '#' &&
             !href.startsWith('javascript:')) {
           e.preventDefault();
@@ -2525,12 +2750,32 @@ window.addEventListener('message', (event) => {
 // Player controls
 const ppPlay = $('ppPlay');
 if (ppPlay) {
-  ppPlay.onclick = () => {
-    const v = $('playerVideo');
-    if (v) {
-      v.paused ? v.play() : v.pause();
-    }
+  ppPlay.onclick = (e) => {
+    if (e) e.stopPropagation();
+    togglePlayerPlayback();
   };
+}
+
+const pPlayTop = $('pPlayTop');
+if (pPlayTop) {
+  pPlayTop.onclick = (e) => {
+    if (e) e.stopPropagation();
+    togglePlayerPlayback();
+  };
+}
+
+const pCenterPlayBadge = $('pCenterPlayBadge');
+if (pCenterPlayBadge) {
+  pCenterPlayBadge.onclick = (e) => {
+    if (e) e.stopPropagation();
+    togglePlayerPlayback(false);
+  };
+}
+
+const nativeVid = $('playerVideo');
+if (nativeVid) {
+  nativeVid.addEventListener('play', () => setPlayerPlayPauseState(false));
+  nativeVid.addEventListener('pause', () => setPlayerPlayPauseState(true));
 }
 
 const ppBack = $('ppBack');
@@ -2570,13 +2815,9 @@ if (ppFs) {
 
 const ppSubs = $('ppSubs');
 if (ppSubs) {
-  ppSubs.onclick = () => {
-    disarmVidShield();
-    const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe) {
-      try { iframe.focus(); } catch {}
-    }
-    toast('Select subtitles or audio in the CC menu inside the player');
+  ppSubs.onclick = (e) => {
+    if (e) e.stopPropagation();
+    openCaptionsModal();
   };
 }
 
@@ -2643,6 +2884,12 @@ document.addEventListener('keydown', e => {
     closePlayerCustomModal();
     if ($('playerView')?.classList.contains('show')) closePlayer();
     closeAllNavDropdowns();
+  } else if ((e.code === 'Space' || e.key === ' ' || e.key === 'k' || e.key === 'K') && $('playerView')?.classList.contains('show')) {
+    const tag = (document.activeElement?.tagName || '').toLowerCase();
+    if (tag !== 'input' && tag !== 'textarea' && tag !== 'select') {
+      e.preventDefault();
+      togglePlayerPlayback();
+    }
   }
 });
 

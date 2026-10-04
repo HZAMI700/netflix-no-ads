@@ -41,6 +41,28 @@ function isSafeContent(m) {
   return true;
 }
 
+// Canonical complete episodes for Reacher (Season 1 & Season 2)
+const REACHER_EPISODES = [
+  // Season 1
+  { season: 1, episode: 1, name: 'Welcome to Margrave', title: 'Welcome to Margrave', runtime: '48m', overview: 'When retired Military Police Officer Jack Reacher is arrested for a murder he did not commit, he finds himself in the middle of a deadly conspiracy.' },
+  { season: 1, episode: 2, name: 'First Dance', title: 'First Dance', runtime: '53m', overview: 'As the investigation deepens, Reacher teams up with Officer Roscoe and Detective Finlay to dig into the town\'s corrupt secrets.' },
+  { season: 1, episode: 3, name: 'Spoonful', title: 'Spoonful', runtime: '47m', overview: 'Reacher and Finlay head to Atlanta to track down Spivey, while Roscoe encounters danger back in Margrave.' },
+  { season: 1, episode: 4, name: 'In a Tree', title: 'In a Tree', runtime: '45m', overview: 'After surviving an ambush, Reacher and Roscoe grow closer as they uncover the scale of the counterfeiting operation.' },
+  { season: 1, episode: 5, name: 'No Apologies', title: 'No Apologies', runtime: '48m', overview: 'Reacher meets with his former colleague Frances Neagley to trace the chemicals used in the counterfeit currency.' },
+  { season: 1, episode: 6, name: 'Papier', title: 'Papier', runtime: '52m', overview: 'With the net tightening, Reacher protects Picard and Charlie while unearthing a key lead in New York.' },
+  { season: 1, episode: 7, name: 'Reacher Said Nothing', title: 'Reacher Said Nothing', runtime: '44m', overview: 'Reacher prepares a trap for the hit squad sent after him, turning the tables in the woods of Margrave.' },
+  { season: 1, episode: 8, name: 'Pie', title: 'Pie', runtime: '56m', overview: 'Reacher, Finlay, and Neagley launch an assault on the warehouse to rescue Roscoe and destroy the counterfeit syndicate.' },
+  // Season 2
+  { season: 2, episode: 1, name: 'ATM', title: 'ATM', runtime: '50m', overview: 'When members of his former military unit are murdered under suspicious circumstances, Reacher reunites with his team to investigate.' },
+  { season: 2, episode: 2, name: 'What Happens in Atlantic City', title: 'What Happens in Atlantic City', runtime: '49m', overview: 'The 110th investigates a defense contractor in Atlantic City and discovers a conspiracy involving high-grade weaponry.' },
+  { season: 2, episode: 3, name: 'Picture Says a Thousand Words', title: 'Picture Says a Thousand Words', runtime: '46m', overview: 'Reacher and his team track a mysterious broker known as A.M., uncovering New Age Technologies\' dark secrets.' },
+  { season: 2, episode: 4, name: 'A Night at the Symphony', title: 'A Night at the Symphony', runtime: '48m', overview: 'The team pressures a corrupt legislative aide during an orchestral event in Boston to gather intelligence on Project Little Wing.' },
+  { season: 2, episode: 5, name: 'Burial', title: 'Burial', runtime: '43m', overview: 'Following a close friend\'s funeral, Reacher and his crew are ambushed in a cemetery, leading to a relentless pursuit.' },
+  { season: 2, episode: 6, name: 'New York\'s Finest', title: 'New York\'s Finest', runtime: '50m', overview: 'Reacher works with NYPD Detective Russo while the team corners Langston\'s security forces.' },
+  { season: 2, episode: 7, name: 'The Man Goes Through', title: 'The Man Goes Through', runtime: '46m', overview: 'Russo makes the ultimate sacrifice to protect Marlo Burns\' daughter; Reacher prepares to surrender himself as a Trojan horse.' },
+  { season: 2, episode: 8, name: 'Fly Boy', title: 'Fly Boy', runtime: '52m', overview: 'Reacher stages a daring helicopter rescue to save O\'Donnell and Dixon and execute justice on Langston and A.M.' }
+];
+
 const RAW_CURATED_MEDIA = [
   // BLOCKBUSTER & SCI-FI MOVIES
   { id: 'tt1375666', name: 'Inception', type: 'movie', year: 2010, imdbRating: '8.8', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 27205, description: 'A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.' },
@@ -106,7 +128,7 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt4574334', name: 'Stranger Things', type: 'series', year: 2016, imdbRating: '8.7', genres: ['Drama', 'Fantasy', 'Horror', 'Sci-Fi'], moviedb_id: 66732, description: 'When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces and one strange little girl.' },
   { id: 'tt0944947', name: 'Game of Thrones', type: 'series', year: 2011, imdbRating: '9.2', genres: ['Action', 'Adventure', 'Drama', 'Fantasy'], moviedb_id: 1399, description: 'Nine noble families fight for control over the lands of Westeros, while an ancient enemy returns after being dormant for millennia.' },
   { id: 'tt11198330', name: 'House of the Dragon', type: 'series', year: 2022, imdbRating: '8.4', genres: ['Action', 'Adventure', 'Drama', 'Fantasy'], moviedb_id: 94997, description: 'An internal succession war within House Targaryen at the height of its power, 172 years before the birth of Daenerys Targaryen.' },
-  { id: 'tt8143418', name: 'Chernobyl', type: 'series', year: 2019, imdbRating: '9.3', genres: ['Drama', 'History', 'Thriller'], moviedb_id: 87108, description: 'In April 1986, an explosion at the Chernobyl nuclear power plant in the USSR becomes one of the world\'s worst man-made catastrophes.' },
+  { id: 'tt7366338', name: 'Chernobyl', type: 'series', year: 2019, imdbRating: '9.3', genres: ['Drama', 'History', 'Thriller'], moviedb_id: 87108, description: 'In April 1986, an explosion at the Chernobyl nuclear power plant in the USSR becomes one of the world\'s worst man-made catastrophes.' },
   { id: 'tt3581920', name: 'The Last of Us', type: 'series', year: 2023, imdbRating: '8.8', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 100088, description: 'After a global pandemic destroys civilization, a hardened survivor takes charge of a 14-year-old girl who may be humanity\'s last hope.' },
   { id: 'tt7660850', name: 'Succession', type: 'series', year: 2018, imdbRating: '8.9', genres: ['Drama'], moviedb_id: 76331, description: 'The Roy family is known for controlling the biggest media and entertainment company in the world. However, their world changes when their aging father steps down.' },
   { id: 'tt11280740', name: 'Severance', type: 'series', year: 2022, imdbRating: '8.7', genres: ['Drama', 'Mystery', 'Sci-Fi', 'Thriller'], moviedb_id: 95396, description: 'Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives.' },
@@ -114,7 +136,7 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt2085059', name: 'Black Mirror', type: 'series', year: 2011, imdbRating: '8.7', genres: ['Drama', 'Mystery', 'Sci-Fi', 'Thriller'], moviedb_id: 42009, description: 'An anthology series exploring a twisted, high-tech multiverse where humanity\'s greatest innovations and darkest instincts collide.' },
   { id: 'tt2442560', name: 'Peaky Blinders', type: 'series', year: 2013, imdbRating: '8.8', genres: ['Crime', 'Drama'], moviedb_id: 60574, description: 'A gangster family epic set in 1900s England, centering on a gang who sew razor blades in the peaks of their caps, and their fierce boss Tommy Shelby.' },
   { id: 'tt1190634', name: 'The Boys', type: 'series', year: 2019, imdbRating: '8.7', genres: ['Action', 'Comedy', 'Drama', 'Sci-Fi'], moviedb_id: 76479, description: 'A group of vigilantes set out to take down corrupt superheroes who abuse their superpowers.' },
-  { id: 'tt13165502', name: 'Gen V', type: 'series', year: 2023, imdbRating: '7.7', genres: ['Action', 'Adventure', 'Comedy', 'Sci-Fi'], moviedb_id: 205715, description: 'From the world of The Boys comes Gen V, exploring the first generation of superheroes to know that their superpowers are from Compound V.' },
+  { id: 'tt13159924', name: 'Gen V', type: 'series', year: 2023, imdbRating: '7.7', genres: ['Action', 'Adventure', 'Comedy', 'Sci-Fi'], moviedb_id: 205715, description: 'From the world of The Boys comes Gen V, exploring the first generation of superheroes to know that their superpowers are from Compound V.' },
   { id: 'tt2802850', name: 'Fargo', type: 'series', year: 2014, imdbRating: '8.9', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 57243, description: 'Various chronicles of deception, intrigue, and murder in and around frozen Minnesota.' },
   { id: 'tt0141842', name: 'The Sopranos', type: 'series', year: 1999, imdbRating: '9.2', genres: ['Crime', 'Drama'], moviedb_id: 1398, description: 'New Jersey mob boss Tony Soprano deals with personal and professional issues in his home and business life that affect his mental state.' },
   { id: 'tt0306414', name: 'The Wire', type: 'series', year: 2002, imdbRating: '9.3', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 3297, description: 'The Baltimore drug scene, as seen through the eyes of drug dealers and law enforcement.' },
@@ -135,13 +157,13 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt5071412', name: 'Ozark', type: 'series', year: 2017, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 69740, description: 'A financial advisor drags his family from Chicago to the Missouri Ozarks, where he must launder money to appease a Mexican drug boss.' },
   { id: 'tt2560140', name: 'Attack on Titan', type: 'series', year: 2013, imdbRating: '9.1', genres: ['Animation', 'Action', 'Adventure', 'Drama'], moviedb_id: 1429, description: 'After his hometown is destroyed and his mother is killed, young Eren Jaeger vows to cleanse the earth of the giant humanoid Titans.' },
   { id: 'tt0877057', name: 'Death Note', type: 'series', year: 2006, imdbRating: '8.9', genres: ['Animation', 'Crime', 'Drama', 'Fantasy'], moviedb_id: 13916, description: 'An intelligent high school student goes on a secret crusade to eliminate criminals from the world after discovering a supernatural notebook.' },
-  { id: 'tt1399037', name: 'Fullmetal Alchemist: Brotherhood', type: 'series', year: 2009, imdbRating: '9.1', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 31911, description: 'Two brothers search for a Philosopher\'s Stone after an attempt to revive their deceased mother goes awry and leaves them in damaged physical forms.' },
+  { id: 'tt1355642', name: 'Fullmetal Alchemist: Brotherhood', type: 'series', year: 2009, imdbRating: '9.1', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 31911, description: 'Two brothers search for a Philosopher\'s Stone after an attempt to revive their deceased mother goes awry and leaves them in damaged physical forms.' },
   { id: 'tt9335498', name: 'Demon Slayer: Kimetsu no Yaiba', type: 'series', year: 2019, imdbRating: '8.6', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 85937, description: 'A family is attacked by demons and only two members survive - Tanjiro and his sister Nezuko, who is turning into a demon herself.' },
   { id: 'tt12343534', name: 'Jujutsu Kaisen', type: 'series', year: 2020, imdbRating: '8.5', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 95479, description: 'A boy swallows a cursed talisman - the finger of a demon - and becomes cursed himself. He enters a shaman\'s school to locate other demon body parts.' },
   { id: 'tt8111088', name: 'The Mandalorian', type: 'series', year: 2019, imdbRating: '8.6', genres: ['Action', 'Adventure', 'Fantasy', 'Sci-Fi'], moviedb_id: 82856, description: 'The travels of a lone bounty hunter in the outer reaches of the galaxy, far from the authority of the New Republic.' },
   { id: 'tt9253284', name: 'Andor', type: 'series', year: 2022, imdbRating: '8.4', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 83867, description: 'Prequel series to Star Wars\' Rogue One. In an era filled with danger, deception and intrigue, Cassian embarks on a path destined to turn him into a rebel hero.' },
   { id: 'tt3322312', name: 'Daredevil', type: 'series', year: 2015, imdbRating: '8.6', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 61889, description: 'A blind lawyer by day, vigilante by night. Matt Murdock fights the crime of New York as Daredevil.' },
-  { id: 'tt15474916', name: 'The Penguin', type: 'series', year: 2024, imdbRating: '8.8', genres: ['Crime', 'Drama'], moviedb_id: 194764, description: 'Following the events of The Batman (2022), Oz Cobb, a.k.a. the Penguin, makes a play to seize the reins of the crime empire in Gotham City.' },
+  { id: 'tt15435876', name: 'The Penguin', type: 'series', year: 2024, imdbRating: '8.8', genres: ['Crime', 'Drama'], moviedb_id: 194764, description: 'Following the events of The Batman (2022), Oz Cobb, a.k.a. the Penguin, makes a play to seize the reins of the crime empire in Gotham City.' },
   { id: 'tt6741278', name: 'Invincible', type: 'series', year: 2021, imdbRating: '8.7', genres: ['Animation', 'Action', 'Adventure', 'Drama'], moviedb_id: 95557, description: 'An animated superhero series based on the Skybound comic about a teenager whose father is the most powerful superhero on the planet.' },
   { id: 'tt0417299', name: 'Avatar: The Last Airbender', type: 'series', year: 2005, imdbRating: '9.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 387, description: 'In a war-torn world of elemental magic, a young boy reawakens to undertake a dangerous mystic quest to fulfill his destiny as the Avatar.' },
   { id: 'tt10048342', name: 'The Queen\'s Gambit', type: 'series', year: 2020, imdbRating: '8.5', genres: ['Drama'], moviedb_id: 87739, description: 'Orphaned at the tender age of nine, prodigious introvert Beth Harmon discovers and masters the game of chess in 1960s USA.' },
@@ -149,7 +171,17 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt2467372', name: 'Brooklyn Nine-Nine', type: 'series', year: 2013, imdbRating: '8.4', genres: ['Comedy', 'Crime'], moviedb_id: 48891, description: 'Comedy series following the exploits of Det. Jake Peralta and his diverse, lovable colleagues as they police the NYPD\'s 99th Precinct.' },
   { id: 'tt2861424', name: 'Rick and Morty', type: 'series', year: 2013, imdbRating: '9.1', genres: ['Animation', 'Adventure', 'Comedy', 'Sci-Fi'], moviedb_id: 60625, description: 'The fractured domestic lives of a cynical mad scientist and his good-hearted but fretful grandson across interdimensional adventures.' },
   { id: 'tt4158110', name: 'Mr. Robot', type: 'series', year: 2015, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 62560, description: 'Elliot, a brilliant but highly unstable young cyber-security engineer and vigilante hacker, becomes a key figure in a complex game of global chaos.' },
-  { id: 'tt9288030', name: 'Reacher', type: 'series', year: 2022, imdbRating: '8.1', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 108978, description: 'Jack Reacher, a veteran military police investigator, enters civilian life and is wrongly arrested for murder in rural Georgia.' },
+  {
+    id: 'tt9288030',
+    name: 'Reacher',
+    type: 'series',
+    year: 2022,
+    imdbRating: '8.1',
+    genres: ['Action', 'Crime', 'Drama'],
+    moviedb_id: 108978,
+    description: 'Jack Reacher, a veteran military police investigator, enters civilian life and is wrongly arrested for murder in rural Georgia.',
+    videos: REACHER_EPISODES
+  },
   { id: 'tt14688458', name: 'Silo', type: 'series', year: 2023, imdbRating: '8.1', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 125988, description: 'Men and women live in a giant underground silo with several regulations which they believe are in place to protect them from the toxic world on the surface.' },
   { id: 'tt4236770', name: 'Yellowstone', type: 'series', year: 2018, imdbRating: '8.7', genres: ['Drama', 'Western'], moviedb_id: 73586, description: 'A ranching family in Montana faces off against others encroaching on their land.' },
   { id: 'tt6468322', name: 'Money Heist', type: 'series', year: 2017, imdbRating: '8.2', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 71446, description: 'An unusual group of robbers attempt to carry out the most perfect robbery in Spanish history - stealing 2.4 billion euros from the Royal Mint of Spain.' },
