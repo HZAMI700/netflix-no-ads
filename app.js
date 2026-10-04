@@ -515,6 +515,12 @@ async function buildHome() {
     if ($('heroTitle')) $('heroTitle').textContent = 'Stranger Things';
   }
 
+  // Track titles shown across rows on the home screen to prevent duplication
+  const seenHomeIds = new Set();
+  if (heroItems && heroItems.length && heroItems[0] && heroItems[0].id) {
+    seenHomeIds.add(heroItems[0].id);
+  }
+
   // Populate rows
   let shown = 0;
   for (const r of HOME_ROWS) {
@@ -540,11 +546,25 @@ async function buildHome() {
       pool = dedupeMetas(pool).filter(isCleanSafe);
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
-      const max = r.limit || 100;
-      items = pool.slice(0, max);
       if (r.id === 'new_releases') {
-        items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, max);
+        pool = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0));
       }
+
+      // Cross-row home screen deduplication: prioritize titles not yet seen in previous categories!
+      const freshItems = pool.filter(m => !seenHomeIds.has(m.id));
+      const max = r.limit || 60;
+
+      if (freshItems.length >= 10) {
+        items = freshItems.slice(0, max);
+      } else {
+        const alreadySeen = pool.filter(m => seenHomeIds.has(m.id));
+        items = [...freshItems, ...alreadySeen].slice(0, max);
+      }
+
+      // Mark these items as seen so subsequent rows won't repeat them
+      items.slice(0, 25).forEach(m => {
+        if (m && m.id) seenHomeIds.add(m.id);
+      });
     }
 
     if (!items.length) continue;
@@ -963,14 +983,30 @@ async function openDetail(id, type, autoplay) {
 
   try {
     let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
-    if (!m || (type === 'series' && (!m.videos || !m.videos.length))) {
+    if (type === 'series') {
       try {
         const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
         if (j && j.meta) {
-          m = m ? { ...j.meta, ...m, videos: (j.meta.videos && j.meta.videos.length) ? j.meta.videos : (m.videos || []) } : j.meta;
+          const cinVids = (j.meta.videos || []).filter(v => Number(v.season) > 0 && Number(v.episode) > 0);
+          if (m) {
+            m = {
+              ...j.meta,
+              ...m,
+              videos: (cinVids.length >= (m.videos || []).length && cinVids.length > 0) ? cinVids : (m.videos || cinVids)
+            };
+          } else {
+            m = { ...j.meta, videos: cinVids };
+          }
         }
       } catch (err) {
         console.warn('Cinemeta series metadata fetch fallback:', err);
+      }
+    } else if (!m) {
+      try {
+        const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
+        if (j && j.meta) m = j.meta;
+      } catch (err) {
+        console.warn('Cinemeta movie metadata fetch fallback:', err);
       }
     }
     if (!m || !isCleanSafe(m)) {
@@ -1010,19 +1046,28 @@ async function openDetail(id, type, autoplay) {
 
     // Series episodes (Strictly filter out Season 0 / specials)
     let rawVids = m.videos || [];
-    if ((!rawVids || !rawVids.length) && type === 'series' && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos) {
-      rawVids = CuratedCatalog.getSeriesVideos(m);
-    }
     let vids = rawVids.filter(v => {
       const s = Number(v.season);
       const ep = Number(v.episode);
       return Number.isInteger(s) && s > 0 && Number.isInteger(ep) && ep > 0;
     });
 
-    if (type === 'series' && !vids.length) {
-      vids = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos)
+    if (type === 'series') {
+      const canonicalVids = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos)
         ? CuratedCatalog.getSeriesVideos(m)
         : [];
+      if (!vids.length) {
+        vids = canonicalVids;
+      } else if (canonicalVids && canonicalVids.length > 0) {
+        // Ensure that any missing seasons/episodes are augmented from canonical
+        const existingEpKeys = new Set(vids.map(v => `${v.season}:${v.episode}`));
+        canonicalVids.forEach(cv => {
+          if (!existingEpKeys.has(`${cv.season}:${cv.episode}`)) {
+            vids.push(cv);
+            existingEpKeys.add(`${cv.season}:${cv.episode}`);
+          }
+        });
+      }
     }
 
     // Deduplicate and sort
@@ -1334,6 +1379,7 @@ async function loadCategoryRows(kind) {
   rowsWrap.innerHTML = categoryRows.map(r => renderRowSection(r)).join('');
   rowsWrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
 
+  const seenBrowseIds = new Set();
   for (const r of categoryRows) {
     const sec = $('row-' + r.id);
     if (!sec) continue;
@@ -1348,9 +1394,23 @@ async function loadCategoryRows(kind) {
     }
     pool = dedupeMetas(pool).filter(isCleanSafe);
     if (!pool.length) continue;
+
+    // Cross-row browse deduplication: prioritize titles not yet seen in previous categories
+    const freshItems = pool.filter(m => !seenBrowseIds.has(m.id));
+    let items;
+    if (freshItems.length >= 10) {
+      items = freshItems.slice(0, 100);
+    } else {
+      const alreadySeen = pool.filter(m => seenBrowseIds.has(m.id));
+      items = [...freshItems, ...alreadySeen].slice(0, 100);
+    }
+    items.slice(0, 25).forEach(m => {
+      if (m && m.id) seenBrowseIds.add(m.id);
+    });
+
     sec.style.display = '';
     track.innerHTML = '';
-    pool.slice(0, 100).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+    items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
   }
 }

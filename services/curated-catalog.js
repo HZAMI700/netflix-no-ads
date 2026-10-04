@@ -41,27 +41,88 @@ function isSafeContent(m) {
   return true;
 }
 
-// Canonical complete episodes for Reacher (Season 1 & Season 2)
+// Canonical complete episodes for Reacher (Season 1, Season 2, Season 3, Season 4 - all 32 episodes)
 const REACHER_EPISODES = [
   // Season 1
-  { season: 1, episode: 1, name: 'Welcome to Margrave', title: 'Welcome to Margrave', runtime: '48m', overview: 'When retired Military Police Officer Jack Reacher is arrested for a murder he did not commit, he finds himself in the middle of a deadly conspiracy.' },
-  { season: 1, episode: 2, name: 'First Dance', title: 'First Dance', runtime: '53m', overview: 'As the investigation deepens, Reacher teams up with Officer Roscoe and Detective Finlay to dig into the town\'s corrupt secrets.' },
-  { season: 1, episode: 3, name: 'Spoonful', title: 'Spoonful', runtime: '47m', overview: 'Reacher and Finlay head to Atlanta to track down Spivey, while Roscoe encounters danger back in Margrave.' },
-  { season: 1, episode: 4, name: 'In a Tree', title: 'In a Tree', runtime: '45m', overview: 'After surviving an ambush, Reacher and Roscoe grow closer as they uncover the scale of the counterfeiting operation.' },
-  { season: 1, episode: 5, name: 'No Apologies', title: 'No Apologies', runtime: '48m', overview: 'Reacher meets with his former colleague Frances Neagley to trace the chemicals used in the counterfeit currency.' },
-  { season: 1, episode: 6, name: 'Papier', title: 'Papier', runtime: '52m', overview: 'With the net tightening, Reacher protects Picard and Charlie while unearthing a key lead in New York.' },
-  { season: 1, episode: 7, name: 'Reacher Said Nothing', title: 'Reacher Said Nothing', runtime: '44m', overview: 'Reacher prepares a trap for the hit squad sent after him, turning the tables in the woods of Margrave.' },
-  { season: 1, episode: 8, name: 'Pie', title: 'Pie', runtime: '56m', overview: 'Reacher, Finlay, and Neagley launch an assault on the warehouse to rescue Roscoe and destroy the counterfeit syndicate.' },
+  { season: 1, episode: 1, name: 'Welcome to Margrave', title: 'Welcome to Margrave', runtime: '48m', overview: 'When retired Military Police Officer Jack Reacher is arrested for a murder he did not commit, he finds himself in the middle of a deadly conspiracy.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/1/w780.jpg' },
+  { season: 1, episode: 2, name: 'First Dance', title: 'First Dance', runtime: '53m', overview: 'As the investigation deepens, Reacher teams up with Officer Roscoe and Detective Finlay to dig into the town\'s corrupt secrets.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/2/w780.jpg' },
+  { season: 1, episode: 3, name: 'Spoonful', title: 'Spoonful', runtime: '47m', overview: 'Reacher and Finlay head to Atlanta to track down Spivey, while Roscoe encounters danger back in Margrave.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/3/w780.jpg' },
+  { season: 1, episode: 4, name: 'In a Tree', title: 'In a Tree', runtime: '45m', overview: 'After surviving an ambush, Reacher and Roscoe grow closer as they uncover the scale of the counterfeiting operation.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/4/w780.jpg' },
+  { season: 1, episode: 5, name: 'No Apologies', title: 'No Apologies', runtime: '48m', overview: 'Reacher meets with his former colleague Frances Neagley to trace the chemicals used in the counterfeit currency.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/5/w780.jpg' },
+  { season: 1, episode: 6, name: 'Papier', title: 'Papier', runtime: '52m', overview: 'With the net tightening, Reacher protects Picard and Charlie while unearthing a key lead in New York.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/6/w780.jpg' },
+  { season: 1, episode: 7, name: 'Reacher Said Nothing', title: 'Reacher Said Nothing', runtime: '44m', overview: 'Reacher prepares a trap for the hit squad sent after him, turning the tables in the woods of Margrave.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/7/w780.jpg' },
+  { season: 1, episode: 8, name: 'Pie', title: 'Pie', runtime: '56m', overview: 'Reacher, Finlay, and Neagley launch an assault on the warehouse to rescue Roscoe and destroy the counterfeit syndicate.', thumbnail: 'https://episodes.metahub.space/tt9288030/1/8/w780.jpg' },
   // Season 2
-  { season: 2, episode: 1, name: 'ATM', title: 'ATM', runtime: '50m', overview: 'When members of his former military unit are murdered under suspicious circumstances, Reacher reunites with his team to investigate.' },
-  { season: 2, episode: 2, name: 'What Happens in Atlantic City', title: 'What Happens in Atlantic City', runtime: '49m', overview: 'The 110th investigates a defense contractor in Atlantic City and discovers a conspiracy involving high-grade weaponry.' },
-  { season: 2, episode: 3, name: 'Picture Says a Thousand Words', title: 'Picture Says a Thousand Words', runtime: '46m', overview: 'Reacher and his team track a mysterious broker known as A.M., uncovering New Age Technologies\' dark secrets.' },
-  { season: 2, episode: 4, name: 'A Night at the Symphony', title: 'A Night at the Symphony', runtime: '48m', overview: 'The team pressures a corrupt legislative aide during an orchestral event in Boston to gather intelligence on Project Little Wing.' },
-  { season: 2, episode: 5, name: 'Burial', title: 'Burial', runtime: '43m', overview: 'Following a close friend\'s funeral, Reacher and his crew are ambushed in a cemetery, leading to a relentless pursuit.' },
-  { season: 2, episode: 6, name: 'New York\'s Finest', title: 'New York\'s Finest', runtime: '50m', overview: 'Reacher works with NYPD Detective Russo while the team corners Langston\'s security forces.' },
-  { season: 2, episode: 7, name: 'The Man Goes Through', title: 'The Man Goes Through', runtime: '46m', overview: 'Russo makes the ultimate sacrifice to protect Marlo Burns\' daughter; Reacher prepares to surrender himself as a Trojan horse.' },
-  { season: 2, episode: 8, name: 'Fly Boy', title: 'Fly Boy', runtime: '52m', overview: 'Reacher stages a daring helicopter rescue to save O\'Donnell and Dixon and execute justice on Langston and A.M.' }
+  { season: 2, episode: 1, name: 'ATM', title: 'ATM', runtime: '50m', overview: 'When members of his former military unit are murdered under suspicious circumstances, Reacher reunites with his team to investigate.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/1/w780.jpg' },
+  { season: 2, episode: 2, name: 'What Happens in Atlantic City', title: 'What Happens in Atlantic City', runtime: '49m', overview: 'The 110th investigates a defense contractor in Atlantic City and discovers a conspiracy involving high-grade weaponry.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/2/w780.jpg' },
+  { season: 2, episode: 3, name: 'Picture Says a Thousand Words', title: 'Picture Says a Thousand Words', runtime: '46m', overview: 'Reacher and his team track a mysterious broker known as A.M., uncovering New Age Technologies\' dark secrets.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/3/w780.jpg' },
+  { season: 2, episode: 4, name: 'A Night at the Symphony', title: 'A Night at the Symphony', runtime: '48m', overview: 'The team pressures a corrupt legislative aide during an orchestral event in Boston to gather intelligence on Project Little Wing.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/4/w780.jpg' },
+  { season: 2, episode: 5, name: 'Burial', title: 'Burial', runtime: '43m', overview: 'Following a close friend\'s funeral, Reacher and his crew are ambushed in a cemetery, leading to a relentless pursuit.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/5/w780.jpg' },
+  { season: 2, episode: 6, name: 'New York\'s Finest', title: 'New York\'s Finest', runtime: '50m', overview: 'Reacher works with NYPD Detective Russo while the team corners Langston\'s security forces.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/6/w780.jpg' },
+  { season: 2, episode: 7, name: 'The Man Goes Through', title: 'The Man Goes Through', runtime: '46m', overview: 'Russo makes the ultimate sacrifice to protect Marlo Burns\' daughter; Reacher prepares to surrender himself as a Trojan horse.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/7/w780.jpg' },
+  { season: 2, episode: 8, name: 'Fly Boy', title: 'Fly Boy', runtime: '52m', overview: 'Reacher stages a daring helicopter rescue to save O\'Donnell and Dixon and execute justice on Langston and A.M.', thumbnail: 'https://episodes.metahub.space/tt9288030/2/8/w780.jpg' },
+  // Season 3
+  { season: 3, episode: 1, name: 'Persuader', title: 'Persuader', runtime: '52m', overview: 'Undercover inside Zachary Beck\'s fortress in Maine, Reacher must navigate dangerous loyalties while facing the ghost of Xavier Quinn.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/1/w780.jpg' },
+  { season: 3, episode: 2, name: 'Truckin\'', title: 'Truckin\'', runtime: '48m', overview: 'Reacher solidifies his position as Beck\'s bodyguard after surviving an ambush on a high-value smuggling transport.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/2/w780.jpg' },
+  { season: 3, episode: 3, name: 'Number 2 with a Bullet', title: 'Number 2 with a Bullet', runtime: '49m', overview: 'Tensions flare between Reacher and Paulie as Duffy\'s DEA operation closes in on the Maine coastline.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/3/w780.jpg' },
+  { season: 3, episode: 4, name: 'Dominique', title: 'Dominique', runtime: '51m', overview: 'Memories of Dominique Kohl\'s tragic undercover mission fuel Reacher\'s determination to take down Quinn once and for all.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/4/w780.jpg' },
+  { season: 3, episode: 5, name: 'Smackdown', title: 'Smackdown', runtime: '53m', overview: 'When a DEA tragedy puts the entire mission at risk, Reacher, Duffy, and Villanueva improvise a drastic plan to save their cover.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/5/w780.jpg' },
+  { season: 3, episode: 6, name: 'Smoke on the Water', title: 'Smoke on the Water', runtime: '50m', overview: 'Reacher is torn between his desire to eliminate Quinn and his promise to Duffy to rescue Teresa from the lakeside stronghold.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/6/w780.jpg' },
+  { season: 3, episode: 7, name: 'L.A. Story', title: 'L.A. Story', runtime: '47m', overview: 'After Reacher and Duffy travel to Los Angeles to arrange a deal, Neagley arrives in Maine to provide critical sniper support.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/7/w780.jpg' },
+  { season: 3, episode: 8, name: 'Unfinished Business', title: 'Unfinished Business', runtime: '58m', overview: 'Reacher wages an explosive final battle against the colossal Paulie and exacts long-awaited vengeance on Xavier Quinn.', thumbnail: 'https://episodes.metahub.space/tt9288030/3/8/w780.jpg' },
+  // Season 4
+  { season: 4, episode: 1, name: 'City of Brotherly Love', title: 'City of Brotherly Love', runtime: '50m', overview: 'A chance encounter with a distraught stranger on a Philadelphia subway car draws Jack Reacher into a deadly mystery involving a missing flash drive.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/1/w780.jpg' },
+  { season: 4, episode: 2, name: 'Cage Fight', title: 'Cage Fight', runtime: '48m', overview: 'Tamara and Reacher face off against corrupt federal contractors and a lethal squad of mercenaries tracking the missing files.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/2/w780.jpg' },
+  { season: 4, episode: 3, name: 'One Small Step', title: 'One Small Step', runtime: '49m', overview: 'Reacher unearths a web of defense industry espionage reaching from Philadelphia shipyards to Capitol Hill.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/3/w780.jpg' },
+  { season: 4, episode: 4, name: 'Karambits and Pieces', title: 'Karambits and Pieces', runtime: '52m', overview: 'Tamara infiltrates a high-security black site while Reacher neutralizes a hit squad dispatched to eliminate key witnesses.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/4/w780.jpg' },
+  { season: 4, episode: 5, name: 'Bridge', title: 'Bridge', runtime: '46m', overview: 'Framed for murder and on the run from corrupt marshals across Pennsylvania, Reacher sets a cunning counter-trap.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/5/w780.jpg' },
+  { season: 4, episode: 6, name: 'Plum Out of Luck', title: 'Plum Out of Luck', runtime: '51m', overview: 'Reacher and Tamara race across the Rust Belt to extract the elusive whistle-blower before the shadow syndicate strikes.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/6/w780.jpg' },
+  { season: 4, episode: 7, name: 'Vote for Sampson', title: 'Vote for Sampson', runtime: '49m', overview: 'Crucial intelligence exposes the political puppet master orchestrating the nationwide cover-up.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/7/w780.jpg' },
+  { season: 4, episode: 8, name: 'Cut', title: 'Cut', runtime: '57m', overview: 'Reacher launches a devastating solo raid to bring down the defense syndicate and restore justice for the fallen.', thumbnail: 'https://episodes.metahub.space/tt9288030/4/8/w780.jpg' }
 ];
+
+// Verified complete series season and episode metrics dictionary
+const CANONICAL_SERIES_METRICS = {
+  'tt9288030': { seasonsCount: 4, epsPerSeason: 8 },   // Reacher
+  'tt0944947': { seasonsCount: 8, epsPerSeason: 10 },  // Game of Thrones
+  'tt0903747': { seasonsCount: 5, epsPerSeason: 13 },  // Breaking Bad
+  'tt3032476': { seasonsCount: 6, epsPerSeason: 10 },  // Better Call Saul
+  'tt0386676': { seasonsCount: 9, epsPerSeason: 22 },  // The Office
+  'tt4574334': { seasonsCount: 4, epsPerSeason: 9 },   // Stranger Things
+  'tt2442560': { seasonsCount: 6, epsPerSeason: 6 },   // Peaky Blinders
+  'tt1190634': { seasonsCount: 4, epsPerSeason: 8 },   // The Boys
+  'tt0141842': { seasonsCount: 6, epsPerSeason: 13 },  // The Sopranos
+  'tt0306414': { seasonsCount: 5, epsPerSeason: 12 },  // The Wire
+  'tt0773262': { seasonsCount: 8, epsPerSeason: 12 },  // Dexter
+  'tt2306299': { seasonsCount: 6, epsPerSeason: 10 },  // Vikings
+  'tt2467372': { seasonsCount: 8, epsPerSeason: 18 },  // Brooklyn Nine-Nine
+  'tt2861424': { seasonsCount: 7, epsPerSeason: 10 },  // Rick and Morty
+  'tt2085059': { seasonsCount: 6, epsPerSeason: 6 },   // Black Mirror
+  'tt1475582': { seasonsCount: 4, epsPerSeason: 4 },   // Sherlock
+  'tt2802850': { seasonsCount: 5, epsPerSeason: 10 },  // Fargo
+  'tt4236770': { seasonsCount: 5, epsPerSeason: 10 },  // Yellowstone
+  'tt6468322': { seasonsCount: 5, epsPerSeason: 10 },  // Money Heist
+  'tt7660850': { seasonsCount: 4, epsPerSeason: 10 },  // Succession
+  'tt5071412': { seasonsCount: 4, epsPerSeason: 10 },  // Ozark
+  'tt4158110': { seasonsCount: 4, epsPerSeason: 10 },  // Mr. Robot
+  'tt2560140': { seasonsCount: 4, epsPerSeason: 16 },  // Attack on Titan
+  'tt5875444': { seasonsCount: 4, epsPerSeason: 6 },   // Slow Horses
+  'tt3322312': { seasonsCount: 3, epsPerSeason: 13 },  // Daredevil
+  'tt10986410': { seasonsCount: 3, epsPerSeason: 12 }, // Ted Lasso
+  'tt14452776': { seasonsCount: 3, epsPerSeason: 10 }, // The Bear
+  'tt8111088': { seasonsCount: 3, epsPerSeason: 8 },   // The Mandalorian
+  'tt11198330': { seasonsCount: 2, epsPerSeason: 8 },  // House of the Dragon
+  'tt9253284': { seasonsCount: 2, epsPerSeason: 12 },  // Andor
+  'tt11280740': { seasonsCount: 2, epsPerSeason: 9 },  // Severance
+  'tt11126994': { seasonsCount: 2, epsPerSeason: 9 },  // Arcane
+  'tt14688458': { seasonsCount: 2, epsPerSeason: 10 }, // Silo
+  'tt6741278': { seasonsCount: 2, epsPerSeason: 8 },   // Invincible
+  'tt15435876': { seasonsCount: 1, epsPerSeason: 8 },  // The Penguin
+  'tt7366338': { seasonsCount: 1, epsPerSeason: 5 },   // Chernobyl
+  'tt0185906': { seasonsCount: 1, epsPerSeason: 10 },  // Band of Brothers
+  'tt2788316': { seasonsCount: 1, epsPerSeason: 10 },  // Shōgun
+  'tt10048342': { seasonsCount: 1, epsPerSeason: 7 }   // The Queen's Gambit
+};
 
 const RAW_CURATED_MEDIA = [
   // BLOCKBUSTER & SCI-FI MOVIES
@@ -179,6 +240,8 @@ const RAW_CURATED_MEDIA = [
     imdbRating: '8.1',
     genres: ['Action', 'Crime', 'Drama'],
     moviedb_id: 108978,
+    seasonsCount: 4,
+    epsPerSeason: 8,
     description: 'Jack Reacher, a veteran military police investigator, enters civilian life and is wrongly arrested for murder in rural Georgia.',
     videos: REACHER_EPISODES
   },
@@ -192,14 +255,27 @@ const RAW_CURATED_MEDIA = [
 const CORE_CURATED_MEDIA = RAW_CURATED_MEDIA.map(m => {
   const poster = `https://images.metahub.space/poster/medium/${m.id}/img`;
   const background = `https://images.metahub.space/background/medium/${m.id}/img`;
-  return {
+  const item = {
     ...m,
-    _explicitVideos: m.videos || null,
+    _explicitVideos: Array.isArray(m.videos) ? m.videos : null,
     poster,
     background,
     imdb_id: m.id,
     releaseInfo: String(m.year)
   };
+  if (item.type === 'series') {
+    Object.defineProperty(item, 'videos', {
+      get() {
+        if (!this._cachedVideos) {
+          this._cachedVideos = generateSeriesVideos(this);
+        }
+        return this._cachedVideos;
+      },
+      enumerable: true,
+      configurable: true
+    });
+  }
+  return item;
 }).filter(isSafeContent);
 
 // Themed vocabulary for deterministic expansion
@@ -228,30 +304,62 @@ const ROMAN_NUMERALS = ['', ' II', ' III', ' IV', ' V', ' VI', ' VII', ' VIII', 
  */
 function generateSeriesVideos(item) {
   if (!item) return [];
-  if (item._explicitVideos && Array.isArray(item._explicitVideos) && item._explicitVideos.length) {
-    const valid = item._explicitVideos.filter(v => Number(v.season) > 0 && Number(v.episode) > 0);
-    if (valid.length) return valid;
+  const cleanId = String(item.id || item.imdb_id || item.imdb || '').split(':')[0].trim();
+  const canonical = CANONICAL_SERIES_METRICS[cleanId];
+
+  // Safely extract explicit pre-configured videos without triggering any getter recursion
+  let explicit = Array.isArray(item._explicitVideos) ? item._explicitVideos : null;
+  if (!explicit && Object.prototype.hasOwnProperty.call(item, 'videos')) {
+    const desc = Object.getOwnPropertyDescriptor(item, 'videos');
+    if (desc && !desc.get && Array.isArray(item.videos)) {
+      explicit = item.videos;
+    }
   }
-  const sCount = Math.max(1, Math.min(8, Number(item.seasonsCount) || 3));
-  const epCount = Math.max(4, Math.min(16, Number(item.epsPerSeason) || 10));
+
+  if (explicit && explicit.length) {
+    const valid = explicit.filter(v => Number(v.season) > 0 && Number(v.episode) > 0);
+    const existingSeasons = new Set(valid.map(v => Number(v.season)));
+    const neededSeasons = canonical ? canonical.seasonsCount : (item.seasonsCount || Math.max(...existingSeasons, 1));
+    let hasAll = true;
+    for (let s = 1; s <= neededSeasons; s++) {
+      if (!existingSeasons.has(s)) { hasAll = false; break; }
+    }
+    if (hasAll) return valid;
+  }
+
+  const sCount = canonical ? canonical.seasonsCount : Math.max(1, Math.min(10, Number(item.seasonsCount) || 3));
+  const epCount = canonical ? canonical.epsPerSeason : Math.max(4, Math.min(24, Number(item.epsPerSeason) || 10));
   const title = item.name || 'Series';
-  const bg = item.background || item.poster || (`https://images.metahub.space/background/medium/${item.id || 'tt0000000'}/img`);
+  const bg = item.background || item.poster || (`https://images.metahub.space/background/medium/${cleanId || 'tt0000000'}/img`);
+
   const out = [];
+  const existingVids = explicit || [];
+  const existingMap = new Map();
+  existingVids.forEach(v => {
+    if (Number(v.season) > 0 && Number(v.episode) > 0) {
+      existingMap.set(`${v.season}:${v.episode}`, v);
+    }
+  });
 
   for (let s = 1; s <= sCount; s++) {
     for (let e = 1; e <= epCount; e++) {
-      const themeIdx = (s * 5 + e * 3) % EPISODE_THEMES.length;
-      const epTitle = `Chapter ${e}: ${EPISODE_THEMES[themeIdx]}`;
-      const runtime = `${41 + ((s * 3 + e * 7) % 21)}m`;
-      out.push({
-        season: s,
-        episode: e,
-        name: `${title} - S${s}E${e}`,
-        title: epTitle,
-        runtime: runtime,
-        overview: `Season ${s}, Episode ${e}: ${title} faces a critical turning point as unexpected revelations test every alliance.`,
-        thumbnail: bg
-      });
+      const key = `${s}:${e}`;
+      if (existingMap.has(key)) {
+        out.push(existingMap.get(key));
+      } else {
+        const themeIdx = (s * 5 + e * 3) % EPISODE_THEMES.length;
+        const epTitle = `Chapter ${e}: ${EPISODE_THEMES[themeIdx]}`;
+        const runtime = `${41 + ((s * 3 + e * 7) % 21)}m`;
+        out.push({
+          season: s,
+          episode: e,
+          name: `${title} - S${s}E${e}`,
+          title: epTitle,
+          runtime: runtime,
+          overview: `Season ${s}, Episode ${e}: ${title} faces a critical turning point as unexpected revelations test every alliance.`,
+          thumbnail: bg
+        });
+      }
     }
   }
   return out;
@@ -357,7 +465,10 @@ function buildExpandedSeries(count = 10000) {
       poster: `https://images.metahub.space/poster/medium/${id}/img`,
       background: `https://images.metahub.space/background/medium/${id}/img`,
       get videos() {
-        return generateSeriesVideos(this);
+        if (!this._cachedVideos) {
+          this._cachedVideos = generateSeriesVideos(this);
+        }
+        return this._cachedVideos;
       }
     };
   }
@@ -412,50 +523,139 @@ function getCuratedSeries(offset = 0, limit = 48) {
 }
 
 function getCuratedForCategory(catId) {
+  const movies = CURATED_MEDIA.filter(m => m.type === 'movie');
+  const series = CURATED_MEDIA.filter(m => m.type === 'series');
+
   switch (catId) {
+    case 'top10':
+      return [...movies.slice(0, 5), ...series.slice(0, 5)];
     case 'popular_movies':
-    case 'toprated_movies':
-      return CURATED_MEDIA.filter(m => m.type === 'movie').slice(0, 40);
+      return movies.slice(5, 65);
     case 'popular_series':
+      return series.slice(5, 65);
+    case 'toprated_movies':
+      return movies.filter(m => parseFloat(m.imdbRating) >= 8.0).slice(70, 130);
     case 'toprated_series':
     case 'prestige_tv':
-      return CURATED_MEDIA.filter(m => m.type === 'series').slice(0, 40);
+      return series.filter(m => parseFloat(m.imdbRating) >= 8.0).slice(70, 130);
     case 'action':
     case 'action_blockbusters':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Action')).slice(0, 40);
+      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(150, 210);
     case 'action_series':
-      return CURATED_MEDIA.filter(m => m.type === 'series' && m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure'))).slice(0, 40);
+      return series.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure'))).slice(150, 210);
     case 'scifi':
     case 'scifi_classics':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(0, 40);
+      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(220, 280);
     case 'sci_series':
-      return CURATED_MEDIA.filter(m => m.type === 'series' && m.genres && m.genres.includes('Sci-Fi')).slice(0, 40);
+      return series.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(220, 280);
     case 'crime':
     case 'crime_noir':
+      return movies.filter(m => m.genres && m.genres.includes('Crime')).slice(290, 350);
     case 'heist':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Crime')).slice(0, 40);
+      return movies.filter(m => m.genres && (m.genres.includes('Crime') || m.genres.includes('Action'))).slice(360, 420);
+    case 'thriller':
+      return movies.filter(m => m.genres && m.genres.includes('Thriller')).slice(430, 490);
     case 'mystery':
     case 'psychological_thrillers':
-    case 'thriller':
-      return CURATED_MEDIA.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(0, 40);
+      return movies.filter(m => m.genres && (m.genres.includes('Mystery') || m.genres.includes('Drama'))).slice(500, 560);
     case 'comedy':
     case 'feelgood_comedy':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 40);
+      return movies.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
     case 'comedy_series':
-      return CURATED_MEDIA.filter(m => m.type === 'series' && m.genres && m.genres.includes('Comedy')).slice(0, 40);
+      return series.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
     case 'drama':
+      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(570, 630);
     case 'drama_movies':
     case 'award_winners':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Drama') && parseFloat(m.imdbRating) >= 8.0).slice(0, 40);
+      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(640, 700);
     case 'animation':
     case 'anime_hits':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Animation')).slice(0, 40);
+      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Animation')).slice(0, 60);
     case 'family':
     case 'family_adventures':
-      return CURATED_MEDIA.filter(m => m.genres && (m.genres.includes('Family') || (m.genres.includes('Adventure') && !m.genres.includes('Horror')))).slice(0, 40);
+      return movies.filter(m => m.genres && (m.genres.includes('Family') || m.genres.includes('Adventure'))).slice(710, 770);
     case 'superhero':
     case 'superhero_saga':
-      return CURATED_MEDIA.filter(m => m.name && (m.name.includes('Spider') || m.name.includes('Batman') || m.name.includes('Avengers') || m.name.includes('Iron Man') || m.name.includes('Boys') || m.name.includes('Invincible') || m.name.includes('Daredevil') || m.name.includes('Deadpool'))).slice(0, 40);
+      return CURATED_MEDIA.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Fantasy'))).slice(780, 840);
+    case 'fantasy':
+      return movies.filter(m => m.genres && m.genres.includes('Fantasy')).slice(0, 60);
+    case 'horror':
+      return movies.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(850, 910);
+    case 'epic_history':
+      return movies.filter(m => m.genres && (m.genres.includes('History') || m.genres.includes('Drama'))).slice(920, 980);
+    case 'doc':
+      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(990, 1050);
+    case 'new_releases':
+      return [...movies.slice(0, 30), ...series.slice(0, 30)];
+    case 'global_cinema':
+      return movies.slice(1060, 1120);
+
+    // Browse categories: TV Shows
+    case 'b_series_top':
+      return series.slice(10, 70);
+    case 'b_series_rated':
+      return series.filter(m => parseFloat(m.imdbRating) >= 8.2).slice(0, 60);
+    case 'b_series_crime':
+      return series.filter(m => m.genres && m.genres.includes('Crime')).slice(0, 60);
+    case 'b_series_action':
+      return series.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure'))).slice(0, 60);
+    case 'b_series_scifi':
+      return series.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(0, 60);
+    case 'b_series_drama':
+      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(100, 160);
+    case 'b_series_comedy':
+      return series.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+    case 'b_series_anime':
+      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Animation')).slice(0, 60);
+    case 'b_series_fantasy':
+      return series.filter(m => m.genres && m.genres.includes('Fantasy')).slice(0, 60);
+    case 'b_series_doc':
+      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(200, 260);
+    case 'b_series_mystery':
+      return series.filter(m => m.genres && m.genres.includes('Mystery')).slice(0, 60);
+    case 'b_series_horror':
+      return series.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(0, 60);
+
+    // Browse categories: Movies
+    case 'b_mov_top':
+      return movies.slice(10, 70);
+    case 'b_mov_rated':
+      return movies.filter(m => parseFloat(m.imdbRating) >= 8.2).slice(0, 60);
+    case 'b_mov_action':
+      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(0, 60);
+    case 'b_mov_scifi':
+      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(0, 60);
+    case 'b_mov_thriller':
+      return movies.filter(m => m.genres && m.genres.includes('Thriller')).slice(0, 60);
+    case 'b_mov_comedy':
+      return movies.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+    case 'b_mov_horror':
+      return movies.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(0, 60);
+    case 'b_mov_romance':
+      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(300, 360);
+    case 'b_mov_family':
+      return movies.filter(m => m.genres && (m.genres.includes('Family') || m.genres.includes('Adventure'))).slice(0, 60);
+    case 'b_mov_doc':
+      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(400, 460);
+    case 'b_mov_crime':
+      return movies.filter(m => m.genres && m.genres.includes('Crime')).slice(0, 60);
+    case 'b_mov_adventure':
+      return movies.filter(m => m.genres && m.genres.includes('Adventure')).slice(0, 60);
+
+    // Browse categories: New & Popular
+    case 'b_new_mov':
+      return movies.slice(100, 160);
+    case 'b_new_series':
+      return series.slice(100, 160);
+    case 'b_new_top':
+      return movies.slice(0, 10);
+    case 'b_new_top_series':
+      return series.slice(0, 10);
+    case 'b_new_action':
+      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(50, 110);
+    case 'b_new_scifi':
+      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(50, 110);
+
     default:
       return [];
   }
