@@ -284,12 +284,14 @@ async function doSearch(q) {
       fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
       fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
     ]);
+    const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) ? CuratedCatalog.searchCurated(q) : [];
     const all = dedupeMetas([
+      ...curatedMatches,
       ...(m1.metas || []),
       ...(m2.metas || []),
       ...(s1.metas || []),
       ...(s2.metas || [])
-    ]);
+    ]).filter(isCleanSafe);
     $('searchResults').innerHTML = all.length
       ? ''
       : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${q}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
@@ -298,6 +300,12 @@ async function doSearch(q) {
     $('searchResults').innerHTML = '<p style="color:#888;grid-column:1/-1;text-align:center">Search failed. Please check your internet connection.</p>';
   }
 }
+
+const isCleanSafe = (m) => {
+  if (typeof isSafeContent === 'function') return isSafeContent(m);
+  if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.isSafeContent) return CuratedCatalog.isSafeContent(m);
+  return true;
+};
 
 /* ---------- FETCH HELPERS ---------- */
 async function getJSON(url) {
@@ -342,33 +350,31 @@ const HOME_ROWS = [
   { id: 'continue', title: 'Continue Watching for You', dynamic: 'continue' },
   { id: 'finished', title: 'Watch It Again (Finished Watching)', dynamic: 'finished' },
   { id: 'top10', title: 'Top 10 in Movies & TV Today', url: ['movie/top', 'series/top'], mix: true, isTop10: true, limit: 10 },
-  { id: 'popular_movies', title: 'Blockbuster Movies', url: ['movie/top', 'movie/top/skip=100'], limit: 75 },
-  { id: 'popular_series', title: 'Trending TV Shows', url: ['series/top', 'series/top/skip=100'], limit: 75 },
-  { id: 'toprated_movies', title: 'IMDb Top Rated Movies', url: ['movie/imdbRating', 'movie/imdbRating/skip=100'], limit: 75 },
-  { id: 'toprated_series', title: 'Critically Acclaimed Series', url: ['series/imdbRating', 'series/imdbRating/skip=100'], limit: 75 },
-  { id: 'new_releases', title: 'New Releases on Zflexy', url: ['movie/year', 'series/year', 'movie/year/skip=100'], badge: 'NEW', limit: 75 },
-  { id: 'action', title: 'High-Octane Action & Adrenaline', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100'], limit: 75 },
-  { id: 'action_series', title: 'Action & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure', 'series/top/genre=Action/skip=100'], limit: 75 },
-  { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller', 'movie/top/genre=Thriller/skip=100'], limit: 75 },
-  { id: 'scifi', title: 'Sci-Fi & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi', 'movie/top/genre=Sci-Fi/skip=100'], limit: 75 },
-  { id: 'crime', title: 'Gripping Crime & True Mysteries', url: ['series/top/genre=Crime', 'movie/top/genre=Crime', 'series/top/genre=Crime/skip=100'], limit: 75 },
-  { id: 'mystery', title: 'Mind-Bending Whodunits & Detective Stories', url: ['movie/top/genre=Mystery', 'series/top/genre=Mystery'], limit: 75 },
-  { id: 'comedy', title: 'Laugh-Out-Loud Comedies', url: ['movie/top/genre=Comedy', 'movie/top/genre=Comedy/skip=100'], limit: 75 },
-  { id: 'comedy_series', title: 'Sitcoms & TV Comedy Hits', url: ['series/top/genre=Comedy', 'series/top/genre=Comedy/skip=100'], limit: 75 },
-  { id: 'horror', title: 'Chilling Horror & Supernatural Thrillers', url: ['movie/top/genre=Horror', 'movie/top/genre=Horror/skip=100'], limit: 75 },
-  { id: 'drama', title: 'Binge-Worthy TV Dramas', url: ['series/top/genre=Drama', 'series/top/genre=Drama/skip=100'], limit: 75 },
-  { id: 'drama_movies', title: 'Award-Winning Drama Movies', url: ['movie/top/genre=Drama', 'movie/top/genre=Drama/skip=100'], limit: 75 },
-  { id: 'animation', title: 'Animated Masterpieces & Anime', url: ['series/top/genre=Animation', 'movie/top/genre=Animation', 'series/top/genre=Animation/skip=100'], limit: 75 },
-  { id: 'family', title: 'Family Movie Night & Epic Adventures', url: ['movie/top/genre=Family', 'movie/top/genre=Adventure'], limit: 75 },
-  { id: 'fantasy', title: 'Fantasy & Mythical Quests', url: ['movie/top/genre=Fantasy', 'series/top/genre=Fantasy'], limit: 75 },
-  { id: 'romance', title: 'Romantic Movies & Heartfelt Stories', url: ['movie/top/genre=Romance', 'movie/top/genre=Romance/skip=100'], limit: 75 },
-  { id: 'doc', title: 'Captivating Documentaries & Docuseries', url: ['movie/top/genre=Documentary', 'series/top/genre=Documentary'], limit: 75 },
-  { id: 'heist', title: 'High-Stakes Heists & Gangster Sagas', url: ['movie/top/genre=Crime/skip=100', 'series/top/genre=Crime/skip=100'], limit: 75 },
-  { id: 'superhero', title: 'Superhero Universes & Comic Legends', url: ['movie/top/genre=Action/skip=100', 'movie/top/genre=Fantasy/skip=100'], limit: 75 },
-  { id: 'dark_humor', title: 'Dark Comedy & Cult Classics', url: ['movie/top/genre=Comedy/skip=100', 'movie/imdbRating/genre=Comedy'], limit: 75 },
-  { id: 'sci_series', title: 'Sci-Fi & Cyberpunk Series', url: ['series/top/genre=Sci-Fi/skip=100', 'series/imdbRating/genre=Sci-Fi'], limit: 75 },
-  { id: 'epic_history', title: 'Historical Epics & War Sagas', url: ['movie/top/genre=History', 'movie/top/genre=War', 'series/top/genre=History'], limit: 75 },
-  { id: 'global_cinema', title: 'Global Cinema & International Hits', url: ['movie/top/skip=200', 'series/top/skip=200'], limit: 75 },
+  { id: 'popular_movies', title: 'Blockbuster Movies & Hollywood Hits', url: ['movie/top', 'movie/top/skip=100', 'movie/top/skip=200'], limit: 100 },
+  { id: 'popular_series', title: 'Trending & High-Voltage TV Series', url: ['series/top', 'series/top/skip=100', 'series/top/skip=200'], limit: 100 },
+  { id: 'toprated_movies', title: 'IMDb Top Rated Cinema Masterpieces', url: ['movie/imdbRating', 'movie/imdbRating/skip=100', 'movie/imdbRating/skip=200'], limit: 100 },
+  { id: 'toprated_series', title: 'Critically Acclaimed & Award-Winning Series', url: ['series/imdbRating', 'series/imdbRating/skip=100', 'series/imdbRating/skip=200'], limit: 100 },
+  { id: 'new_releases', title: 'New Releases & Fresh Seasons on Zflexy', url: ['movie/year', 'series/year', 'movie/year/skip=100', 'series/year/skip=100'], badge: 'NEW', limit: 100 },
+  { id: 'action', title: 'High-Octane Action, Heists & Adrenaline', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100', 'movie/top/genre=Action/skip=200'], limit: 100 },
+  { id: 'action_series', title: 'Action, Espionage & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure', 'series/top/genre=Action/skip=100'], limit: 100 },
+  { id: 'scifi', title: 'Sci-Fi, Cyberpunk & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi', 'movie/top/genre=Sci-Fi/skip=100', 'series/top/genre=Sci-Fi/skip=100'], limit: 100 },
+  { id: 'crime', title: 'Gripping Crime Sagas & Mafia Chronicles', url: ['series/top/genre=Crime', 'movie/top/genre=Crime', 'series/top/genre=Crime/skip=100', 'movie/top/genre=Crime/skip=100'], limit: 100 },
+  { id: 'thriller', title: 'Edge-of-Your-Seat Thrillers & Psychological Suspense', url: ['movie/top/genre=Thriller', 'movie/top/genre=Thriller/skip=100', 'movie/top/genre=Thriller/skip=200'], limit: 100 },
+  { id: 'mystery', title: 'Mind-Bending Whodunits & Detective Stories', url: ['movie/top/genre=Mystery', 'series/top/genre=Mystery', 'movie/top/genre=Mystery/skip=100'], limit: 100 },
+  { id: 'animation', title: 'Animated Masterpieces & Anime Legends', url: ['series/top/genre=Animation', 'movie/top/genre=Animation', 'series/top/genre=Animation/skip=100', 'movie/top/genre=Animation/skip=100'], limit: 100 },
+  { id: 'superhero', title: 'Superhero Universes & Comic Legends', url: ['movie/top/genre=Action/skip=100', 'movie/top/genre=Fantasy/skip=100', 'series/top/genre=Action/skip=100'], limit: 100 },
+  { id: 'comedy', title: 'Laugh-Out-Loud Movie Comedies', url: ['movie/top/genre=Comedy', 'movie/top/genre=Comedy/skip=100', 'movie/top/genre=Comedy/skip=200'], limit: 100 },
+  { id: 'comedy_series', title: 'Sitcoms & TV Comedy Hits', url: ['series/top/genre=Comedy', 'series/top/genre=Comedy/skip=100', 'series/top/genre=Comedy/skip=200'], limit: 100 },
+  { id: 'drama', title: 'Binge-Worthy TV Dramas & Prestige Sagas', url: ['series/top/genre=Drama', 'series/top/genre=Drama/skip=100', 'series/top/genre=Drama/skip=200'], limit: 100 },
+  { id: 'drama_movies', title: 'Award-Winning Drama Movies', url: ['movie/top/genre=Drama', 'movie/top/genre=Drama/skip=100', 'movie/top/genre=Drama/skip=200'], limit: 100 },
+  { id: 'fantasy', title: 'Fantasy & Mythical Quests', url: ['movie/top/genre=Fantasy', 'series/top/genre=Fantasy', 'movie/top/genre=Fantasy/skip=100'], limit: 100 },
+  { id: 'family', title: 'Family Movie Night & Epic Adventures', url: ['movie/top/genre=Family', 'movie/top/genre=Adventure', 'movie/top/genre=Family/skip=100'], limit: 100 },
+  { id: 'horror', title: 'Chilling Horror & Supernatural Thrillers', url: ['movie/top/genre=Horror', 'movie/top/genre=Horror/skip=100'], limit: 100 },
+  { id: 'epic_history', title: 'Historical Epics & War Sagas', url: ['movie/top/genre=History', 'movie/top/genre=War', 'series/top/genre=History', 'movie/top/genre=War/skip=100'], limit: 100 },
+  { id: 'doc', title: 'Captivating Documentaries & Docuseries', url: ['movie/top/genre=Documentary', 'series/top/genre=Documentary', 'movie/top/genre=Documentary/skip=100'], limit: 100 },
+  { id: 'heist', title: 'High-Stakes Heists & Gangster Sagas', url: ['movie/top/genre=Crime/skip=100', 'series/top/genre=Crime/skip=100', 'movie/top/genre=Action/skip=200'], limit: 100 },
+  { id: 'sci_series', title: 'Sci-Fi & Cyberpunk Series', url: ['series/top/genre=Sci-Fi/skip=100', 'series/imdbRating/genre=Sci-Fi'], limit: 100 },
+  { id: 'global_cinema', title: 'Global Cinema & International Hits', url: ['movie/top/skip=300', 'series/top/skip=300', 'movie/top/skip=400'], limit: 100 },
   { id: 'mylist', title: 'My List', dynamic: 'mylist' }
 ];
 
@@ -377,7 +383,8 @@ async function fetchCatalog(spec) {
   const key = spec;
   if (catalogCache[key]) return catalogCache[key];
   const d = await getJSON(`${CINEMETA}/catalog/${spec}.json`).catch(() => ({ metas: [] }));
-  catalogCache[key] = (d.metas || []);
+  const clean = (d.metas || []).filter(isCleanSafe);
+  catalogCache[key] = clean;
   return catalogCache[key];
 }
 
@@ -503,10 +510,13 @@ async function buildHome() {
       for (const u of r.url) {
         pool = pool.concat(await fetchCatalog(u));
       }
-      pool = dedupeMetas(pool);
+      if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
+        pool = pool.concat(CuratedCatalog.getCuratedForCategory(r.id));
+      }
+      pool = dedupeMetas(pool).filter(isCleanSafe);
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
-      const max = r.limit || 75;
+      const max = r.limit || 100;
       items = pool.slice(0, max);
       if (r.id === 'new_releases') {
         items = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0)).slice(0, max);
@@ -738,6 +748,7 @@ if (portalEl) {
 }
 
 function buildCard(m, badge, rank) {
+  if (!m || !isCleanSafe(m)) return document.createComment('filtered');
   const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
   const el = document.createElement('div');
   el.className = 'card';
@@ -927,9 +938,21 @@ async function openDetail(id, type, autoplay) {
   if ($('dDesc')) $('dDesc').textContent = '';
 
   try {
-    const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
-    const m = j.meta;
+    let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
+    if (!m) {
+      const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
+      m = j.meta;
+    }
+    if (!m || !isCleanSafe(m)) {
+      if ($('dTitle')) $('dTitle').textContent = 'Content Unavailable';
+      if ($('dDesc')) $('dDesc').textContent = 'This title is not available or has been filtered for family safety.';
+      return;
+    }
     m.type = type;
+    if (type === 'series' && !m.moviedb_id) {
+      const cur = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
+      if (cur && cur.moviedb_id) m.moviedb_id = cur.moviedb_id;
+    }
     currentDetail = { meta: m, type, streams: [], ep: { s: 1, e: 1 } };
 
     if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
@@ -955,25 +978,59 @@ async function openDetail(id, type, autoplay) {
       `;
     }
 
-    // Series episodes
-    const vids = m.videos || [];
+    // Series episodes (Strictly filter out Season 0 / specials)
+    const rawVids = m.videos || [];
+    let vids = rawVids.filter(v => {
+      const s = Number(v.season);
+      const ep = Number(v.episode);
+      return Number.isInteger(s) && s > 0 && Number.isInteger(ep) && ep > 0;
+    });
+
+    if (!vids.length && rawVids.length) {
+      vids = rawVids.map((v, idx) => ({
+        ...v,
+        season: Math.max(1, Number(v.season) || 1),
+        episode: Math.max(1, Number(v.episode) || (idx + 1))
+      }));
+    }
+
+    if (type === 'series' && !vids.length) {
+      vids = Array.from({ length: 8 }, (_, idx) => ({
+        season: 1,
+        episode: idx + 1,
+        name: `Episode ${idx + 1}`,
+        overview: `Season 1, Episode ${idx + 1} of ${m.name}.`,
+        thumbnail: m.background || m.poster
+      }));
+    }
+
     if (type === 'series' && vids.length) {
       if ($('epWrap')) $('epWrap').style.display = '';
-      const seasons = [...new Set(vids.map(v => v.season))].sort((a, b) => a - b);
+      const seasons = [...new Set(vids.map(v => Number(v.season)))].filter(s => s > 0).sort((a, b) => a - b);
+      if (!seasons.length) seasons.push(1);
+
       if ($('seasonSel')) {
         $('seasonSel').innerHTML = seasons.map(s => `<option value="${s}">Season ${s}</option>`).join('');
+        const defaultSeason = seasons.includes(1) ? 1 : seasons[0];
+
         const renderEps = () => {
-          const s = +$('seasonSel').value;
+          const s = Math.max(1, +$('seasonSel').value || defaultSeason);
           currentDetail.ep.s = s;
           const list = $('epList');
           if (!list) return;
           list.innerHTML = '';
 
-          vids.filter(v => v.season === s).forEach(v => {
+          const seasonVids = vids.filter(v => Number(v.season) === s);
+          if (seasonVids.length && seasonVids[0].episode) {
+            currentDetail.ep.e = Math.max(1, Number(seasonVids[0].episode));
+          }
+
+          seasonVids.forEach(v => {
+            const epNum = Math.max(1, Number(v.episode) || 1);
             const d = document.createElement('div');
             d.className = 'ep-card';
             d.innerHTML = `
-              <div class="ep-num">${v.episode}</div>
+              <div class="ep-num">${epNum}</div>
               <div class="ep-thumb">
                 <img src="${v.thumbnail || m.background || m.poster}" alt="Episode thumbnail" onerror="this.src='${backdrop(m)}'">
                 <div class="ep-play">
@@ -984,31 +1041,31 @@ async function openDetail(id, type, autoplay) {
               </div>
               <div class="ep-details">
                 <div class="ep-title-row">
-                  <b>${v.episode}. ${v.title || v.name || 'Episode ' + v.episode}</b>
+                  <b>${epNum}. ${v.title || v.name || 'Episode ' + epNum}</b>
                   <span class="ep-duration">${v.runtime || '45m'}</span>
                 </div>
                 <div class="ep-desc">${(v.overview || 'No description available.').slice(0, 150)}</div>
               </div>
             `;
             d.onclick = () => {
-              currentDetail.ep = { s: v.season, e: v.episode };
-              playEpisode(v.season, v.episode);
+              currentDetail.ep = { s, e: epNum };
+              playEpisode(s, epNum);
             };
 
             const dl = document.createElement('button');
             dl.className = 'cbtn';
             dl.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-            dl.title = 'Download on OmniSave ↗';
+            dl.title = 'Download Episode';
             dl.onclick = (e) => {
               e.stopPropagation();
-              downloadEpisode(currentDetail.meta.name, v.season, v.episode);
+              downloadEpisode(currentDetail.meta.name, s, epNum);
             };
             d.appendChild(dl);
             list.appendChild(d);
           });
         };
         $('seasonSel').onchange = renderEps;
-        $('seasonSel').value = seasons[0];
+        $('seasonSel').value = defaultSeason;
         renderEps();
       }
     } else {
@@ -1018,7 +1075,7 @@ async function openDetail(id, type, autoplay) {
     // Similar recommendations
     if ($('simGrid')) {
       $('simGrid').innerHTML = '';
-      (await fetchCatalog(type + '/top')).filter(x => x.id !== id && (x.genres || []).some(g => (m.genres || []).includes(g))).slice(0, 6).forEach(s => {
+      (await fetchCatalog(type + '/top')).filter(isCleanSafe).filter(x => x.id !== id && (x.genres || []).some(g => (m.genres || []).includes(g))).slice(0, 6).forEach(s => {
         const d = document.createElement('div');
         d.className = 'sim';
         d.innerHTML = `
@@ -1252,11 +1309,14 @@ async function loadCategoryRows(kind) {
     for (const u of urls) {
       pool = pool.concat(await fetchCatalog(u));
     }
-    pool = dedupeMetas(pool);
+    if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
+      pool = pool.concat(CuratedCatalog.getCuratedForCategory(r.id));
+    }
+    pool = dedupeMetas(pool).filter(isCleanSafe);
     if (!pool.length) continue;
     sec.style.display = '';
     track.innerHTML = '';
-    pool.slice(0, 75).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+    pool.slice(0, 100).forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
   }
 }
@@ -1276,14 +1336,18 @@ async function filterBrowseByGenre(genre) {
   gridWrap.innerHTML = skels(12);
 
   const type = currentBrowseKind === 'series' ? 'series' : 'movie';
-  const [p1, p2] = await Promise.all([
+  const [p1, p2, p3] = await Promise.all([
     fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`),
-    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`)
+    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`),
+    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=200`)
   ]);
-  const items = dedupeMetas([...p1, ...p2]);
+  const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA)
+    ? CuratedCatalog.CURATED_MEDIA.filter(m => m.type === type && (m.genres || []).includes(genre))
+    : [];
+  const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
 
   gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
-  items.slice(0, 120).forEach(m => gridWrap.appendChild(buildCard(m)));
+  items.slice(0, 150).forEach(m => gridWrap.appendChild(buildCard(m)));
 }
 
 /* ---------- PROFILES ---------- */
@@ -1444,25 +1508,29 @@ function currentTitleContext() {
     const m = currentDetail.meta;
     const rawImdb = m.id || m.imdb_id;
     const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : '';
+    const s = Math.max(1, Number(currentDetail.ep?.s || 1));
+    const ep = Math.max(1, Number(currentDetail.ep?.e || 1));
     return {
       title: m.name,
       type: currentDetail.type,
       imdb,
       tmdbId: m.moviedb_id,
       year: (m.releaseInfo || m.year || '').toString().slice(0, 4),
-      season: currentDetail.ep?.s || 1,
-      episode: currentDetail.ep?.e || 1,
+      season: s,
+      episode: ep,
       poster: poster(m)
     };
   }
   if (currentEmbed) {
+    const s = Math.max(1, Number(currentEmbed.season || 1));
+    const ep = Math.max(1, Number(currentEmbed.episode || 1));
     return {
       title: currentEmbed.title,
       type: currentEmbed.type,
       imdb: currentEmbed.imdb,
       tmdbId: currentEmbed.tmdbId,
-      season: currentEmbed.season || 1,
-      episode: currentEmbed.episode || 1,
+      season: s,
+      episode: ep,
       year: currentEmbed.year || '',
       poster: currentEmbed.poster || ''
     };
@@ -1483,8 +1551,8 @@ function openDownloadModal(ctx) {
   }
 
   const isSeries = ctx.type === 'series';
-  const s = ctx.season || 1;
-  const e = ctx.episode || 1;
+  const s = Math.max(1, Number(ctx.season || 1));
+  const e = Math.max(1, Number(ctx.episode || 1));
   const rawImdb = ctx.imdb || ctx.id;
   const imdbId = rawImdb ? String(rawImdb).split(':')[0].trim() : '';
 
@@ -1635,13 +1703,15 @@ function downloadEpisode(seriesTitle, season, episode) {
   const m = currentDetail?.meta;
   const rawImdb = m ? (m.id || m.imdb_id) : null;
   const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : null;
+  const s = Math.max(1, Number(season) || 1);
+  const ep = Math.max(1, Number(episode) || 1);
   openDownloadModal({
     title: seriesTitle || m?.name || 'Series',
     type: 'series',
     imdb,
     tmdbId: m?.moviedb_id,
-    season,
-    episode
+    season: s,
+    episode: ep
   });
 }
 
@@ -2017,7 +2087,9 @@ function playStream() {
   const m = currentDetail?.meta;
   if (!m) return;
   if (currentDetail.type === 'series') {
-    playEpisode(currentDetail.ep.s, currentDetail.ep.e);
+    const s = Math.max(1, Number(currentDetail.ep?.s || 1));
+    const ep = Math.max(1, Number(currentDetail.ep?.e || 1));
+    playEpisode(s, ep);
     return;
   }
   const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id });
@@ -2042,8 +2114,11 @@ function playStream() {
 function playEpisode(season, episode) {
   const m = currentDetail?.meta;
   if (!m) return;
-  currentDetail.ep = { s: season, e: episode };
-  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: m.moviedb_id }, season, episode);
+  const s = Math.max(1, Number(season) || 1);
+  const ep = Math.max(1, Number(episode) || 1);
+  currentDetail.ep = { s, e: ep };
+  const tmdbId = m.moviedb_id || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id)?.moviedb_id : null);
+  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
   if (!url) {
     toast('Streaming is unavailable for this episode (missing ID).');
     return;
@@ -2052,10 +2127,10 @@ function playEpisode(season, episode) {
     url,
     type: 'series',
     id: m.id,
-    tmdbId: m.moviedb_id,
+    tmdbId,
     imdb: m.id || m.imdb_id,
-    season,
-    episode,
+    season: s,
+    episode: ep,
     title: m.name,
     poster: poster(m)
   });
@@ -2080,8 +2155,8 @@ function recordWatchStart(o) {
     poster: o.poster || existing.poster || '',
     tmdbId: o.tmdbId || existing.tmdbId,
     imdb: o.imdb || existing.imdb || (typeof key === 'string' && key.startsWith('tt') ? key : null),
-    season: +(o.season || existing.season || 1),
-    episode: +(o.episode || existing.episode || 1),
+    season: Math.max(1, +(o.season || existing.season || 1)),
+    episode: Math.max(1, +(o.episode || existing.episode || 1)),
     lastWatched: Date.now(),
     _embed: true
   };
@@ -2125,17 +2200,20 @@ function playEmbed(o) {
 
 function playEmbedEntry(m) {
   if (m.type === 'series') {
-    if (!m.tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: m.tmdbId }, m.season || 1, m.episode || 1);
+    const tmdbId = m.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb)?.moviedb_id : null);
+    if (!tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
+    const s = Math.max(1, Number(m.season || 1));
+    const ep = Math.max(1, Number(m.episode || 1));
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
     if (!url) { toast('Streaming unavailable for this episode.'); return; }
     playEmbed({
       url,
       type: 'series',
       id: m.id,
-      tmdbId: m.tmdbId,
+      tmdbId,
       imdb: m.imdb,
-      season: m.season || 1,
-      episode: m.episode || 1,
+      season: s,
+      episode: ep,
       title: m.name,
       poster: poster(m)
     });
@@ -2234,8 +2312,8 @@ function syncEmbedProgress() {
       poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : (existing.poster || ''),
       tmdbId: entry.id,
       imdb: entry.imdb || existing.imdb || null,
-      season: +(entry.last_season_watched || existing.season || 1),
-      episode: +(entry.last_episode_watched || existing.episode || 1),
+      season: Math.max(1, +(entry.last_season_watched || existing.season || 1)),
+      episode: Math.max(1, +(entry.last_episode_watched || existing.episode || 1)),
       lastWatched: Date.now(),
       _embed: true
     };
@@ -2250,11 +2328,14 @@ function syncEmbedProgress() {
 function nextEpisode() {
   if ($('nextEp')) $('nextEp').style.display = 'none';
   const e = currentEmbed;
-  if (e?.type === 'series' && e.tmdbId) {
-    const ep = (e.episode || 1) + 1;
+  if (e?.type === 'series') {
+    const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
+    if (!tmdbId) { toast('Streaming unavailable for next episode.'); return; }
+    const s = Math.max(1, Number(e.season || 1));
+    const ep = Math.max(1, Number(e.episode || 1)) + 1;
     toast(`Loading episode ${ep}…`);
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: e.tmdbId }, e.season || 1, ep);
-    if (url) playEmbed({ ...e, url, episode: ep });
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
+    if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep });
     else toast('Streaming unavailable for next episode.');
   }
 }
@@ -2428,11 +2509,15 @@ window.addEventListener('message', (event) => {
       const key = e.type === 'series' ? (e.tmdbId ? `tmdb:${e.tmdbId}` : e.id) : (e.imdb || e.id);
       recordWatchFinish(key);
     }
-    if (e?.type === 'series' && e.tmdbId) {
-      toast('Starting next episode…');
-      const ep = (e.episode || 1) + 1;
-      const url = MediaLinks.getEpisodeStreamUrl({ tmdbId: e.tmdbId }, e.season || 1, ep);
-      if (url) playEmbed({ ...e, url, episode: ep });
+    if (e?.type === 'series') {
+      const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
+      if (tmdbId) {
+        toast('Starting next episode…');
+        const s = Math.max(1, Number(e.season || 1));
+        const ep = Math.max(1, Number(e.episode || 1)) + 1;
+        const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
+        if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep });
+      }
     }
   }
 });
@@ -2565,8 +2650,16 @@ document.addEventListener('keydown', e => {
   let changed = false;
   Object.entries(history).forEach(([k, h]) => {
     if (!h) return;
+    if (h.type === 'series' && !h.tmdbId && typeof CuratedCatalog !== 'undefined') {
+      const c = CuratedCatalog.getCuratedById(k) || CuratedCatalog.getCuratedById(h.imdb);
+      if (c && c.moviedb_id) { h.tmdbId = c.moviedb_id; changed = true; }
+    }
     const playable = h.type === 'series' ? !!h.tmdbId : !!(h.imdb || k.startsWith('tt'));
-    if (!playable) { delete history[k]; changed = true; }
+    if (!playable) { delete history[k]; changed = true; return; }
+    if (h.type === 'series') {
+      if (h.season == null || h.season <= 0) { h.season = 1; changed = true; }
+      if (h.episode == null || h.episode <= 0) { h.episode = 1; changed = true; }
+    }
   });
   if (changed) store.set('nf_history', history);
 })();
