@@ -1451,7 +1451,8 @@ function currentTitleContext() {
       tmdbId: m.moviedb_id,
       year: (m.releaseInfo || m.year || '').toString().slice(0, 4),
       season: currentDetail.ep?.s || 1,
-      episode: currentDetail.ep?.e || 1
+      episode: currentDetail.ep?.e || 1,
+      poster: poster(m)
     };
   }
   if (currentEmbed) {
@@ -1461,7 +1462,9 @@ function currentTitleContext() {
       imdb: currentEmbed.imdb,
       tmdbId: currentEmbed.tmdbId,
       season: currentEmbed.season || 1,
-      episode: currentEmbed.episode || 1
+      episode: currentEmbed.episode || 1,
+      year: currentEmbed.year || '',
+      poster: currentEmbed.poster || ''
     };
   }
   return null;
@@ -1484,6 +1487,24 @@ function openDownloadModal(ctx) {
   const e = ctx.episode || 1;
   const rawImdb = ctx.imdb || ctx.id;
   const imdbId = rawImdb ? String(rawImdb).split(':')[0].trim() : '';
+
+  // Media preview poster & badge
+  const posterEl = $('serverModalPoster');
+  if (posterEl) {
+    if (ctx.poster) {
+      posterEl.src = ctx.poster;
+      posterEl.style.display = 'block';
+    } else {
+      posterEl.style.display = 'none';
+    }
+  }
+
+  const badgeEl = $('serverModalTypeBadge');
+  if (badgeEl) {
+    badgeEl.textContent = isSeries
+      ? `S${s}:E${e} • 1080p Full HD`
+      : `1080p Full HD • Direct`;
+  }
 
   const titleEl = $('serverModalTitle');
   if (titleEl) {
@@ -1528,6 +1549,24 @@ function openDownloadModal(ctx) {
     };
   }
 
+  const c1 = $('serverCopyVidvault');
+  if (c1) {
+    c1.onclick = () => {
+      if (!vidVaultUrl) {
+        toast('No VidVault link available for this title');
+        return;
+      }
+      try {
+        navigator.clipboard.writeText(vidVaultUrl).then(
+          () => toast('Server 1 (VidVault) link copied to clipboard!'),
+          () => toast('VidVault link ready')
+        );
+      } catch {
+        toast('VidVault link ready');
+      }
+    };
+  }
+
   const b2 = $('serverBtn02');
   if (b2) {
     b2.onclick = () => {
@@ -1538,6 +1577,24 @@ function openDownloadModal(ctx) {
       safeOpenDownloadUrl(movie02Url);
       toast('Opening Server 2 — 02MovieDownloader…');
       closeDownloadModal();
+    };
+  }
+
+  const c2 = $('serverCopy02');
+  if (c2) {
+    c2.onclick = () => {
+      if (!movie02Url) {
+        toast('No 02Downloader link available for this title');
+        return;
+      }
+      try {
+        navigator.clipboard.writeText(movie02Url).then(
+          () => toast('Server 2 (02Downloader) link copied to clipboard!'),
+          () => toast('02Downloader link ready')
+        );
+      } catch {
+        toast('02Downloader link ready');
+      }
     };
   }
 
@@ -1591,20 +1648,79 @@ function downloadEpisode(seriesTitle, season, episode) {
 const pDl = $('pDl');
 if (pDl) pDl.onclick = () => downloadCurrent();
 
-/* ---------- CAPTIONS & AUDIO PREFERENCES ---------- */
+/* ---------- CAPTIONS, OPENSUBTITLES & PLAYER CUSTOMIZATION ---------- */
+function applyPlayerTheme(theme) {
+  const root = document.documentElement;
+  if (theme === 'blue') {
+    root.style.setProperty('--nf-red', '#3B82F6');
+    root.style.setProperty('--nf-red-hover', '#60A5FA');
+  } else if (theme === 'emerald') {
+    root.style.setProperty('--nf-red', '#10B981');
+    root.style.setProperty('--nf-red-hover', '#34D399');
+  } else if (theme === 'amber') {
+    root.style.setProperty('--nf-red', '#F59E0B');
+    root.style.setProperty('--nf-red-hover', '#FBBF24');
+  } else {
+    root.style.setProperty('--nf-red', '#E50914');
+    root.style.setProperty('--nf-red-hover', '#F40612');
+  }
+}
+
+function updateSubPreview() {
+  const textEl = $('subPreviewText');
+  if (!textEl) return;
+  const color = $('captionModalColorSelect')?.value || '#FFE600';
+  const size = $('captionModalSizeSelect')?.value || 'medium';
+  const style = $('captionModalStyleSelect')?.value || 'shadow';
+
+  textEl.style.color = color;
+  if (size === 'small') textEl.style.fontSize = '13px';
+  else if (size === 'large') textEl.style.fontSize = '20px';
+  else if (size === 'xlarge') textEl.style.fontSize = '24px';
+  else textEl.style.fontSize = '16px';
+
+  if (style === 'box') {
+    textEl.style.background = 'rgba(0, 0, 0, 0.88)';
+    textEl.style.padding = '4px 10px';
+    textEl.style.borderRadius = '4px';
+    textEl.style.textShadow = 'none';
+  } else if (style === 'outline') {
+    textEl.style.background = 'transparent';
+    textEl.style.padding = '0';
+    textEl.style.borderRadius = '0';
+    textEl.style.textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 3px 6px #000';
+  } else {
+    textEl.style.background = 'transparent';
+    textEl.style.padding = '0';
+    textEl.style.borderRadius = '0';
+    textEl.style.textShadow = '0 2px 4px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.95)';
+  }
+}
+
 function initSubtitlesAndPreferences() {
   const savedLang = store.get('nf_sub_lang', 'en');
   const savedSize = store.get('nf_sub_size', 'medium');
+  const savedColor = store.get('nf_sub_color', '#FFE600');
+  const savedStyle = store.get('nf_sub_style', 'shadow');
+  const savedOS = store.get('nf_sub_os_autofetch', true);
 
   const sLang = $('settingSubLang');
   const sSize = $('settingSubSize');
   const mLang = $('captionModalLangSelect');
   const mSize = $('captionModalSizeSelect');
+  const mColor = $('captionModalColorSelect');
+  const mStyle = $('captionModalStyleSelect');
+  const mOS = $('subAutoFetchOS');
 
   if (sLang) sLang.value = savedLang;
   if (sSize) sSize.value = savedSize;
   if (mLang) mLang.value = savedLang;
   if (mSize) mSize.value = savedSize;
+  if (mColor) mColor.value = savedColor;
+  if (mStyle) mStyle.value = savedStyle;
+  if (mOS) mOS.checked = savedOS !== false;
+
+  updateSubPreview();
 
   const onSettingChange = () => {
     const lang = sLang ? sLang.value : 'en';
@@ -1613,11 +1729,35 @@ function initSubtitlesAndPreferences() {
     store.set('nf_sub_size', size);
     if (mLang) mLang.value = lang;
     if (mSize) mSize.value = size;
+    updateSubPreview();
     toast('Subtitle preferences updated');
   };
 
   if (sLang) sLang.onchange = onSettingChange;
   if (sSize) sSize.onchange = onSettingChange;
+
+  ['captionModalColorSelect', 'captionModalSizeSelect', 'captionModalStyleSelect'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('change', updateSubPreview);
+  });
+
+  // OpenSubtitles direct catalog search
+  const osSearchBtn = $('openSubtitlesSearchBtn');
+  if (osSearchBtn) {
+    osSearchBtn.onclick = () => {
+      const ctx = currentTitleContext();
+      const rawImdb = ctx?.imdb || '';
+      const cleanImdb = rawImdb ? rawImdb.replace(/^tt/, '').trim() : '';
+      let url = 'https://www.opensubtitles.org';
+      if (cleanImdb) {
+        url = `https://www.opensubtitles.org/en/search/sublanguageid-all/imdbid-${cleanImdb}`;
+      } else if (ctx?.title) {
+        url = `https://www.opensubtitles.org/en/search2/sublanguageid-all/moviename-${encodeURIComponent(ctx.title)}`;
+      }
+      safeOpenDownloadUrl(url);
+      toast('Opening OpenSubtitles catalog in a new tab…');
+    };
+  }
 
   const pSubsTop = $('pSubsTop');
   if (pSubsTop) {
@@ -1644,8 +1784,16 @@ function initSubtitlesAndPreferences() {
     applyBtn.onclick = () => {
       const lang = mLang ? mLang.value : 'en';
       const size = mSize ? mSize.value : 'medium';
+      const color = mColor ? mColor.value : '#FFE600';
+      const style = mStyle ? mStyle.value : 'shadow';
+      const osFetch = mOS ? mOS.checked : true;
+
       store.set('nf_sub_lang', lang);
       store.set('nf_sub_size', size);
+      store.set('nf_sub_color', color);
+      store.set('nf_sub_style', style);
+      store.set('nf_sub_os_autofetch', osFetch);
+
       if (sLang) sLang.value = lang;
       if (sSize) sSize.value = size;
       const langText = mLang?.selectedOptions?.[0]?.text || lang;
@@ -1665,6 +1813,61 @@ function initSubtitlesAndPreferences() {
       toast('Tap the CC icon in the player bar to choose subtitles');
     };
   }
+
+  // Player customization modal setup
+  const pCustomTop = $('pCustomizeTop');
+  if (pCustomTop) {
+    pCustomTop.onclick = (e) => {
+      e.stopPropagation();
+      openPlayerCustomModal();
+    };
+  }
+
+  const pCustomClose = $('playerCustomModalClose');
+  if (pCustomClose) pCustomClose.onclick = closePlayerCustomModal;
+
+  const pCustomBd = $('playerCustomModalBackdrop');
+  if (pCustomBd) {
+    pCustomBd.onclick = (e) => {
+      if (e.target === pCustomBd) closePlayerCustomModal();
+    };
+  }
+
+  const pCustomApply = $('playerCustomApply');
+  if (pCustomApply) {
+    pCustomApply.onclick = () => {
+      const prefs = {
+        speed: $('playerSpeedSelect')?.value || '1',
+        theme: $('playerThemeSelect')?.value || 'red',
+        autoNext: $('playerAutoNextToggle')?.checked ?? true,
+        autoSkip: $('playerAutoSkipToggle')?.checked ?? true,
+        smoothScrub: $('playerSmoothScrubToggle')?.checked ?? true
+      };
+      store.set('nf_player_prefs', prefs);
+      applyPlayerTheme(prefs.theme);
+      closePlayerCustomModal();
+      toast('Player settings saved');
+    };
+  }
+
+  const pCustomReset = $('playerCustomReset');
+  if (pCustomReset) {
+    pCustomReset.onclick = () => {
+      const defaults = { speed: '1', theme: 'red', autoNext: true, autoSkip: true, smoothScrub: true };
+      store.set('nf_player_prefs', defaults);
+      if ($('playerSpeedSelect')) $('playerSpeedSelect').value = '1';
+      if ($('playerThemeSelect')) $('playerThemeSelect').value = 'red';
+      if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = true;
+      if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = true;
+      if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = true;
+      applyPlayerTheme('red');
+      toast('Reset to default player settings');
+    };
+  }
+
+  // Load saved player theme
+  const initialPrefs = store.get('nf_player_prefs', {});
+  if (initialPrefs.theme) applyPlayerTheme(initialPrefs.theme);
 }
 
 function openCaptionsModal() {
@@ -1672,16 +1875,40 @@ function openCaptionsModal() {
   if (!backdrop) return;
   const savedLang = store.get('nf_sub_lang', 'en');
   const savedSize = store.get('nf_sub_size', 'medium');
-  const mLang = $('captionModalLangSelect');
-  const mSize = $('captionModalSizeSelect');
-  if (mLang) mLang.value = savedLang;
-  if (mSize) mSize.value = savedSize;
+  const savedColor = store.get('nf_sub_color', '#FFE600');
+  const savedStyle = store.get('nf_sub_style', 'shadow');
+  const savedOS = store.get('nf_sub_os_autofetch', true);
+
+  if ($('captionModalLangSelect')) $('captionModalLangSelect').value = savedLang;
+  if ($('captionModalSizeSelect')) $('captionModalSizeSelect').value = savedSize;
+  if ($('captionModalColorSelect')) $('captionModalColorSelect').value = savedColor;
+  if ($('captionModalStyleSelect')) $('captionModalStyleSelect').value = savedStyle;
+  if ($('subAutoFetchOS')) $('subAutoFetchOS').checked = savedOS !== false;
+
+  updateSubPreview();
   backdrop.classList.add('show');
 }
 
 function closeCaptionsModal() {
   const backdrop = $('captionsModalBackdrop');
   if (backdrop) backdrop.classList.remove('show');
+}
+
+function openPlayerCustomModal() {
+  const bd = $('playerCustomModalBackdrop');
+  if (!bd) return;
+  const prefs = store.get('nf_player_prefs', { speed: '1', theme: 'red', autoNext: true, autoSkip: true, smoothScrub: true });
+  if ($('playerSpeedSelect')) $('playerSpeedSelect').value = prefs.speed || '1';
+  if ($('playerThemeSelect')) $('playerThemeSelect').value = prefs.theme || 'red';
+  if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = prefs.autoNext !== false;
+  if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = prefs.autoSkip !== false;
+  if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = prefs.smoothScrub !== false;
+  bd.classList.add('show');
+}
+
+function closePlayerCustomModal() {
+  const bd = $('playerCustomModalBackdrop');
+  if (bd) bd.classList.remove('show');
 }
 
 /* ---------- PLAYER CHROME & WAKE SYSTEM ---------- */
@@ -1736,6 +1963,8 @@ if (pBack) pBack.onclick = closePlayer;
 function closePlayer() {
   _allowNavigation = true;
   closeCaptionsModal();
+  closePlayerCustomModal();
+  closeDownloadModal();
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
@@ -2326,6 +2555,7 @@ document.addEventListener('keydown', e => {
     closeDetail();
     closeDownloadModal();
     closeCaptionsModal();
+    closePlayerCustomModal();
     if ($('playerView')?.classList.contains('show')) closePlayer();
     closeAllNavDropdowns();
   }
