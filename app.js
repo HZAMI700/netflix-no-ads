@@ -1591,28 +1591,143 @@ function downloadEpisode(seriesTitle, season, episode) {
 const pDl = $('pDl');
 if (pDl) pDl.onclick = () => downloadCurrent();
 
-/* ---------- PLAYER ---------- */
-let hideT = null;
-function wakeChrome() {
-  ['pTop', 'pBottom'].forEach(id => {
-    const el = $(id);
-    if (el) el.style.opacity = '1';
-  });
-  clearTimeout(hideT);
-  hideT = setTimeout(() => {
-    ['pTop', 'pBottom'].forEach(id => {
-      const el = $(id);
-      if (el) el.style.opacity = '0';
-    });
-  }, 3500);
+/* ---------- CAPTIONS & AUDIO PREFERENCES ---------- */
+function initSubtitlesAndPreferences() {
+  const savedLang = store.get('nf_sub_lang', 'en');
+  const savedSize = store.get('nf_sub_size', 'medium');
+
+  const sLang = $('settingSubLang');
+  const sSize = $('settingSubSize');
+  const mLang = $('captionModalLangSelect');
+  const mSize = $('captionModalSizeSelect');
+
+  if (sLang) sLang.value = savedLang;
+  if (sSize) sSize.value = savedSize;
+  if (mLang) mLang.value = savedLang;
+  if (mSize) mSize.value = savedSize;
+
+  const onSettingChange = () => {
+    const lang = sLang ? sLang.value : 'en';
+    const size = sSize ? sSize.value : 'medium';
+    store.set('nf_sub_lang', lang);
+    store.set('nf_sub_size', size);
+    if (mLang) mLang.value = lang;
+    if (mSize) mSize.value = size;
+    toast('Subtitle preferences updated');
+  };
+
+  if (sLang) sLang.onchange = onSettingChange;
+  if (sSize) sSize.onchange = onSettingChange;
+
+  const pSubsTop = $('pSubsTop');
+  if (pSubsTop) {
+    pSubsTop.onclick = (e) => {
+      e.stopPropagation();
+      openCaptionsModal();
+    };
+  }
+
+  const captionsModalClose = $('captionsModalClose');
+  if (captionsModalClose) {
+    captionsModalClose.onclick = () => closeCaptionsModal();
+  }
+
+  const captionsBackdrop = $('captionsModalBackdrop');
+  if (captionsBackdrop) {
+    captionsBackdrop.onclick = (e) => {
+      if (e.target === captionsBackdrop) closeCaptionsModal();
+    };
+  }
+
+  const applyBtn = $('captionModalApply');
+  if (applyBtn) {
+    applyBtn.onclick = () => {
+      const lang = mLang ? mLang.value : 'en';
+      const size = mSize ? mSize.value : 'medium';
+      store.set('nf_sub_lang', lang);
+      store.set('nf_sub_size', size);
+      if (sLang) sLang.value = lang;
+      if (sSize) sSize.value = size;
+      const langText = mLang?.selectedOptions?.[0]?.text || lang;
+      closeCaptionsModal();
+      toast(`Captions saved: ${langText}`);
+    };
+  }
+
+  const ccBtn = $('captionOpenPlayerCC');
+  if (ccBtn) {
+    ccBtn.onclick = () => {
+      closeCaptionsModal();
+      const iframe = $('playerView')?.querySelector('iframe');
+      if (iframe) {
+        try { iframe.focus(); } catch {}
+      }
+      toast('Tap the CC icon in the player bar to choose subtitles');
+    };
+  }
 }
 
-['pTop', 'pBottom'].forEach(id => {
+function openCaptionsModal() {
+  const backdrop = $('captionsModalBackdrop');
+  if (!backdrop) return;
+  const savedLang = store.get('nf_sub_lang', 'en');
+  const savedSize = store.get('nf_sub_size', 'medium');
+  const mLang = $('captionModalLangSelect');
+  const mSize = $('captionModalSizeSelect');
+  if (mLang) mLang.value = savedLang;
+  if (mSize) mSize.value = savedSize;
+  backdrop.classList.add('show');
+}
+
+function closeCaptionsModal() {
+  const backdrop = $('captionsModalBackdrop');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+/* ---------- PLAYER CHROME & WAKE SYSTEM ---------- */
+let hideT = null;
+function wakeChrome() {
+  const pTop = $('pTop');
+  const pBottom = $('pBottom');
+  if (pTop) {
+    pTop.classList.remove('hidden');
+    pTop.style.opacity = '1';
+    pTop.style.pointerEvents = 'auto';
+  }
+  if (pBottom && $('playerVideo')?.style.display !== 'none') {
+    pBottom.classList.remove('hidden');
+    pBottom.style.opacity = '1';
+    pBottom.style.pointerEvents = 'auto';
+  }
+  clearTimeout(hideT);
+  hideT = setTimeout(() => {
+    if (pTop) {
+      pTop.classList.add('hidden');
+      pTop.style.opacity = '0';
+      pTop.style.pointerEvents = 'none';
+    }
+    if (pBottom) {
+      pBottom.classList.add('hidden');
+      pBottom.style.opacity = '0';
+      pBottom.style.pointerEvents = 'none';
+    }
+  }, 4000);
+}
+
+['pTop', 'pBottom', 'pTopSensor'].forEach(id => {
   const el = $(id);
-  if (el) el.addEventListener('mousemove', wakeChrome);
+  if (el) {
+    ['mousemove', 'touchstart', 'pointerdown', 'click'].forEach(evt => {
+      el.addEventListener(evt, () => {
+        wakeChrome();
+      }, { passive: true });
+    });
+  }
 });
-document.addEventListener('mousemove', () => {
-  if ($('playerView')?.classList.contains('show')) wakeChrome();
+['mousemove', 'touchstart', 'pointerdown'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if ($('playerView')?.classList.contains('show')) wakeChrome();
+  }, { passive: true });
 });
 
 const pBack = $('pBack');
@@ -1620,7 +1735,7 @@ if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
   _allowNavigation = true;
-  disarmVidShield();
+  closeCaptionsModal();
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
@@ -1650,7 +1765,7 @@ function showPlayerError(msg) {
   if (err) err.classList.add('show');
 }
 
-function openPlayerShell(title) {
+function openPlayerShell(title, subTitle) {
   closeCardPortal();
   _allowNavigation = false;
   closeDetail();
@@ -1658,7 +1773,8 @@ function openPlayerShell(title) {
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
   const pv = $('playerView');
   if (pv) pv.classList.add('show');
-  if ($('pTitle')) $('pTitle').textContent = title;
+  if ($('pTitle')) $('pTitle').textContent = title || 'Now Playing';
+  if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • OpenSubtitles v3';
   wakeChrome();
 
   if ($('playerVideo')) $('playerVideo').style.display = 'none';
@@ -1765,15 +1881,17 @@ function playEmbed(o) {
   currentEmbed = { ...o };
   currentStream = o;
   recordWatchStart(o);
-  openPlayerShell(o.title + (o.type === 'series' ? ` — S${o.season}:E${o.episode}` : ''));
+  const sub = o.type === 'series'
+    ? `Season ${o.season || 1}, Episode ${o.episode || 1} • HD Stream`
+    : `${o.year ? o.year + ' • ' : ''}HD Stream • OpenSubtitles v3`;
+  openPlayerShell(o.title, sub);
 
   const f = document.createElement('iframe');
   f.src = o.url;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
-  f.style.cssText = 'flex:1;width:100%;border:none;background:#000';
+  f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
-  armVidShield();
 }
 
 function playEmbedEntry(m) {
@@ -1967,6 +2085,26 @@ HTMLAnchorElement.prototype.click = function() {
   return _nativeAnchorClick.apply(this, arguments);
 };
 
+// Intercept synthetic/dispatched clicks on anchor elements
+const _nativeAnchorDispatch = HTMLAnchorElement.prototype.dispatchEvent;
+HTMLAnchorElement.prototype.dispatchEvent = function(event) {
+  if (event && event.type === 'click') {
+    const href = String(this.href || '');
+    const target = String(this.target || '');
+    if (target === '_blank' || target === '_top') {
+      if (!href.includes('vidvault.to') &&
+          !href.includes('02moviedownloader.site') &&
+          !href.includes('videodownloader.site') &&
+          !href.includes('omnisave') &&
+          !href.includes(window.location.host)) {
+        console.warn('[AdBlock] Blocked dispatched click on anchor:', href);
+        return false;
+      }
+    }
+  }
+  return _nativeAnchorDispatch.apply(this, arguments);
+};
+
 // Intercept programmatic form submissions targeting _blank or _top
 const _nativeFormSubmit = HTMLFormElement.prototype.submit;
 HTMLFormElement.prototype.submit = function() {
@@ -1984,8 +2122,8 @@ HTMLFormElement.prototype.submit = function() {
   return _nativeFormSubmit.apply(this, arguments);
 };
 
-// Global click capture to prevent unexpected rogue blank-target tabs
-['click', 'auxclick'].forEach(evt => {
+// Global click/touch capture to prevent unexpected rogue blank-target tabs
+['click', 'auxclick', 'touchend', 'pointerup'].forEach(evt => {
   document.addEventListener(evt, (e) => {
     const a = e.target.closest('a');
     if (a) {
@@ -2008,12 +2146,15 @@ HTMLFormElement.prototype.submit = function() {
 });
 
 // Snap focus back if popunder attempts to blur the window during active playback
-window.addEventListener('blur', () => {
-  if ($('playerView')?.classList.contains('show')) {
-    setTimeout(() => {
-      window.focus();
-    }, 25);
-  }
+['blur', 'visibilitychange', 'pagehide'].forEach(evt => {
+  window.addEventListener(evt, () => {
+    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+      setTimeout(() => {
+        try { window.focus(); } catch {}
+        try { document.body?.focus(); } catch {}
+      }, 15);
+    }
+  });
 });
 
 let _allowNavigation = false;
@@ -2025,47 +2166,14 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-let shieldDisarmTimer = null;
-let shieldClickCount = 0;
-
 function disarmVidShield() {
   const shield = $('vidShield');
   if (shield) shield.style.display = 'none';
-  clearTimeout(shieldDisarmTimer);
 }
 
 function armVidShield() {
-  let shield = $('vidShield');
-  if (!shield) {
-    shield = document.createElement('div');
-    shield.id = 'vidShield';
-    shield.style.cssText = 'position:absolute;inset:0;z-index:4;display:block;cursor:pointer;background:transparent';
-    $('playerView').insertBefore(shield, $('pTop'));
-  }
-  shield.style.display = 'block';
-  shieldClickCount = 0;
-
-  const handleShieldInteraction = (e) => {
-    e.stopPropagation();
-    shieldClickCount++;
-
-    // Streaming embeds typically stack an overlay click trap on initial load.
-    // Absorbing the initial tap neutralizes the ad trigger and disarms the shield permanently,
-    // allowing unobstructed player control, scrubbing, and subtitle/audio language selection.
-    shield.style.display = 'none';
-    clearTimeout(shieldDisarmTimer);
-    const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe) {
-      try { iframe.focus(); } catch {}
-    }
-  };
-
-  shield.onclick = handleShieldInteraction;
-  shield.ontouchstart = (e) => { e.stopPropagation(); };
-  shield.ontouchend = (e) => {
-    e.stopPropagation();
-    handleShieldInteraction(e);
-  };
+  const shield = $('vidShield');
+  if (shield) shield.style.display = 'none';
 }
 
 let lastPlayerTap = 0;
@@ -2217,6 +2325,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     closeDetail();
     closeDownloadModal();
+    closeCaptionsModal();
     if ($('playerView')?.classList.contains('show')) closePlayer();
     closeAllNavDropdowns();
   }
@@ -2239,6 +2348,7 @@ renderProfiles();
 renderProfileSwitcherDropdown();
 armLiveSearch($('searchInput'), $('searchBox'));
 armLiveSearch($('searchBox'), null);
+initSubtitlesAndPreferences();
 
 let currentProfileId = store.get('nf_profile', 'Z');
 if (currentProfileId === 'N') currentProfileId = 'Z';
