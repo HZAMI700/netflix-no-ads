@@ -165,6 +165,9 @@ check('default subtitle language is Arabic in index.html captionModalLangSelect'
 check('player transmits default Arabic subtitles on embed load', app.includes("f.contentWindow?.postMessage({ type: 'SUBTITLE_SET'"));
 check('pSubsTop button in player controls in index.html', html.includes('id="pSubsTop"'));
 check('dispatchSubtitlesToPlayer defined in app.js', app.includes('function dispatchSubtitlesToPlayer('));
+check('updateSubtitleUrlParam defined in app.js', app.includes('function updateSubtitleUrlParam('));
+check('applySubtitleToActivePlayer defined in app.js', app.includes('function applySubtitleToActivePlayer('));
+check('playEmbed uses updateSubtitleUrlParam', app.includes('updateSubtitleUrlParam(o.url, targetSub)'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

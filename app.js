@@ -2078,6 +2078,9 @@ function selectCaptionLanguage(langCode, optLabel) {
   if (mLang) mLang.value = langCode;
   updateSubPreview();
   renderCaptionLangPills($('captionLangSearch')?.value || '');
+  if (typeof applySubtitleToActivePlayer === 'function') {
+    applySubtitleToActivePlayer(langCode);
+  }
   toast(`Subtitles set to: ${optLabel || langCode}`);
 }
 
@@ -2478,7 +2481,11 @@ function initSubtitlesAndPreferences() {
     if (mSize) mSize.value = size;
     updateSubPreview();
     renderCaptionLangPills($('captionLangSearch')?.value || '');
-    dispatchSubtitlesToPlayer(lang);
+    if (typeof applySubtitleToActivePlayer === 'function') {
+      applySubtitleToActivePlayer(lang);
+    } else {
+      dispatchSubtitlesToPlayer(lang);
+    }
     toast('Subtitle preferences updated');
   };
 
@@ -2579,10 +2586,14 @@ function initSubtitlesAndPreferences() {
 
       if (sLang) sLang.value = lang;
       if (sSize) sSize.value = size;
-      dispatchSubtitlesToPlayer(lang);
+      if (typeof applySubtitleToActivePlayer === 'function') {
+        applySubtitleToActivePlayer(lang);
+      } else {
+        dispatchSubtitlesToPlayer(lang);
+      }
       const langText = mLang?.selectedOptions?.[0]?.text || lang;
       closeCaptionsModal();
-      toast(`Captions saved: ${langText}`);
+      toast(`Subtitles enabled: ${langText}`);
     };
   }
 
@@ -2900,6 +2911,50 @@ function recordWatchFinish(id) {
   }
 }
 
+function updateSubtitleUrlParam(url, lang) {
+  if (!url) return url;
+  try {
+    const u = new URL(url, window.location.href);
+    if (!lang || lang === 'off') {
+      u.searchParams.delete('sub');
+      u.searchParams.delete('subtitles');
+      u.searchParams.delete('sub_lang');
+      u.searchParams.delete('lang');
+      u.searchParams.delete('default_sub');
+      u.searchParams.set('sub', 'off');
+      u.searchParams.set('cc', '0');
+    } else {
+      u.searchParams.set('sub', lang);
+      u.searchParams.set('subtitles', lang);
+      u.searchParams.set('sub_lang', lang);
+      u.searchParams.set('lang', lang);
+      u.searchParams.set('default_sub', lang);
+      u.searchParams.set('cc', '1');
+    }
+    return u.toString();
+  } catch {
+    if (!lang || lang === 'off') return url;
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}sub=${encodeURIComponent(lang)}&subtitles=${encodeURIComponent(lang)}&sub_lang=${encodeURIComponent(lang)}&lang=${encodeURIComponent(lang)}&default_sub=${encodeURIComponent(lang)}&cc=1`;
+  }
+}
+
+function applySubtitleToActivePlayer(lang) {
+  const targetSub = lang || store.get('nf_sub_lang', 'ar');
+  dispatchSubtitlesToPlayer(targetSub);
+  const iframe = $('playerView')?.querySelector('iframe');
+  if (!iframe || !currentEmbed || !currentEmbed.url) return;
+  const newUrl = updateSubtitleUrlParam(currentEmbed.url, targetSub);
+  currentEmbed.url = newUrl;
+  if (iframe.src !== newUrl) {
+    iframe.src = newUrl;
+  }
+  setTimeout(() => {
+    try { iframe.focus(); } catch {}
+    dispatchSubtitlesToPlayer(targetSub);
+  }, 120);
+}
+
 function dispatchSubtitlesToPlayer(lang) {
   const f = $('playerView')?.querySelector('iframe');
   if (!f || !f.contentWindow) return;
@@ -2927,8 +2982,12 @@ function playEmbed(o) {
     : `${o.year ? o.year + ' • ' : ''}HD Stream • OpenSubtitles v3`;
   openPlayerShell(o.title, sub);
 
+  const targetSub = store.get('nf_sub_lang', 'ar');
+  const embedUrlWithSub = updateSubtitleUrlParam(o.url, targetSub);
+  currentEmbed.url = embedUrlWithSub;
+
   const f = document.createElement('iframe');
-  f.src = o.url;
+  f.src = embedUrlWithSub;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
   f.setAttribute('referrerpolicy', 'origin');
@@ -2936,7 +2995,6 @@ function playEmbed(o) {
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
 
-  const targetSub = store.get('nf_sub_lang', 'ar');
   const sendSubCmd = () => {
     dispatchSubtitlesToPlayer(targetSub);
   };
