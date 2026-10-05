@@ -230,8 +230,39 @@
   <div class="settings-wrap">
     <div class="settings-header-row">
       <div>
-        <h1>Settings &amp; Preferences</h1>
-        <p class="settings-sub">Manage subtitles, streaming options, download servers, and local library data.</p>
+        <h1 id="txtSettingsHeader">Settings &amp; Preferences</h1>
+        <p class="settings-sub" id="txtSettingsSub">Manage language, subtitles, streaming options, download servers, and local library data.</p>
+      </div>
+    </div>
+
+    <!-- 0. Website Display & Interface Language -->
+    <div class="settings-card" id="settingsAppLangCard">
+      <div class="settings-card-header">
+        <div class="settings-card-icon lang-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        </div>
+        <div>
+          <h3 id="txtSettingLangTitle">Display &amp; Interface Language</h3>
+          <p class="settings-card-desc" id="txtSettingLangDesc">Choose your preferred language for menus, titles, navigation, and settings.</p>
+        </div>
+      </div>
+      <div class="settings-card-content">
+        <div class="settings-field-row">
+          <label for="settingAppLang" id="lblSettingAppLang">Website Language</label>
+          <select id="settingAppLang" class="settings-select">
+            <option value="en" selected>English (English)</option>
+            <option value="fr">French (Français)</option>
+            <option value="es">Spanish (Español)</option>
+            <option value="ru">Russian (Русский)</option>
+            <option value="ar">Arabic (العربية)</option>
+            <option value="hi">Indian / Hindi (हिन्दी)</option>
+            <option value="pt">Portuguese (Português)</option>
+          </select>
+        </div>
+        <div class="settings-sub-status">
+          <span class="status-indicator online"></span>
+          <span id="txtSettingLangStatus">Real-time interface localization active across the platform</span>
+        </div>
       </div>
     </div>
 
@@ -242,7 +273,7 @@
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="6" y1="12" x2="10" y2="12"></line><line x1="14" y1="12" x2="18" y2="12"></line><line x1="6" y1="15" x2="14" y2="15"></line></svg>
         </div>
         <div>
-          <h3>Captions &amp; Audio</h3>
+          <h3 id="txtSettingCaptionsTitle">Captions &amp; Audio</h3>
           <p class="settings-card-desc">Configure default subtitles, languages, and typography.</p>
         </div>
       </div>

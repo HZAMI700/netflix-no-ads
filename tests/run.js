@@ -70,5 +70,55 @@ check('no download modal markup', !html.includes('dlBackdrop') && !html.includes
 check('no torrent UI copy', !/torrentio|magnet|WebRTC/i.test(html));
 check('omnisave linked', app.includes('openOmnisave') && fs.readFileSync(path.join(__dirname, '..', 'services', 'media-links.js'), 'utf8').includes('videodownloader.site'));
 
+/* --- catalog scale & deduplication guards --- */
+const CC = require('../services/curated-catalog.js');
+const allMedia = CC.CURATED_MEDIA;
+check('catalog scale > 80,000', allMedia.length >= 80000, allMedia.length);
+
+const allIds = new Set();
+let dupIdCount = 0;
+for (const m of allMedia) {
+  if (allIds.has(m.id)) dupIdCount++;
+  allIds.add(m.id);
+}
+check('zero duplicate IDs across entire catalog', dupIdCount === 0, dupIdCount);
+
+const allTitles = new Set();
+let dupTitleCount = 0;
+for (const m of allMedia) {
+  const norm = m.name.toLowerCase().trim();
+  if (allTitles.has(norm)) dupTitleCount++;
+  allTitles.add(norm);
+}
+check('zero duplicate titles across entire catalog', dupTitleCount === 0, dupTitleCount);
+
+/* --- series seasons & no season 0 guards --- */
+const reacher = allMedia.find(m => m.name.toLowerCase() === 'reacher');
+check('reacher exists in catalog', !!reacher);
+const reacherVids = CC.getSeriesVideos(reacher);
+const reacherSeasons = [...new Set(reacherVids.map(v => v.season))];
+check('reacher has all 4 seasons', reacherSeasons.length === 4 && reacherSeasons.includes(4), reacherSeasons);
+check('reacher has zero season 0', !reacherVids.some(v => v.season === 0));
+
+const ozark = allMedia.find(m => m.name.toLowerCase() === 'ozark');
+check('ozark exists in catalog', !!ozark);
+const ozarkVids = CC.getSeriesVideos(ozark);
+const ozarkSeasons = [...new Set(ozarkVids.map(v => v.season))];
+check('ozark has all 4 seasons', ozarkSeasons.length === 4, ozarkSeasons);
+check('ozark has zero season 0', !ozarkVids.some(v => v.season === 0));
+
+/* --- i18n & ui guards --- */
+const requiredLangs = ['en', 'fr', 'es', 'ru', 'ar', 'hi', 'pt'];
+const i18nMatch = app.match(/const I18N_TRANSLATIONS = \{([\s\S]*?)\n\};/);
+check('i18n translations dictionary present', !!i18nMatch);
+if (i18nMatch) {
+  requiredLangs.forEach(lang => {
+    check(`i18n supports ${lang}`, app.includes(`'${lang}':`) || app.includes(`${lang}:`));
+  });
+}
+check('settingAppLang exists in index.html', html.includes('id="settingAppLang"'));
+check('no blur focus theft of player', !app.includes('document.body?.focus()') && !app.includes('document.body.focus()'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
+
