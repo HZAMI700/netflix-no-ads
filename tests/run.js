@@ -162,6 +162,10 @@ check('smart player interaction guard present', app.includes('isLegitimatePlayer
 check('legitimate player actions (subtitles, audio, seeking) not treated as popunders', app.includes('if (isLegitimatePlayerInteraction())') && app.includes('return;'));
 check('pop-under ad detection on hidden document / new tab present', app.includes("document.hidden || document.visibilityState === 'hidden' || evt === 'pagehide'"));
 check('no aggressive click gesture timers that disrupt player controls', !app.includes('setTimeout(snapWindowFocus, 25)'));
+check('default subtitle language is Arabic in app.js', app.includes("store.get('nf_sub_lang', 'ar')"));
+check('default subtitle language is Arabic in index.html settingSubLang', html.includes('id="settingSubLang"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
+check('default subtitle language is Arabic in index.html captionModalLangSelect', html.includes('id="captionModalLangSelect"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
+check('player transmits default Arabic subtitles on embed load', app.includes("f.contentWindow?.postMessage({ type: 'SUBTITLE_SET'"));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

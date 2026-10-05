@@ -2037,7 +2037,7 @@ const SUBTITLE_LANGUAGES = [
 function renderCaptionLangPills(filter = '') {
   const container = $('captionLangPills');
   if (!container) return;
-  const currentLang = store.get('nf_sub_lang', 'en');
+  const currentLang = store.get('nf_sub_lang', 'ar');
   const term = String(filter || '').trim().toLowerCase();
 
   const matches = SUBTITLE_LANGUAGES.filter(item => {
@@ -2444,7 +2444,7 @@ function initSubtitlesAndPreferences() {
   }
   setAppLanguage(getActiveAppLanguage(), true);
 
-  const savedLang = store.get('nf_sub_lang', 'en');
+  const savedLang = store.get('nf_sub_lang', 'ar');
   const savedSize = store.get('nf_sub_size', 'medium');
   const savedColor = store.get('nf_sub_color', '#FFE600');
   const savedStyle = store.get('nf_sub_style', 'shadow');
@@ -2470,7 +2470,7 @@ function initSubtitlesAndPreferences() {
   renderCaptionLangPills('');
 
   const onSettingChange = () => {
-    const lang = sLang ? sLang.value : 'en';
+    const lang = sLang ? sLang.value : 'ar';
     const size = sSize ? sSize.value : 'medium';
     store.set('nf_sub_lang', lang);
     store.set('nf_sub_size', size);
@@ -2564,7 +2564,7 @@ function initSubtitlesAndPreferences() {
   const applyBtn = $('captionModalApply');
   if (applyBtn) {
     applyBtn.onclick = () => {
-      const lang = mLang ? mLang.value : 'en';
+      const lang = mLang ? mLang.value : 'ar';
       const size = mSize ? mSize.value : 'medium';
       const color = mColor ? mColor.value : '#FFE600';
       const style = mStyle ? mStyle.value : 'shadow';
@@ -2655,7 +2655,7 @@ function initSubtitlesAndPreferences() {
 function openCaptionsModal() {
   const backdrop = $('captionsModalBackdrop');
   if (!backdrop) return;
-  const savedLang = store.get('nf_sub_lang', 'en');
+  const savedLang = store.get('nf_sub_lang', 'ar');
   const savedSize = store.get('nf_sub_size', 'medium');
   const savedColor = store.get('nf_sub_color', '#FFE600');
   const savedStyle = store.get('nf_sub_style', 'shadow');
@@ -2916,6 +2916,20 @@ function playEmbed(o) {
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
+
+  const targetSub = store.get('nf_sub_lang', 'ar');
+  const sendSubCmd = () => {
+    try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: 'Arabic', code: 'ar', label: 'Arabic' }, '*'); } catch {}
+    try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub }, '*'); } catch {}
+    try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
+    try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
+    try { f.contentWindow?.postMessage({ event: 'setSubtitle', lang: targetSub }, '*'); } catch {}
+  };
+  f.onload = () => {
+    sendSubCmd();
+    setTimeout(sendSubCmd, 600);
+    setTimeout(sendSubCmd, 1800);
+  };
 }
 
 function playEmbedEntry(m) {
@@ -3221,8 +3235,9 @@ function isLegitimatePlayerInteraction() {
     if (document.hidden || document.visibilityState === 'hidden' || evt === 'pagehide') {
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 20);
-      setTimeout(snapWindowFocus, 70);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
+      setTimeout(snapWindowFocus, 45);
+      setTimeout(snapWindowFocus, 120);
       return;
     }
 
@@ -3235,8 +3250,9 @@ function isLegitimatePlayerInteraction() {
       // External popunder window stole OS focus: snap focus back to Netflix tab
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 30);
-      setTimeout(snapWindowFocus, 80);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
+      setTimeout(snapWindowFocus, 45);
+      setTimeout(snapWindowFocus, 120);
     }
   });
 });
