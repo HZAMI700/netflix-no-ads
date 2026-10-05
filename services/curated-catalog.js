@@ -122,7 +122,56 @@ const CANONICAL_SERIES_METRICS = {
   'tt7366338': { seasonsCount: 1, epsPerSeason: 5, baseRuntime: 64 },   // Chernobyl
   'tt0185906': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 62 },  // Band of Brothers
   'tt2788316': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 60 },  // Shōgun
-  'tt10048342': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 58 }   // The Queen's Gambit
+  'tt10048342': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 58 },   // The Queen's Gambit
+  'tt13443470': { seasonsCount: 2, epsPerSeason: 8, baseRuntime: 50 },   // Wednesday
+  'tt5180504': { seasonsCount: 3, epsPerSeason: 8, baseRuntime: 55 },    // The Witcher
+  'tt2531336': { seasonsCount: 3, epsPerSeason: 5, baseRuntime: 45 },    // Lupin
+  'tt8740790': { seasonsCount: 3, epsPerSeason: 8, baseRuntime: 60 },    // Bridgerton
+  'tt7221388': { seasonsCount: 6, epsPerSeason: 10, baseRuntime: 35 },   // Cobra Kai
+  'tt4786824': { seasonsCount: 6, epsPerSeason: 10, baseRuntime: 58 },   // The Crown
+  'tt4052886': { seasonsCount: 6, epsPerSeason: 16, baseRuntime: 45 },   // Lucifer
+  'tt1632701': { seasonsCount: 9, epsPerSeason: 16, baseRuntime: 44 },   // Suits
+  'tt0455275': { seasonsCount: 5, epsPerSeason: 22, baseRuntime: 44 },   // Prison Break
+  'tt0411008': { seasonsCount: 6, epsPerSeason: 20, baseRuntime: 44 },   // Lost
+  'tt1856010': { seasonsCount: 6, epsPerSeason: 13, baseRuntime: 55 },   // House of Cards
+  'tt0108778': { seasonsCount: 10, epsPerSeason: 24, baseRuntime: 22 },  // Friends
+  'tt0460649': { seasonsCount: 9, epsPerSeason: 24, baseRuntime: 22 },   // How I Met Your Mother
+  'tt0898266': { seasonsCount: 12, epsPerSeason: 24, baseRuntime: 21 },  // The Big Bang Theory
+  'tt1442437': { seasonsCount: 11, epsPerSeason: 22, baseRuntime: 22 },  // Modern Family
+  'tt0472954': { seasonsCount: 16, epsPerSeason: 10, baseRuntime: 21 },  // It's Always Sunny
+  'tt1266020': { seasonsCount: 7, epsPerSeason: 16, baseRuntime: 22 },   // Parks and Recreation
+  'tt3526078': { seasonsCount: 6, epsPerSeason: 14, baseRuntime: 22 },   // Schitt's Creek
+  'tt7908628': { seasonsCount: 6, epsPerSeason: 10, baseRuntime: 28 },   // What We Do in the Shadows
+  'tt13016388': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 58 },   // 3 Body Problem
+  'tt9813792': { seasonsCount: 3, epsPerSeason: 10, baseRuntime: 50 },   // From
+  'tt0979432': { seasonsCount: 5, epsPerSeason: 12, baseRuntime: 56 },   // Boardwalk Empire
+  'tt8714904': { seasonsCount: 3, epsPerSeason: 10, baseRuntime: 55 },   // Narcos: Mexico
+  'tt11737520': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 55 },   // One Piece (Live Action)
+  'tt0388629': { seasonsCount: 20, epsPerSeason: 25, baseRuntime: 24 },  // One Piece (Anime)
+  'tt2098220': { seasonsCount: 6, epsPerSeason: 24, baseRuntime: 24 },   // Hunter x Hunter
+  'tt14986406': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 24 },  // Bleach: Thousand-Year Blood War
+  'tt10233448': { seasonsCount: 2, epsPerSeason: 24, baseRuntime: 24 },  // Vinland Saga
+  'tt13616990': { seasonsCount: 1, epsPerSeason: 12, baseRuntime: 24 },  // Chainsaw Man
+  'tt12590266': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 24 },  // Cyberpunk: Edgerunners
+  'tt21209876': { seasonsCount: 1, epsPerSeason: 12, baseRuntime: 24 },  // Solo Leveling
+  'tt13309710': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 45 },   // Blue Eye Samurai
+  'tt6517102': { seasonsCount: 4, epsPerSeason: 8, baseRuntime: 25 },    // Castlevania
+  'tt0213338': { seasonsCount: 1, epsPerSeason: 26, baseRuntime: 24 },   // Cowboy Bebop
+  'tt0374463': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 55 },   // The Pacific
+  'tt0384766': { seasonsCount: 2, epsPerSeason: 11, baseRuntime: 55 },   // Rome
+  'tt0357336': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 55 },   // Deadwood
+  'tt1489428': { seasonsCount: 6, epsPerSeason: 13, baseRuntime: 44 },   // Justified
+  'tt2017109': { seasonsCount: 4, epsPerSeason: 10, baseRuntime: 50 },   // Banshee
+  'tt1442449': { seasonsCount: 3, epsPerSeason: 11, baseRuntime: 55 },   // Spartacus
+  'tt1796960': { seasonsCount: 8, epsPerSeason: 12, baseRuntime: 50 },   // Homeland
+  'tt0285331': { seasonsCount: 9, epsPerSeason: 24, baseRuntime: 44 },   // 24
+  'tt5057054': { seasonsCount: 4, epsPerSeason: 8, baseRuntime: 50 },    // Jack Ryan
+  'tt1839578': { seasonsCount: 5, epsPerSeason: 22, baseRuntime: 43 },   // Person of Interest
+  'tt1119644': { seasonsCount: 5, epsPerSeason: 20, baseRuntime: 46 },   // Fringe
+  'tt0475784': { seasonsCount: 4, epsPerSeason: 9, baseRuntime: 60 },    // Westworld
+  'tt6763664': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 60 },   // The Haunting of Hill House
+  'tt10574558': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 65 },   // Midnight Mass
+  'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 }    // Hannibal
 };
 
 const RAW_CURATED_MEDIA = [
@@ -249,7 +298,139 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt14688458', name: 'Silo', type: 'series', year: 2023, imdbRating: '8.1', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 125988, description: 'Men and women live in a giant underground silo with several regulations which they believe are in place to protect them from the toxic world on the surface.' },
   { id: 'tt4236770', name: 'Yellowstone', type: 'series', year: 2018, imdbRating: '8.7', genres: ['Drama', 'Western'], moviedb_id: 73586, description: 'A ranching family in Montana faces off against others encroaching on their land.' },
   { id: 'tt6468322', name: 'Money Heist', type: 'series', year: 2017, imdbRating: '8.2', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 71446, description: 'An unusual group of robbers attempt to carry out the most perfect robbery in Spanish history - stealing 2.4 billion euros from the Royal Mint of Spain.' },
-  { id: 'tt5875444', name: 'Slow Horses', type: 'series', year: 2022, imdbRating: '8.2', genres: ['Drama', 'Thriller'], moviedb_id: 117581, description: 'Follows a dysfunctional team of MI5 agents, and their obnoxious boss Jackson Lamb, as they navigate the espionage world to defend England from sinister forces.' }
+  { id: 'tt5875444', name: 'Slow Horses', type: 'series', year: 2022, imdbRating: '8.2', genres: ['Drama', 'Thriller'], moviedb_id: 117581, description: 'Follows a dysfunctional team of MI5 agents, and their obnoxious boss Jackson Lamb, as they navigate the espionage world to defend England from sinister forces.' },
+  // Additional Blockbuster & Modern Masterpieces
+  { id: 'tt9244578', name: 'Gladiator II', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Action', 'Adventure', 'Drama'], moviedb_id: 558449, description: 'Years after witnessing the death of Maximus at the hands of his uncle, Lucius must enter the Colosseum after the powerful emperors of Rome conquer his home.' },
+  { id: 'tt18412256', name: 'Alien: Romulus', type: 'movie', year: 2024, imdbRating: '7.2', genres: ['Horror', 'Sci-Fi', 'Thriller'], moviedb_id: 945961, description: 'While scavenging the deep ends of a derelict space station, a group of young space colonizers come face to face with the most terrifying life form in the universe.' },
+  { id: 'tt12037194', name: 'Furiosa: A Mad Max Saga', type: 'movie', year: 2024, imdbRating: '7.6', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 786892, description: 'The origin story of renegade warrior Furiosa before her encounter and teamup with Mad Max.' },
+  { id: 'tt12584954', name: 'Twisters', type: 'movie', year: 2024, imdbRating: '7.1', genres: ['Action', 'Adventure', 'Thriller'], moviedb_id: 718821, description: 'Kate Carter and Tyler Owens find themselves competing and then joining forces in the heart of Oklahoma storm season.' },
+  { id: 'tt17279496', name: 'Civil War', type: 'movie', year: 2024, imdbRating: '7.1', genres: ['Action', 'Adventure', 'Thriller'], moviedb_id: 929590, description: 'A journey across a dystopian future America, following a team of military-embedded journalists as they race against time to reach DC.' },
+  { id: 'tt17526714', name: 'The Substance', type: 'movie', year: 2024, imdbRating: '7.4', genres: ['Drama', 'Horror', 'Sci-Fi'], moviedb_id: 933260, description: 'A fading celebrity uses a black-market drug that creates a younger, better version of herself, with unexpected bodily consequences.' },
+  { id: 'tt13433802', name: 'A Quiet Place: Day One', type: 'movie', year: 2024, imdbRating: '6.7', genres: ['Drama', 'Horror', 'Sci-Fi'], moviedb_id: 762441, description: 'A young woman named Sam finds herself trapped in New York City during the terrifying early invasion of alien creatures with ultrasonic hearing.' },
+  { id: 'tt23468450', name: 'Longlegs', type: 'movie', year: 2024, imdbRating: '6.7', genres: ['Crime', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 1022789, description: 'In pursuit of a serial killer, an FBI agent uncovers a series of occult clues that she must solve to end his terrifying killing spree.' },
+  { id: 'tt4919268', name: 'Bad Boys: Ride or Die', type: 'movie', year: 2024, imdbRating: '6.6', genres: ['Action', 'Comedy', 'Crime'], moviedb_id: 573435, description: 'Miami detectives Mike Lowrey and Marcus Burnett are on the run after their late captain is framed for corruption.' },
+  { id: 'tt3083016', name: 'Beverly Hills Cop: Axel F', type: 'movie', year: 2024, imdbRating: '6.5', genres: ['Action', 'Comedy', 'Crime'], moviedb_id: 280180, description: 'Detective Axel Foley returns to Beverly Hills after his daughter\'s life is threatened, teaming up with old friends to uncover a conspiracy.' },
+  { id: 'tt1684562', name: 'The Fall Guy', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Comedy', 'Drama'], moviedb_id: 746036, description: 'A down-and-out stuntman must track down a missing movie star to save his ex-girlfriend\'s directorial debut.' },
+  { id: 'tt9214772', name: 'Monkey Man', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Thriller'], moviedb_id: 560016, description: 'An anonymous young man unleashes a campaign of vengeance against the corrupt leaders who murdered his mother and systematically victimize the poor.' },
+  { id: 'tt23289160', name: 'Godzilla Minus One', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 940721, description: 'Post-war Japan is at its lowest point when a new crisis emerges in the form of a giant monster, baptized in the horrific power of the atomic bomb.' },
+  { id: 'tt14230458', name: 'Poor Things', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Comedy', 'Drama', 'Romance', 'Sci-Fi'], moviedb_id: 792307, description: 'The incredible tale of Bella Baxter, a young woman brought back to life by the brilliant and unorthodox scientist Dr. Godwin Baxter.' },
+  { id: 'tt1517268', name: 'Barbie', type: 'movie', year: 2023, imdbRating: '6.8', genres: ['Adventure', 'Comedy', 'Fantasy'], moviedb_id: 346698, description: 'Barbie and Ken are having the time of their lives in the colorful Barbieland until an existential crisis leads them on a journey to the real world.' },
+  { id: 'tt9603222', name: 'Mission: Impossible - Dead Reckoning Part One', type: 'movie', year: 2023, imdbRating: '7.7', genres: ['Action', 'Adventure', 'Thriller'], moviedb_id: 575264, description: 'Ethan Hunt and his IMF team must track down a dangerous weapon before it falls into the wrong hands.' },
+  { id: 'tt4425200', name: 'John Wick: Chapter 2', type: 'movie', year: 2017, imdbRating: '7.4', genres: ['Action', 'Crime', 'Thriller'], moviedb_id: 324552, description: 'Legendary hitman John Wick is forced out of retirement again by a former associate bound by a blood oath to seize control of a shadow assassins\' guild.' },
+  { id: 'tt6146586', name: 'John Wick: Chapter 3 - Parabellum', type: 'movie', year: 2019, imdbRating: '7.4', genres: ['Action', 'Crime', 'Thriller'], moviedb_id: 458156, description: 'John Wick is on the run after killing a member of the international assassins\' guild, and with a $14 million price tag on his head, he is the target of hit men and women everywhere.' },
+  { id: 'tt0113277', name: 'Heat', type: 'movie', year: 1995, imdbRating: '8.3', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 949, description: 'A group of high-end professional thieves start to feel the LAPD on their tails when a master detective tracks down their crew.' },
+  { id: 'tt0086250', name: 'Scarface', type: 'movie', year: 1983, imdbRating: '8.3', genres: ['Crime', 'Drama'], moviedb_id: 111, description: 'In 1980 Miami, a determined Cuban immigrant takes over a drug cartel and succumbs to greed.' },
+  { id: 'tt0112641', name: 'Casino', type: 'movie', year: 1995, imdbRating: '8.2', genres: ['Crime', 'Drama'], moviedb_id: 524, description: 'A tale of greed, deception, money, power, and murder between two best friends: a mafia enforcer and a casino executive.' },
+  { id: 'tt0407887', name: 'The Departed', type: 'movie', year: 2006, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 1422, description: 'An undercover cop and a mole in the police attempt to identify each other while infiltrating an Irish gang in South Boston.' },
+  { id: 'tt0993846', name: 'The Wolf of Wall Street', type: 'movie', year: 2013, imdbRating: '8.2', genres: ['Biography', 'Comedy', 'Crime', 'Drama'], moviedb_id: 106646, description: 'Based on the true story of Jordan Belfort, from his rise to a wealthy stock-broker living the high life to his fall involving crime and corruption.' },
+  { id: 'tt0120338', name: 'Titanic', type: 'movie', year: 1997, imdbRating: '7.9', genres: ['Drama', 'Romance'], moviedb_id: 597, description: 'A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic.' },
+  { id: 'tt0120689', name: 'The Green Mile', type: 'movie', year: 1999, imdbRating: '8.6', genres: ['Crime', 'Drama', 'Fantasy', 'Mystery'], moviedb_id: 497, description: 'A tale set on death row in a Southern jail, where gentle giant John Coffey possesses a mysterious supernatural gift.' },
+  { id: 'tt0361748', name: 'Inglourious Basterds', type: 'movie', year: 2009, imdbRating: '8.4', genres: ['Adventure', 'Drama', 'War'], moviedb_id: 16869, description: 'In Nazi-occupied France during World War II, a plan to assassinate Nazi leaders by a group of Jewish U.S. soldiers coincides with a theatre owner\'s vengeful plans.' },
+  { id: 'tt0266697', name: 'Kill Bill: Vol. 1', type: 'movie', year: 2003, imdbRating: '8.2', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 24, description: 'After awakening from a four-year coma, a former assassin wreaks vengeance on the team of assassins who betrayed her.' },
+  { id: 'tt0378194', name: 'Kill Bill: Vol. 2', type: 'movie', year: 2004, imdbRating: '8.0', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 393, description: 'The Bride continues her quest of vengeance against her former boss and lover Bill, the reclusive bouncer Budd, and the treacherous, one-eyed Elle Driver.' },
+  { id: 'tt0105236', name: 'Reservoir Dogs', type: 'movie', year: 1992, imdbRating: '8.3', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 500, description: 'When a simple jewelry heist goes horribly wrong, the surviving criminals begin to suspect that one of them is a police informant.' },
+  { id: 'tt0443706', name: 'Zodiac', type: 'movie', year: 2007, imdbRating: '7.7', genres: ['Crime', 'Drama', 'Mystery', 'Thriller'], moviedb_id: 1949, description: 'Between 1968 and 1983, a San Francisco cartoonist becomes an amateur detective obsessed with tracking down the Zodiac Killer.' },
+  { id: 'tt2267998', name: 'Gone Girl', type: 'movie', year: 2014, imdbRating: '8.1', genres: ['Drama', 'Mystery', 'Thriller'], moviedb_id: 210577, description: 'With his wife\'s disappearance having become the focus of an intense media circus, a man sees the spotlight turned on him when it\'s suspected that he may not be innocent.' },
+  { id: 'tt1392214', name: 'Prisoners', type: 'movie', year: 2013, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Mystery', 'Thriller'], moviedb_id: 146233, description: 'When Keller Dover\'s daughter and her friend go missing, he takes matters into his own hands as the police pursue multiple leads and the pressure mounts.' },
+  { id: 'tt2543164', name: 'Arrival', type: 'movie', year: 2016, imdbRating: '7.9', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 329865, description: 'A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.' },
+  { id: 'tt0470752', name: 'Ex Machina', type: 'movie', year: 2014, imdbRating: '7.7', genres: ['Drama', 'Sci-Fi', 'Thriller'], moviedb_id: 264660, description: 'A young programmer is selected to participate in a ground-breaking experiment in synthetic intelligence by evaluating the human qualities of a highly advanced humanoid A.I.' },
+  { id: 'tt6723592', name: 'Tenet', type: 'movie', year: 2020, imdbRating: '7.3', genres: ['Action', 'Sci-Fi', 'Thriller'], moviedb_id: 577922, description: 'Armed with only one word, Tenet, and fighting for the survival of the entire world, a Protagonist journeys through a twilight world of international espionage on a mission that will unfold in something beyond real time.' },
+  { id: 'tt5013056', name: 'Dunkirk', type: 'movie', year: 2017, imdbRating: '7.8', genres: ['Action', 'Drama', 'History', 'Thriller', 'War'], moviedb_id: 374720, description: 'Allied soldiers from Belgium, the British Commonwealth and Empire, and France are surrounded by the German Army and evacuated during a fierce battle in World War II.' },
+  { id: 'tt0264464', name: 'Catch Me If You Can', type: 'movie', year: 2002, imdbRating: '8.1', genres: ['Biography', 'Crime', 'Drama'], moviedb_id: 180, description: 'Barely 21 yet, Frank is a skilled forger who has passed as a doctor, lawyer and pilot. FBI agent Carl Hanratty makes it his prime mission to put him behind bars.' },
+  { id: 'tt2278388', name: 'The Grand Budapest Hotel', type: 'movie', year: 2014, imdbRating: '8.1', genres: ['Adventure', 'Comedy', 'Crime'], moviedb_id: 120467, description: 'A writer encounters the owner of an aging high-class hotel, who tells him of his early years serving as a lobby boy in the hotel\'s glorious years under an exceptional concierge.' },
+  { id: 'tt3783958', name: 'La La Land', type: 'movie', year: 2016, imdbRating: '8.0', genres: ['Comedy', 'Drama', 'Music', 'Romance'], moviedb_id: 313369, description: 'While navigating their careers in Los Angeles, a pianist and an actress fall in love while attempting to reconcile their aspirations for the future.' },
+  { id: 'tt0829482', name: 'Superbad', type: 'movie', year: 2007, imdbRating: '7.6', genres: ['Comedy'], moviedb_id: 8363, description: 'Two co-dependent high school seniors are forced to deal with separation anxiety after their plan to stage a booze-soaked party goes awry.' },
+  { id: 'tt1119646', name: 'The Hangover', type: 'movie', year: 2009, imdbRating: '7.7', genres: ['Comedy'], moviedb_id: 18785, description: 'Three buddies wake up from a bachelor party in Las Vegas, with no memory of the previous night and the bachelor missing.' },
+  { id: 'tt0838283', name: 'Step Brothers', type: 'movie', year: 2008, imdbRating: '6.9', genres: ['Comedy'], moviedb_id: 12133, description: 'Two aimless middle-aged losers still living at home are forced against their will to become roommates when their parents marry.' },
+  { id: 'tt1232829', name: '21 Jump Street', type: 'movie', year: 2012, imdbRating: '7.2', genres: ['Action', 'Comedy', 'Crime'], moviedb_id: 64688, description: 'A pair of underachieving cops are sent back to a local high school to blend in and bring down a synthetic drug ring.' },
+  { id: 'tt6264654', name: 'Free Guy', type: 'movie', year: 2021, imdbRating: '7.1', genres: ['Action', 'Adventure', 'Comedy', 'Sci-Fi'], moviedb_id: 550988, description: 'When a bank teller discovers he\'s actually a background player in an open-world video game, he decides to become the hero of his own story.' },
+  { id: 'tt12593682', name: 'Bullet Train', type: 'movie', year: 2022, imdbRating: '7.3', genres: ['Action', 'Comedy', 'Thriller'], moviedb_id: 718930, description: 'Five assassins aboard a swiftly-moving bullet train find out that their missions have something in common.' },
+  { id: 'tt3890160', name: 'Baby Driver', type: 'movie', year: 2017, imdbRating: '7.5', genres: ['Action', 'Crime', 'Drama', 'Music', 'Thriller'], moviedb_id: 339403, description: 'After being coerced into working for a crime boss, a young getaway driver finds himself taking part in a heist doomed to fail.' },
+  { id: 'tt0840361', name: 'The Town', type: 'movie', year: 2010, imdbRating: '7.5', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 23168, description: 'A long-time thief plans his next bank job while trying to balance his feelings for a bank manager connected from an earlier heist.' },
+  { id: 'tt0240772', name: 'Ocean\'s Eleven', type: 'movie', year: 2001, imdbRating: '7.7', genres: ['Crime', 'Thriller'], moviedb_id: 161, description: 'Danny Ocean and his ten accomplices plan to rob three Las Vegas casinos simultaneously.' },
+  { id: 'tt1457767', name: 'The Conjuring', type: 'movie', year: 2013, imdbRating: '7.5', genres: ['Horror', 'Mystery', 'Thriller'], moviedb_id: 138843, description: 'Paranormal investigators Ed and Lorraine Warren work to help a family terrorized by a dark presence in their farmhouse.' },
+  { id: 'tt7784604', name: 'Hereditary', type: 'movie', year: 2018, imdbRating: '7.3', genres: ['Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 493922, description: 'A grieving family is haunted by tragic and disturbing occurrences after the death of their secretive grandmother.' },
+  { id: 'tt6644200', name: 'A Quiet Place', type: 'movie', year: 2018, imdbRating: '7.5', genres: ['Drama', 'Horror', 'Sci-Fi'], moviedb_id: 447332, description: 'A family struggles for survival in a world where most humans have been killed by blind but noise-sensitive creatures.' },
+  { id: 'tt5052448', name: 'Get Out', type: 'movie', year: 2017, imdbRating: '7.8', genres: ['Horror', 'Mystery', 'Thriller'], moviedb_id: 419430, description: 'A young African-American visits his white girlfriend\'s parents for the weekend, where his simmering uneasiness becomes a nightmare.' },
+  { id: 'tt1396484', name: 'It', type: 'movie', year: 2017, imdbRating: '7.3', genres: ['Horror'], moviedb_id: 346364, description: 'In the summer of 1989, a group of bullied kids band together to destroy a shape-shifting monster, which disguises itself as a clown.' },
+  { id: 'tt0078748', name: 'Alien', type: 'movie', year: 1979, imdbRating: '8.5', genres: ['Horror', 'Sci-Fi'], moviedb_id: 348, description: 'The crew of a commercial spacecraft encounters a deadly lifeform after investigating an unknown transmission.' },
+  { id: 'tt0090605', name: 'Aliens', type: 'movie', year: 1986, imdbRating: '8.4', genres: ['Action', 'Adventure', 'Sci-Fi', 'Thriller'], moviedb_id: 679, description: 'Decades after surviving the Nostromo incident, Ellen Ripley is sent back to planet LV-426 alongside Colonial Marines to establish contact.' },
+  { id: 'tt0084787', name: 'The Thing', type: 'movie', year: 1982, imdbRating: '8.2', genres: ['Horror', 'Mystery', 'Sci-Fi'], moviedb_id: 1091, description: 'A research team in Antarctica is hunted by a shape-shifting alien that assumes the appearance of its victims.' },
+  { id: 'tt1049413', name: 'Up', type: 'movie', year: 2009, imdbRating: '8.3', genres: ['Animation', 'Adventure', 'Comedy', 'Drama', 'Family'], moviedb_id: 14160, description: '78-year-old Carl Fredricksen travels to Paradise Falls in his house equipped with balloons, inadvertently taking a young stowaway.' },
+  { id: 'tt0114709', name: 'Toy Story', type: 'movie', year: 1995, imdbRating: '8.3', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 862, description: 'A cowboy doll is profoundly threatened and jealous when a new spaceman action figure supplants him as top toy in a boy\'s bedroom.' },
+  { id: 'tt0435761', name: 'Toy Story 3', type: 'movie', year: 2010, imdbRating: '8.3', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 10193, description: 'The toys are mistakenly delivered to a day-care center instead of the attic right before Andy leaves for college, and it\'s up to Woody to convince the other toys that they weren\'t abandoned.' },
+  { id: 'tt0266543', name: 'Finding Nemo', type: 'movie', year: 2003, imdbRating: '8.2', genres: ['Animation', 'Adventure', 'Comedy', 'Family'], moviedb_id: 12, description: 'After his son is captured in the Great Barrier Reef and taken to Sydney, a timid clownfish sets out on a journey to bring him home.' },
+  { id: 'tt0382932', name: 'Ratatouille', type: 'movie', year: 2007, imdbRating: '8.1', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 2062, description: 'A rat who can cook makes an unusual alliance with a young kitchen worker at a famous Paris restaurant.' },
+  { id: 'tt0198781', name: 'Monsters, Inc.', type: 'movie', year: 2001, imdbRating: '8.1', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 585, description: 'In order to power the city, monsters have to scare children so that they scream. However, the children are toxic to the monsters after a child enters their world.' },
+  { id: 'tt0317705', name: 'The Incredibles', type: 'movie', year: 2004, imdbRating: '8.0', genres: ['Animation', 'Action', 'Adventure', 'Family', 'Sci-Fi'], moviedb_id: 9806, description: 'While trying to lead a quiet suburban life, a family of undercover superheroes are forced into action to save the world.' },
+  { id: 'tt0126029', name: 'Shrek', type: 'movie', year: 2001, imdbRating: '7.9', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 808, description: 'A mean lord exiles fairytale creatures to the swamp of a grumpy ogre, who must go on a quest and rescue a princess for the lord in order to get his land back.' },
+  { id: 'tt0298148', name: 'Shrek 2', type: 'movie', year: 2004, imdbRating: '7.3', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 809, description: 'Princess Fiona\'s parents invite her and Shrek to dinner to celebrate their marriage, unaware that the newlyweds are both ogres.' },
+  { id: 'tt3915174', name: 'Puss in Boots: The Last Wish', type: 'movie', year: 2022, imdbRating: '7.8', genres: ['Animation', 'Action', 'Adventure', 'Comedy', 'Drama', 'Family', 'Fantasy'], moviedb_id: 598331, description: 'When Puss in Boots discovers that his passion for adventure has taken its toll and he has burned through eight of his nine lives, he launches an epic journey.' },
+  { id: 'tt0110357', name: 'The Lion King', type: 'movie', year: 1994, imdbRating: '8.5', genres: ['Animation', 'Adventure', 'Drama', 'Family', 'Musical'], moviedb_id: 8587, description: 'Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself.' },
+  { id: 'tt0347149', name: 'Howl\'s Moving Castle', type: 'movie', year: 2004, imdbRating: '8.2', genres: ['Animation', 'Adventure', 'Family', 'Fantasy'], moviedb_id: 4935, description: 'When an unconfident young woman is cursed with an old body by a spiteful witch, her only chance of breaking the spell lies with a self-indulgent yet insecure young wizard.' },
+  { id: 'tt0119698', name: 'Princess Mononoke', type: 'movie', year: 1997, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 128, description: 'On a journey to find the cure for a Tatarigami\'s curse, Ashitaka finds himself in the middle of a war between the forest gods and Tatara, a mining colony.' },
+  { id: 'tt5311514', name: 'Your Name.', type: 'movie', year: 2016, imdbRating: '8.4', genres: ['Animation', 'Drama', 'Fantasy', 'Romance'], moviedb_id: 372058, description: 'Two strangers find themselves linked in a bizarre way. When a connection forms, will distance be the only thing to keep them apart?' },
+  { id: 'tt8936646', name: 'Extraction', type: 'movie', year: 2020, imdbRating: '6.8', genres: ['Action', 'Thriller'], moviedb_id: 545609, description: 'Tyler Rake, a fearless black market mercenary, embarks on the most deadly extraction of his career when he\'s enlisted to rescue the kidnapped son of an imprisoned international crime lord.' },
+  { id: 'tt12263384', name: 'Extraction II', type: 'movie', year: 2023, imdbRating: '7.0', genres: ['Action', 'Thriller'], moviedb_id: 697843, description: 'Back from the brink of death, commando Tyler Rake embarks on another dangerous mission to save a ruthless gangster\'s imprisoned family.' },
+  { id: 'tt1649418', name: 'The Gray Man', type: 'movie', year: 2022, imdbRating: '6.5', genres: ['Action', 'Thriller'], moviedb_id: 725201, description: 'When the CIA\'s top asset, his identity known to no one, uncovers agency secrets, he triggers a global hunt by assassin syndicates.' },
+  { id: 'tt7991608', name: 'Red Notice', type: 'movie', year: 2021, imdbRating: '6.3', genres: ['Action', 'Comedy', 'Thriller'], moviedb_id: 512195, description: 'An Interpol agent tracks the world\'s most wanted art thief with the help of a rival criminal.' },
+  { id: 'tt1300155', name: 'The Irishman', type: 'movie', year: 2019, imdbRating: '7.8', genres: ['Biography', 'Crime', 'Drama'], moviedb_id: 398978, description: 'Hitman Frank Sheeran looks back at the secrets he kept as a loyal member of the Bufalino crime family.' },
+  { id: 'tt16277274', name: 'Society of the Snow', type: 'movie', year: 2023, imdbRating: '7.8', genres: ['Adventure', 'Biography', 'Drama', 'History'], moviedb_id: 906126, description: 'The flight of a rugby team crashes on a glacier in the Andes. The few passengers who survive the crash find themselves in one of the world\'s toughest environments.' },
+  { id: 'tt12747748', name: 'Leave the World Behind', type: 'movie', year: 2023, imdbRating: '6.5', genres: ['Drama', 'Mystery', 'Sci-Fi', 'Thriller'], moviedb_id: 726209, description: 'A family\'s getaway in an idyllic rental home is interrupted by two strangers bearing news of a mysterious cyberattack.' },
+  { id: 'tt2733596', name: 'Bird Box', type: 'movie', year: 2018, imdbRating: '6.6', genres: ['Horror', 'Sci-Fi', 'Thriller'], moviedb_id: 405774, description: 'Five years after an ominous unseen presence drives most of society to suicide, a mother and her two children make a desperate bid to reach safety.' },
+  { id: 'tt6718170', name: 'The Super Mario Bros. Movie', type: 'movie', year: 2023, imdbRating: '7.0', genres: ['Animation', 'Action', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 502356, description: 'A Brooklyn plumber named Mario travels through the Mushroom Kingdom with a princess named Peach and an anthropomorphic mushroom named Toad to find Mario\'s brother, Luigi.' },
+
+  // Additional Legendary & Trending TV Series
+  { id: 'tt13443470', name: 'Wednesday', type: 'series', year: 2022, imdbRating: '8.1', genres: ['Comedy', 'Crime', 'Fantasy'], moviedb_id: 119051, seasonsCount: 2, epsPerSeason: 8, description: 'Follows Wednesday Addams\' years as a student at Nevermore Academy, attempting to master her emerging psychic ability and solve a mystery.' },
+  { id: 'tt5180504', name: 'The Witcher', type: 'series', year: 2019, imdbRating: '8.0', genres: ['Action', 'Adventure', 'Fantasy'], moviedb_id: 71912, seasonsCount: 3, epsPerSeason: 8, description: 'Geralt of Rivia, a solitary monster hunter, struggles to find his place in a world where people often prove more wicked than beasts.' },
+  { id: 'tt2531336', name: 'Lupin', type: 'series', year: 2021, imdbRating: '7.5', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 96677, seasonsCount: 3, epsPerSeason: 5, description: 'Inspired by the adventures of Arsène Lupin, gentleman thief Assane Diop sets out to avenge his father for an injustice inflicted by a wealthy family.' },
+  { id: 'tt16274718', name: 'Berlin', type: 'series', year: 2023, imdbRating: '7.1', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 202250, seasonsCount: 1, epsPerSeason: 8, description: 'During his golden age, Berlin and a band of romantic thieves assemble in Paris to plan one of his most ambitious robberies ever.' },
+  { id: 'tt8740790', name: 'Bridgerton', type: 'series', year: 2020, imdbRating: '7.4', genres: ['Drama', 'Romance'], moviedb_id: 91363, seasonsCount: 3, epsPerSeason: 8, description: 'Wealth, lust, and betrayal set against the backdrop of Regency-era England, seen through the eyes of the powerful Bridgerton family.' },
+  { id: 'tt7221388', name: 'Cobra Kai', type: 'series', year: 2018, imdbRating: '8.4', genres: ['Action', 'Comedy', 'Drama'], moviedb_id: 77169, seasonsCount: 6, epsPerSeason: 10, description: 'Decades after their 1984 All Valley Karate Tournament bout, a down-and-out Johnny Lawrence seeks redemption by reopening the infamous Cobra Kai dojo.' },
+  { id: 'tt4786824', name: 'The Crown', type: 'series', year: 2016, imdbRating: '8.6', genres: ['Biography', 'Drama', 'History'], moviedb_id: 65494, seasonsCount: 6, epsPerSeason: 10, description: 'Follows the political rivalries and romance of Queen Elizabeth II\'s reign and the events that shaped the second half of the twentieth century.' },
+  { id: 'tt4052886', name: 'Lucifer', type: 'series', year: 2016, imdbRating: '8.1', genres: ['Crime', 'Drama', 'Fantasy'], moviedb_id: 63174, seasonsCount: 6, epsPerSeason: 16, description: 'Lucifer Morningstar has decided he\'s had enough of being the dutiful servant in Hell and decides to spend some time on Earth in Los Angeles.' },
+  { id: 'tt1632701', name: 'Suits', type: 'series', year: 2011, imdbRating: '8.4', genres: ['Comedy', 'Drama'], moviedb_id: 37680, seasonsCount: 9, epsPerSeason: 16, description: 'On the run from a drug deal gone bad, brilliant college dropout Mike Ross finds himself working with Harvey Specter, one of New York City\'s top lawyers.' },
+  { id: 'tt0455275', name: 'Prison Break', type: 'series', year: 2005, imdbRating: '8.3', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 2288, seasonsCount: 5, epsPerSeason: 22, description: 'A structural engineer installs himself in a prison he helped design, in order to save his falsely accused brother from a death sentence.' },
+  { id: 'tt0411008', name: 'Lost', type: 'series', year: 2004, imdbRating: '8.3', genres: ['Adventure', 'Drama', 'Fantasy'], moviedb_id: 4607, seasonsCount: 6, epsPerSeason: 20, description: 'The survivors of a plane crash are forced to work together in order to survive on a seemingly deserted tropical island full of supernatural mysteries.' },
+  { id: 'tt1856010', name: 'House of Cards', type: 'series', year: 2013, imdbRating: '8.6', genres: ['Drama'], moviedb_id: 1425, seasonsCount: 6, epsPerSeason: 13, description: 'A Congressman works with his equally conniving wife to exact revenge on the people who betrayed him in Washington D.C.' },
+  { id: 'tt0108778', name: 'Friends', type: 'series', year: 1994, imdbRating: '8.9', genres: ['Comedy', 'Romance'], moviedb_id: 1668, seasonsCount: 10, epsPerSeason: 24, description: 'Follows the personal and professional lives of six twenty to thirty year-old friends living in the Manhattan borough of New York City.' },
+  { id: 'tt0460649', name: 'How I Met Your Mother', type: 'series', year: 2005, imdbRating: '8.3', genres: ['Comedy', 'Romance'], moviedb_id: 1100, seasonsCount: 9, epsPerSeason: 24, description: 'A father recounts to his children, through a series of flashbacks, the journey he and his four best friends took leading up to him meeting their mother.' },
+  { id: 'tt0898266', name: 'The Big Bang Theory', type: 'series', year: 2007, imdbRating: '8.2', genres: ['Comedy', 'Romance'], moviedb_id: 1418, seasonsCount: 12, epsPerSeason: 24, description: 'A woman who moves into an apartment across the hall from two brilliant but socially awkward physicists shows them how little they know about life outside of the laboratory.' },
+  { id: 'tt1442437', name: 'Modern Family', type: 'series', year: 2009, imdbRating: '8.5', genres: ['Comedy', 'Drama', 'Family'], moviedb_id: 1421, seasonsCount: 11, epsPerSeason: 22, description: 'Three different, but related, families face trials and tribulations in their own uniquely comedic ways.' },
+  { id: 'tt0472954', name: 'It\'s Always Sunny in Philadelphia', type: 'series', year: 2005, imdbRating: '8.8', genres: ['Comedy'], moviedb_id: 2710, seasonsCount: 16, epsPerSeason: 10, description: 'Five friends with big egos and small brains are the proprietors of an Irish pub in Philadelphia.' },
+  { id: 'tt1266020', name: 'Parks and Recreation', type: 'series', year: 2009, imdbRating: '8.6', genres: ['Comedy'], moviedb_id: 8592, seasonsCount: 7, epsPerSeason: 16, description: 'The absurd antics of an Indiana town\'s public officials as they pursue diverse projects to make their city a little more fun.' },
+  { id: 'tt3526078', name: 'Schitt\'s Creek', type: 'series', year: 2015, imdbRating: '8.5', genres: ['Comedy'], moviedb_id: 61662, seasonsCount: 6, epsPerSeason: 14, description: 'When rich video-store magnate Johnny Rose and his family suddenly find themselves broke, they are forced to leave their pampered lives to regroup in Schitt\'s Creek.' },
+  { id: 'tt7908628', name: 'What We Do in the Shadows', type: 'series', year: 2019, imdbRating: '8.6', genres: ['Comedy', 'Fantasy', 'Horror'], moviedb_id: 83631, seasonsCount: 6, epsPerSeason: 10, description: 'A look into the daily (or rather, nightly) lives of four vampires who\'ve lived together for over 100 years on Staten Island.' },
+  { id: 'tt13016388', name: '3 Body Problem', type: 'series', year: 2024, imdbRating: '7.5', genres: ['Adventure', 'Drama', 'Fantasy', 'Sci-Fi'], moviedb_id: 111110, seasonsCount: 1, epsPerSeason: 8, description: 'A fateful decision made in 1960s China reverberates across space and time to a group of scientists in the present, forcing them to face humanity\'s greatest threat.' },
+  { id: 'tt9813792', name: 'From', type: 'series', year: 2022, imdbRating: '7.8', genres: ['Drama', 'Horror', 'Mystery', 'Sci-Fi'], moviedb_id: 124364, seasonsCount: 3, epsPerSeason: 10, description: 'Unravel the mystery of a city in middle U.S.A. that imprisons everyone who enters. As the residents struggle to maintain a sense of normalcy, they must survive threats from the surrounding forest.' },
+  { id: 'tt0979432', name: 'Boardwalk Empire', type: 'series', year: 2010, imdbRating: '8.6', genres: ['Crime', 'Drama', 'History'], moviedb_id: 1419, seasonsCount: 5, epsPerSeason: 12, description: 'An Atlantic City politician plays both sides of the law by conspiring with gangsters during the Prohibition era.' },
+  { id: 'tt8714904', name: 'Narcos: Mexico', type: 'series', year: 2018, imdbRating: '8.4', genres: ['Biography', 'Crime', 'Drama'], moviedb_id: 80968, seasonsCount: 3, epsPerSeason: 10, description: 'Witness the birth of the Mexican drug war in the 1980s as the Guadalajara cartel climbs to power.' },
+  { id: 'tt11737520', name: 'One Piece', type: 'series', year: 2023, imdbRating: '8.3', genres: ['Action', 'Adventure', 'Comedy', 'Fantasy'], moviedb_id: 111110, seasonsCount: 1, epsPerSeason: 8, description: 'In a seafaring world, a young pirate captain sets out with his crew to attain the title of Pirate King, and to discover the mythical treasure known as One Piece.' },
+  { id: 'tt0388629', name: 'One Piece (Anime)', type: 'series', year: 1999, imdbRating: '9.0', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 37854, seasonsCount: 20, epsPerSeason: 25, description: 'Monkey D. Luffy and his pirate crew explore the fantastical seas and islands in search of the world\'s ultimate treasure.' },
+  { id: 'tt2098220', name: 'Hunter x Hunter', type: 'series', year: 2011, imdbRating: '9.0', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 46298, seasonsCount: 6, epsPerSeason: 24, description: 'Gon Freecss aspires to become a Hunter, an exceptional being capable of greatness. With his friends, he takes on the rigorous Hunter Examination.' },
+  { id: 'tt14986406', name: 'Bleach: Thousand-Year Blood War', type: 'series', year: 2022, imdbRating: '9.0', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 209867, seasonsCount: 3, epsPerSeason: 13, description: 'The peace is suddenly broken when warning sirens blare through the Soul Society. Residents are disappearing without a trace.' },
+  { id: 'tt10233448', name: 'Vinland Saga', type: 'series', year: 2019, imdbRating: '8.8', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 86034, seasonsCount: 2, epsPerSeason: 24, description: 'Thorfinn pursues a journey with his father\'s killer in order to take revenge and end his life in a duel as an honorable warrior.' },
+  { id: 'tt13616990', name: 'Chainsaw Man', type: 'series', year: 2022, imdbRating: '8.4', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 114410, seasonsCount: 1, epsPerSeason: 12, description: 'Following a betrayal, Denji is left for dead. In his final moments, he makes a contract with his pet devil-dog Pochita, resurrecting as Chainsaw Man.' },
+  { id: 'tt12590266', name: 'Cyberpunk: Edgerunners', type: 'series', year: 2022, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi'], moviedb_id: 105248, seasonsCount: 1, epsPerSeason: 10, description: 'A street kid trying to survive in a technology and body modification-obsessed city of the future chooses to stay alive by becoming an edgerunner.' },
+  { id: 'tt21209876', name: 'Solo Leveling', type: 'series', year: 2024, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 205321, seasonsCount: 1, epsPerSeason: 12, description: 'In a world where hunters must battle deadly monsters, Sung Jinwoo, known as the weakest hunter of all mankind, finds a quest to level up infinitely.' },
+  { id: 'tt13309710', name: 'Blue Eye Samurai', type: 'series', year: 2023, imdbRating: '8.7', genres: ['Animation', 'Action', 'Adventure'], moviedb_id: 209859, seasonsCount: 1, epsPerSeason: 8, description: 'In Edo-period Japan, a mixed-race master of the sword lives a life in disguise while seeking revenge against those who made her an outcast.' },
+  { id: 'tt6517102', name: 'Castlevania', type: 'series', year: 2017, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy'], moviedb_id: 71024, seasonsCount: 4, epsPerSeason: 8, description: 'A vampire hunter fights to save a besieged city from an army of otherworldly beasts controlled by Dracula himself.' },
+  { id: 'tt0213338', name: 'Cowboy Bebop', type: 'series', year: 1998, imdbRating: '8.9', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi'], moviedb_id: 1412, seasonsCount: 1, epsPerSeason: 26, description: 'The futuristic misadventures and tragedies of an easygoing bounty hunter and his partners across the solar system.' },
+  { id: 'tt0374463', name: 'The Pacific', type: 'series', year: 2010, imdbRating: '8.3', genres: ['Action', 'Adventure', 'Drama', 'War'], moviedb_id: 16997, seasonsCount: 1, epsPerSeason: 10, description: 'A 10-part mini-series from the creators of Band of Brothers tracking the intertwined real-life stories of three U.S. Marines in the Pacific Theater.' },
+  { id: 'tt0384766', name: 'Rome', type: 'series', year: 2005, imdbRating: '8.7', genres: ['Action', 'Drama', 'History'], moviedb_id: 1807, seasonsCount: 2, epsPerSeason: 11, description: 'A down-to-earth chronicle of the lives of two ordinary Roman soldiers during the tumultuous last days of the Roman Republic.' },
+  { id: 'tt0357336', name: 'Deadwood', type: 'series', year: 2004, imdbRating: '8.6', genres: ['Crime', 'Drama', 'Western'], moviedb_id: 2470, seasonsCount: 3, epsPerSeason: 12, description: 'A show set in the late 1800s, revolving around the characters of Deadwood, South Dakota; a town of deep corruption and crime.' },
+  { id: 'tt1489428', name: 'Justified', type: 'series', year: 2010, imdbRating: '8.6', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 14658, seasonsCount: 6, epsPerSeason: 13, description: 'U.S. Marshal Raylan Givens is reassigned from Miami to his childhood home in the poor, rural coal-mining towns of eastern Kentucky.' },
+  { id: 'tt2017109', name: 'Banshee', type: 'series', year: 2013, imdbRating: '8.4', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 43348, seasonsCount: 4, epsPerSeason: 10, description: 'An ex-con assumes the identity of a murdered sheriff in the small Amish town of Banshee, where he continues his criminal activities.' },
+  { id: 'tt1442449', name: 'Spartacus', type: 'series', year: 2010, imdbRating: '8.5', genres: ['Action', 'Adventure', 'Biography', 'Drama'], moviedb_id: 46261, seasonsCount: 3, epsPerSeason: 11, description: 'The life of Spartacus, the gladiator who lead a rebellion against the Romans. From his time as an ally of the Romans, to his betrayal and rebirth as a gladiator.' },
+  { id: 'tt1796960', name: 'Homeland', type: 'series', year: 2011, imdbRating: '8.3', genres: ['Crime', 'Drama', 'Mystery', 'Thriller'], moviedb_id: 1407, seasonsCount: 8, epsPerSeason: 12, description: 'A bipolar CIA operative becomes convinced a prisoner of war has been turned by al-Qaeda and is planning to carry out a terrorist attack on American soil.' },
+  { id: 'tt0285331', name: '24', type: 'series', year: 2001, imdbRating: '8.4', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 1973, seasonsCount: 9, epsPerSeason: 24, description: 'Counter Terrorist agent Jack Bauer races against the clock to subvert terrorist plots and save his nation from ultimate disaster.' },
+  { id: 'tt5057054', name: 'Jack Ryan', type: 'series', year: 2018, imdbRating: '8.0', genres: ['Action', 'Drama', 'Thriller'], moviedb_id: 73586, seasonsCount: 4, epsPerSeason: 8, description: 'An up-and-coming CIA analyst, Jack Ryan, is thrust into a dangerous field assignment as he uncovers a pattern in terrorist communication.' },
+  { id: 'tt1839578', name: 'Person of Interest', type: 'series', year: 2011, imdbRating: '8.5', genres: ['Action', 'Crime', 'Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 1411, seasonsCount: 5, epsPerSeason: 22, description: 'An ex-CIA agent and a mysterious billionaire programmer prevent violent crimes with the help of an all-seeing artificial surveillance intelligence.' },
+  { id: 'tt1119644', name: 'Fringe', type: 'series', year: 2008, imdbRating: '8.4', genres: ['Drama', 'Mystery', 'Sci-Fi', 'Thriller'], moviedb_id: 1705, seasonsCount: 5, epsPerSeason: 20, description: 'An F.B.I. agent is forced to work with an institutionalized scientist and his son in order to rationalize a brewing storm of unexplained phenomena.' },
+  { id: 'tt0475784', name: 'Westworld', type: 'series', year: 2016, imdbRating: '8.5', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 63247, seasonsCount: 4, epsPerSeason: 9, description: 'At the intersection of the near future and the reimagined past, waiting a world in which every human appetite can be indulged without consequence.' },
+  { id: 'tt6763664', name: 'The Haunting of Hill House', type: 'series', year: 2018, imdbRating: '8.6', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 72844, seasonsCount: 1, epsPerSeason: 10, description: 'Flashing between past and present, a fractured family confronts haunting memories of their old home and the terrifying events that drove them from it.' },
+  { id: 'tt10574558', name: 'Midnight Mass', type: 'series', year: 2021, imdbRating: '7.7', genres: ['Drama', 'Fantasy', 'Horror', 'Mystery'], moviedb_id: 93812, seasonsCount: 1, epsPerSeason: 7, description: 'An isolated island community experiences miraculous events - and frightening omens - after the arrival of a charismatic, mysterious young priest.' },
+  { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' }
 ];
 
 // Core Curated Media enriched with posters/backdrops
@@ -262,7 +443,8 @@ const CORE_CURATED_MEDIA = RAW_CURATED_MEDIA.map(m => {
     poster,
     background,
     imdb_id: m.id,
-    releaseInfo: String(m.year)
+    releaseInfo: String(m.year),
+    _isProcedural: false
   };
   if (item.type === 'series') {
     Object.defineProperty(item, 'videos', {
@@ -278,6 +460,85 @@ const CORE_CURATED_MEDIA = RAW_CURATED_MEDIA.map(m => {
   }
   return item;
 }).filter(isSafeContent);
+
+/**
+ * Universal SVG cover generator for instant, non-failing, Netflix-aesthetic posters
+ */
+function generateCinematicCover(title, genre, year, rating, type) {
+  const g = String(genre || 'Action').trim();
+  const y = String(year || '2024');
+  const r = String(rating || '8.2');
+  const isSeries = type === 'series';
+
+  let g1 = '#1a0003', g2 = '#3a0d14', accent = '#E50914';
+  if (/sci-fi|fantasy|cyber/i.test(g)) {
+    g1 = '#060d24'; g2 = '#1b1b4b'; accent = '#00d2ff';
+  } else if (/crime|noir|gang/i.test(g)) {
+    g1 = '#121212'; g2 = '#2b2118'; accent = '#e5a00d';
+  } else if (/thriller|mystery/i.test(g)) {
+    g1 = '#09151c'; g2 = '#142938'; accent = '#38ef7d';
+  } else if (/comedy|animation|family/i.test(g)) {
+    g1 = '#1f0d2b'; g2 = '#3d1654'; accent = '#ff007f';
+  } else if (/drama|biography|history/i.test(g)) {
+    g1 = '#1c150c'; g2 = '#382613'; accent = '#f39c12';
+  } else if (/horror/i.test(g)) {
+    g1 = '#0a0000'; g2 = '#290000'; accent = '#ff1122';
+  }
+
+  const safeTitle = String(title || 'Movie')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+  const words = safeTitle.split(' ');
+  let l1 = '', l2 = '';
+  if (words.length <= 2) {
+    l1 = words.join(' ');
+  } else {
+    const mid = Math.ceil(words.length / 2);
+    l1 = words.slice(0, mid).join(' ');
+    l2 = words.slice(mid).join(' ');
+  }
+
+  const pillWidth = Math.max(64, g.length * 8 + 18);
+  const pillCenter = 22 + pillWidth / 2;
+
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450">',
+      '<defs>',
+        '<linearGradient id="bg" x1="0" y1="0" x2="0.8" y2="1">',
+          '<stop offset="0%" stop-color="' + g2 + '"/>',
+          '<stop offset="60%" stop-color="' + g1 + '"/>',
+          '<stop offset="100%" stop-color="#0a0a0a"/>',
+        '</linearGradient>',
+        '<linearGradient id="cardGrad" x1="0" y1="0.4" x2="0" y2="1">',
+          '<stop offset="0%" stop-color="transparent"/>',
+          '<stop offset="100%" stop-color="rgba(0,0,0,0.92)"/>',
+        '</linearGradient>',
+        '<radialGradient id="glow" cx="50%" cy="30%" r="50%">',
+          '<stop offset="0%" stop-color="' + accent + '" stop-opacity="0.32"/>',
+          '<stop offset="100%" stop-color="transparent"/>',
+        '</radialGradient>',
+      '</defs>',
+      '<rect width="100%" height="100%" fill="url(#bg)"/>',
+      '<circle cx="150" cy="140" r="130" fill="url(#glow)"/>',
+      '<rect width="100%" height="100%" fill="url(#cardGrad)"/>',
+      '<path d="M 22 20 L 36 20 L 26 38 L 36 38 L 36 42 L 20 42 L 30 24 L 20 24 Z" fill="#E50914"/>',
+      '<text x="44" y="34" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="10" font-weight="900" letter-spacing="2" opacity="0.9">' + (isSeries ? 'SERIES' : 'FILM') + '</text>',
+      '<rect x="22" y="318" width="' + pillWidth + '" height="20" rx="10" fill="rgba(255,255,255,0.12)"/>',
+      '<text x="' + pillCenter + '" y="332" fill="' + accent + '" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="10" font-weight="700" text-anchor="middle" letter-spacing="0.5">' + g.toUpperCase() + '</text>',
+      '<text x="22" y="' + (l2 ? 362 : 380) + '" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="' + (l1.length > 16 ? 18 : 22) + '" font-weight="900" letter-spacing="-0.5">' + l1 + '</text>',
+      (l2 ? '<text x="22" y="390" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="' + (l2.length > 16 ? 18 : 22) + '" font-weight="900" letter-spacing="-0.5">' + l2 + '</text>' : ''),
+      '<text x="22" y="424" fill="#a3a3a3" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="12" font-weight="600">' + y + '</text>',
+      '<text x="70" y="424" fill="#ffb800" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="12" font-weight="800">★ ' + r + '</text>',
+      '<rect x="22" y="438" width="256" height="2" fill="' + accent + '" opacity="0.6"/>',
+    '</svg>'
+  ].join('');
+
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
 
 // Themed vocabulary for deterministic expansion
 const VOCAB_ADJ = [
@@ -469,8 +730,9 @@ function buildExpandedMovies(count = 50000) {
       genres,
       moviedb_id: 500000 + i,
       description: `A suspenseful cinematic journey following an elite team confronting ${title} amid unraveling stakes.`,
-      poster: `https://images.metahub.space/poster/medium/${id}/img`,
-      background: `https://images.metahub.space/background/medium/${id}/img`
+      poster: generateCinematicCover(title, genres[0], year, rating, 'movie'),
+      background: generateCinematicCover(title, genres[0], year, rating, 'movie'),
+      _isProcedural: true
     };
   }
   return arr;
@@ -533,8 +795,9 @@ function buildExpandedSeries(count = 30000) {
       seasonsCount,
       epsPerSeason,
       description: `An acclaimed television drama exploring deep-seated conspiracies and personal loyalty in ${title}.`,
-      poster: `https://images.metahub.space/poster/medium/${id}/img`,
-      background: `https://images.metahub.space/background/medium/${id}/img`,
+      poster: generateCinematicCover(title, genres[0], year, rating, 'series'),
+      background: generateCinematicCover(title, genres[0], year, rating, 'series'),
+      _isProcedural: true,
       get videos() {
         if (!this._cachedVideos) {
           this._cachedVideos = generateSeriesVideos(this);
@@ -566,19 +829,20 @@ function searchCurated(query, limit = 200) {
   if (!query || typeof query !== 'string') return [];
   const q = query.toLowerCase().trim();
   if (!q) return [];
-  const results = [];
+  const realMatches = [];
+  const procMatches = [];
   for (let i = 0; i < CURATED_MEDIA.length; i++) {
     const m = CURATED_MEDIA[i];
-    if (
-      (m.name && m.name.toLowerCase().includes(q)) ||
-      (m.genres && m.genres.some(g => g.toLowerCase().includes(q))) ||
-      (m.description && m.description.toLowerCase().includes(q))
-    ) {
-      results.push(m);
-      if (limit && results.length >= limit) break;
+    const nameMatch = m.name && m.name.toLowerCase().includes(q);
+    const genreMatch = m.genres && m.genres.some(g => g.toLowerCase().includes(q));
+    const descMatch = m.description && m.description.toLowerCase().includes(q);
+    if (nameMatch || genreMatch || descMatch) {
+      if (!m._isProcedural) realMatches.push(m);
+      else procMatches.push(m);
+      if (limit && realMatches.length + procMatches.length >= limit * 2) break;
     }
   }
-  return results;
+  return [...realMatches, ...procMatches].slice(0, limit);
 }
 
 function getCuratedMovies(offset = 0, limit = 48) {
@@ -597,135 +861,155 @@ function getCuratedForCategory(catId) {
   const movies = CURATED_MOVIES;
   const series = CURATED_SERIES;
 
+  // Prioritize real curated items FIRST, then procedural items to meet quota
+  const pick = (list, filterFn, count = 60) => {
+    const real = [];
+    const proc = [];
+    for (let i = 0; i < list.length; i++) {
+      const m = list[i];
+      if (filterFn(m)) {
+        if (!m._isProcedural) real.push(m);
+        else proc.push(m);
+      }
+    }
+    return [...real, ...proc].slice(0, count);
+  };
+
   switch (catId) {
     case 'top10':
-      return [...movies.slice(0, 5), ...series.slice(0, 5)];
+      return [
+        ...movies.filter(m => !m._isProcedural).slice(0, 5),
+        ...series.filter(s => !s._isProcedural).slice(0, 5)
+      ];
     case 'popular_movies':
-      return movies.slice(5, 65);
+      return pick(movies, () => true, 60);
     case 'popular_series':
-      return series.slice(5, 65);
+      return pick(series, () => true, 60);
     case 'toprated_movies':
-      return movies.filter(m => parseFloat(m.imdbRating) >= 8.0).slice(70, 130);
+      return pick(movies, m => parseFloat(m.imdbRating) >= 8.0, 60);
     case 'toprated_series':
     case 'prestige_tv':
-      return series.filter(m => parseFloat(m.imdbRating) >= 8.0).slice(70, 130);
+      return pick(series, m => parseFloat(m.imdbRating) >= 8.2, 60);
     case 'action':
     case 'action_blockbusters':
-      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(150, 210);
+      return pick(movies, m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure')), 60);
     case 'action_series':
-      return series.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure'))).slice(150, 210);
+      return pick(series, m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure')), 60);
     case 'scifi':
     case 'scifi_classics':
-      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(220, 280);
+      return pick(movies, m => m.genres && (m.genres.includes('Sci-Fi') || m.genres.includes('Fantasy')), 60);
     case 'sci_series':
-      return series.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(220, 280);
+      return pick(series, m => m.genres && m.genres.includes('Sci-Fi'), 60);
     case 'crime':
     case 'crime_noir':
-      return movies.filter(m => m.genres && m.genres.includes('Crime')).slice(290, 350);
+      return pick(movies, m => m.genres && m.genres.includes('Crime'), 60);
     case 'heist':
-      return movies.filter(m => m.genres && (m.genres.includes('Crime') || m.genres.includes('Action'))).slice(360, 420);
+      return pick(movies, m => m.genres && (m.genres.includes('Crime') || m.genres.includes('Action')), 60);
     case 'thriller':
-      return movies.filter(m => m.genres && m.genres.includes('Thriller')).slice(430, 490);
+      return pick(movies, m => m.genres && m.genres.includes('Thriller'), 60);
     case 'mystery':
     case 'psychological_thrillers':
-      return movies.filter(m => m.genres && (m.genres.includes('Mystery') || m.genres.includes('Drama'))).slice(500, 560);
+      return pick(movies, m => m.genres && (m.genres.includes('Mystery') || m.genres.includes('Drama')), 60);
     case 'comedy':
     case 'feelgood_comedy':
-      return movies.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Comedy'), 60);
     case 'comedy_series':
-      return series.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Comedy'), 60);
     case 'drama':
-      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(570, 630);
+      return pick(series, m => m.genres && m.genres.includes('Drama'), 60);
     case 'drama_movies':
     case 'award_winners':
-      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(640, 700);
+      return pick(movies, m => m.genres && m.genres.includes('Drama'), 60);
     case 'animation':
     case 'anime_hits':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Animation')).slice(0, 60);
+      return pick(CURATED_MEDIA, m => m.genres && m.genres.includes('Animation'), 60);
     case 'family':
     case 'family_adventures':
-      return movies.filter(m => m.genres && (m.genres.includes('Family') || m.genres.includes('Adventure'))).slice(710, 770);
+      return pick(movies, m => m.genres && (m.genres.includes('Family') || m.genres.includes('Animation')), 60);
     case 'superhero':
     case 'superhero_saga':
-      return CURATED_MEDIA.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Fantasy'))).slice(780, 840);
+      return pick(CURATED_MEDIA, m => m.genres && (m.genres.includes('Action') || m.genres.includes('Fantasy')), 60);
     case 'fantasy':
-      return movies.filter(m => m.genres && m.genres.includes('Fantasy')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Fantasy'), 60);
     case 'horror':
-      return movies.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(850, 910);
+      return pick(movies, m => m.genres && (m.genres.includes('Horror') || m.genres.includes('Thriller')), 60);
     case 'epic_history':
-      return movies.filter(m => m.genres && (m.genres.includes('History') || m.genres.includes('Drama'))).slice(920, 980);
+      return pick(movies, m => m.genres && (m.genres.includes('History') || m.genres.includes('War')), 60);
     case 'doc':
-      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(990, 1050);
+      return pick(series, m => m.genres && (m.genres.includes('Biography') || m.genres.includes('History') || m.genres.includes('Drama')), 60);
     case 'new_releases':
-      return [...movies.slice(0, 30), ...series.slice(0, 30)];
+      return [
+        ...movies.filter(m => !m._isProcedural && m.year >= 2022).slice(0, 30),
+        ...series.filter(s => !s._isProcedural && s.year >= 2022).slice(0, 30)
+      ];
     case 'global_cinema':
-      return movies.slice(1060, 1120);
+      return pick(movies, m => parseFloat(m.imdbRating) >= 7.8, 60);
 
     // Browse categories: TV Shows
     case 'b_series_top':
-      return series.slice(10, 70);
+      return pick(series, () => true, 60);
     case 'b_series_rated':
-      return series.filter(m => parseFloat(m.imdbRating) >= 8.2).slice(0, 60);
+      return pick(series, m => parseFloat(m.imdbRating) >= 8.2, 60);
     case 'b_series_crime':
-      return series.filter(m => m.genres && m.genres.includes('Crime')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Crime'), 60);
     case 'b_series_action':
-      return series.filter(m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure'))).slice(0, 60);
+      return pick(series, m => m.genres && (m.genres.includes('Action') || m.genres.includes('Adventure')), 60);
     case 'b_series_scifi':
-      return series.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Sci-Fi'), 60);
     case 'b_series_drama':
-      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(100, 160);
+      return pick(series, m => m.genres && m.genres.includes('Drama'), 60);
     case 'b_series_comedy':
-      return series.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Comedy'), 60);
     case 'b_series_anime':
-      return CURATED_MEDIA.filter(m => m.genres && m.genres.includes('Animation')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Animation'), 60);
     case 'b_series_fantasy':
-      return series.filter(m => m.genres && m.genres.includes('Fantasy')).slice(0, 60);
+      return pick(series, m => m.genres && (m.genres.includes('Fantasy') || m.genres.includes('Sci-Fi')), 60);
     case 'b_series_doc':
-      return series.filter(m => m.genres && m.genres.includes('Drama')).slice(200, 260);
+      return pick(series, m => m.genres && (m.genres.includes('History') || m.genres.includes('Biography')), 60);
     case 'b_series_mystery':
-      return series.filter(m => m.genres && m.genres.includes('Mystery')).slice(0, 60);
+      return pick(series, m => m.genres && m.genres.includes('Mystery'), 60);
     case 'b_series_horror':
-      return series.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(0, 60);
+      return pick(series, m => m.genres && (m.genres.includes('Horror') || m.genres.includes('Thriller')), 60);
 
     // Browse categories: Movies
     case 'b_mov_top':
-      return movies.slice(10, 70);
+      return pick(movies, () => true, 60);
     case 'b_mov_rated':
-      return movies.filter(m => parseFloat(m.imdbRating) >= 8.2).slice(0, 60);
+      return pick(movies, m => parseFloat(m.imdbRating) >= 8.0, 60);
     case 'b_mov_action':
-      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Action'), 60);
     case 'b_mov_scifi':
-      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Sci-Fi'), 60);
     case 'b_mov_thriller':
-      return movies.filter(m => m.genres && m.genres.includes('Thriller')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Thriller'), 60);
     case 'b_mov_comedy':
-      return movies.filter(m => m.genres && m.genres.includes('Comedy')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Comedy'), 60);
     case 'b_mov_horror':
-      return movies.filter(m => m.genres && (m.genres.includes('Thriller') || m.genres.includes('Mystery'))).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Horror'), 60);
     case 'b_mov_romance':
-      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(300, 360);
+      return pick(movies, m => m.genres && m.genres.includes('Romance'), 60);
     case 'b_mov_family':
-      return movies.filter(m => m.genres && (m.genres.includes('Family') || m.genres.includes('Adventure'))).slice(0, 60);
+      return pick(movies, m => m.genres && (m.genres.includes('Family') || m.genres.includes('Animation')), 60);
     case 'b_mov_doc':
-      return movies.filter(m => m.genres && m.genres.includes('Drama')).slice(400, 460);
+      return pick(movies, m => m.genres && (m.genres.includes('History') || m.genres.includes('Biography')), 60);
     case 'b_mov_crime':
-      return movies.filter(m => m.genres && m.genres.includes('Crime')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Crime'), 60);
     case 'b_mov_adventure':
-      return movies.filter(m => m.genres && m.genres.includes('Adventure')).slice(0, 60);
+      return pick(movies, m => m.genres && m.genres.includes('Adventure'), 60);
 
     // Browse categories: New & Popular
     case 'b_new_mov':
-      return movies.slice(100, 160);
+      return pick(movies, m => m.year >= 2022, 60);
     case 'b_new_series':
-      return series.slice(100, 160);
+      return pick(series, m => m.year >= 2022, 60);
     case 'b_new_top':
-      return movies.slice(0, 10);
+      return movies.filter(m => !m._isProcedural).slice(0, 10);
     case 'b_new_top_series':
-      return series.slice(0, 10);
+      return series.filter(s => !s._isProcedural).slice(0, 10);
     case 'b_new_action':
-      return movies.filter(m => m.genres && m.genres.includes('Action')).slice(50, 110);
+      return pick(movies, m => m.genres && m.genres.includes('Action') && m.year >= 2021, 60);
     case 'b_new_scifi':
-      return movies.filter(m => m.genres && m.genres.includes('Sci-Fi')).slice(50, 110);
+      return pick(movies, m => m.genres && m.genres.includes('Sci-Fi') && m.year >= 2021, 60);
 
     default:
       return [];
@@ -767,7 +1051,10 @@ function auditCatalog(extraList = []) {
 const CuratedCatalog = {
   CURATED_MEDIA,
   CURATED_MAP,
+  CURATED_MOVIES,
+  CURATED_SERIES,
   CANONICAL_SERIES_METRICS,
+  generateCinematicCover,
   isSafeContent,
   getCuratedById,
   searchCurated,
@@ -782,6 +1069,7 @@ const CuratedCatalog = {
 if (typeof window !== 'undefined') {
   window.CuratedCatalog = CuratedCatalog;
   window.isSafeContent = isSafeContent;
+  window.generateCinematicCover = generateCinematicCover;
 }
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CuratedCatalog;

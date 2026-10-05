@@ -337,8 +337,61 @@ async function getJSON(url) {
   if (!r.ok) throw new Error('Fetch failed');
   return r.json();
 }
-const poster = m => m.poster || m.background || '';
-const backdrop = m => m.background || m.poster || '';
+function createPosterFallback(title, genre = 'Drama', year = '2024', rating = '8.2', type = 'movie') {
+  if (typeof CuratedCatalog !== 'undefined' && typeof CuratedCatalog.generateCinematicCover === 'function') {
+    return CuratedCatalog.generateCinematicCover(title || 'Feature Film', genre || 'Cinema', year || '2024', rating || '8.2', type || 'movie');
+  }
+  const cleanTitle = String(title || 'Featured Film').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const cleanGenre = String(genre || (type === 'series' ? 'TV SERIES' : 'CINEMA')).toUpperCase();
+  const cleanYear = String(year || '2024');
+  const cleanRating = String(rating || '8.2');
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450">',
+      '<defs>',
+        '<linearGradient id="bgG" x1="0%" y1="0%" x2="100%" y2="100%">',
+          '<stop offset="0%" stop-color="#141414"/>',
+          '<stop offset="50%" stop-color="#1f1a24"/>',
+          '<stop offset="100%" stop-color="#0a0a0c"/>',
+        '</linearGradient>',
+      '</defs>',
+      '<rect width="100%" height="100%" fill="url(#bgG)"/>',
+      '<rect x="0" y="0" width="300" height="4" fill="#E50914"/>',
+      '<text x="24" y="44" fill="#E50914" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="900" font-size="28">N</text>',
+      '<rect x="24" y="60" width="70" height="20" rx="4" fill="rgba(255,255,255,0.12)"/>',
+      '<text x="59" y="74" fill="#ffb800" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="700" font-size="10" text-anchor="middle">' + cleanGenre.slice(0, 10) + '</text>',
+      '<text x="24" y="340" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="900" font-size="22">' + cleanTitle.slice(0, 22) + '</text>',
+      (cleanTitle.length > 22 ? '<text x="24" y="370" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="900" font-size="20">' + cleanTitle.slice(22, 44) + '</text>' : ''),
+      '<text x="24" y="410" fill="#46d369" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="700" font-size="12">★ ' + cleanRating + '  ' + cleanYear + '</text>',
+    '</svg>'
+  ].join('');
+  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+}
+
+if (typeof window !== 'undefined') {
+  window.createPosterFallback = createPosterFallback;
+}
+
+const poster = m => {
+  if (!m) return createPosterFallback('Feature');
+  if (m.poster && !m.poster.includes('images.metahub.space/poster/medium/tt3') && !m.poster.includes('images.metahub.space/poster/medium/tt7')) {
+    return m.poster;
+  }
+  if (m.background && !m.background.includes('images.metahub.space/background/medium/tt3') && !m.background.includes('images.metahub.space/background/medium/tt7')) {
+    return m.background;
+  }
+  return createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie');
+};
+
+const backdrop = m => {
+  if (!m) return createPosterFallback('Feature');
+  if (m.background && !m.background.includes('images.metahub.space/background/medium/tt3') && !m.background.includes('images.metahub.space/background/medium/tt7')) {
+    return m.background;
+  }
+  if (m.poster && !m.poster.includes('images.metahub.space/poster/medium/tt3') && !m.poster.includes('images.metahub.space/poster/medium/tt7')) {
+    return m.poster;
+  }
+  return createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie');
+};
 function matchScore(m) {
   const r = parseFloat(m.imdbRating);
   if (!r || isNaN(r)) return 98;
@@ -550,19 +603,17 @@ async function buildHome() {
         pool = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0));
       }
 
-      // Cross-row home screen deduplication: prioritize titles not yet seen in previous categories!
-      const freshItems = pool.filter(m => !seenHomeIds.has(m.id));
+      // Cross-row home screen deduplication:
+      // Real curated titles (blockbusters, iconic series) remain in their genuine genre rows,
+      // while procedural titles are strictly deduplicated so users never see the same synthetic cards repeated.
+      const curatedReal = pool.filter(m => !m._isProcedural);
+      const proceduralPool = pool.filter(m => m._isProcedural && !seenHomeIds.has(m.id));
+      const freshPool = [...curatedReal, ...proceduralPool];
       const max = r.limit || 60;
+      items = (freshPool.length >= 10 ? freshPool : pool).slice(0, max);
 
-      if (freshItems.length >= 10) {
-        items = freshItems.slice(0, max);
-      } else {
-        const alreadySeen = pool.filter(m => seenHomeIds.has(m.id));
-        items = [...freshItems, ...alreadySeen].slice(0, max);
-      }
-
-      // Mark these items as seen so subsequent rows won't repeat them
-      items.slice(0, 25).forEach(m => {
+      // Track items shown to prevent repeating procedural cards in later rows
+      items.forEach(m => {
         if (m && m.id) seenHomeIds.add(m.id);
       });
     }
@@ -658,7 +709,7 @@ function openCardPortal(card, m, badge, rank) {
     <div class="portal-thumb-wrap">
       ${badgeMarkup}
       ${top10Html}
-      <img src="${backdrop(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='${poster(m)}'">
+      <img src="${backdrop(m)}" alt="${(m.name || '').replace(/"/g, '')}">
       <div class="portal-thumb-grad"></div>
     </div>
     <div class="portal-info">
@@ -695,6 +746,14 @@ function openCardPortal(card, m, badge, rank) {
       <div class="genres-line">${genresStr}</div>
     </div>
   `;
+
+  const portalImg = portal.querySelector('img');
+  if (portalImg) {
+    portalImg.onerror = function() {
+      this.onerror = null;
+      this.src = createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie');
+    };
+  }
 
   portal.style.display = 'block';
   void portal.offsetWidth;
@@ -830,10 +889,18 @@ function buildCard(m, badge, rank) {
       ${top10Html}
       ${finishToggleBtn}
       ${removeBtn}
-      <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22450%22><rect width=%22100%25%22 height=%22100%25%22 fill=%22%23181818%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23777%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>${encodeURIComponent((m.name || '?').slice(0, 18))}</text></svg>'">
+      <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}">
       ${prog}
     </div>
   `;
+
+  const cardImg = el.querySelector('img');
+  if (cardImg) {
+    cardImg.onerror = function() {
+      this.onerror = null;
+      this.src = createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type);
+    };
+  }
 
   // Authentic Netflix hover intent delay
   el.addEventListener('mouseenter', () => onCardMouseEnter(el, m, badge, rank));
@@ -1163,7 +1230,7 @@ async function openDetail(id, type, autoplay) {
             d.innerHTML = `
               <div class="ep-num">${epNum}</div>
               <div class="ep-thumb">
-                <img src="${v.thumbnail || m.background || m.poster}" alt="Episode thumbnail" onerror="this.src='${backdrop(m)}'">
+                <img src="${v.thumbnail || m.background || m.poster}" alt="Episode thumbnail">
                 <div class="ep-play">
                   <div class="ep-play-circle">
                     <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
@@ -1178,6 +1245,13 @@ async function openDetail(id, type, autoplay) {
                 <div class="ep-desc">${(v.overview || 'No description available.').slice(0, 150)}</div>
               </div>
             `;
+            const epImg = d.querySelector('.ep-thumb img');
+            if (epImg) {
+              epImg.onerror = function() {
+                this.onerror = null;
+                this.src = createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'series');
+              };
+            }
             d.onclick = () => {
               currentDetail.ep = { s, e: epNum };
               playEpisode(s, epNum);
@@ -1210,7 +1284,7 @@ async function openDetail(id, type, autoplay) {
         const d = document.createElement('div');
         d.className = 'sim';
         d.innerHTML = `
-          <img src="${backdrop(s)}" alt="${s.name}" onerror="this.src='${poster(s)}'">
+          <img src="${backdrop(s)}" alt="${s.name}">
           <div class="sim-info">
             <div class="sim-title">${s.name}</div>
             <div class="sim-meta">
@@ -1219,6 +1293,13 @@ async function openDetail(id, type, autoplay) {
             </div>
           </div>
         `;
+        const simImg = d.querySelector('img');
+        if (simImg) {
+          simImg.onerror = function() {
+            this.onerror = null;
+            this.src = createPosterFallback(s.name, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type);
+          };
+        }
         d.onclick = () => openDetail(s.id, s.type || type, false);
         $('simGrid').appendChild(d);
       });
@@ -1447,16 +1528,14 @@ async function loadCategoryRows(kind) {
     pool = dedupeMetas(pool).filter(isCleanSafe);
     if (!pool.length) continue;
 
-    // Cross-row browse deduplication: prioritize titles not yet seen in previous categories
-    const freshItems = pool.filter(m => !seenBrowseIds.has(m.id));
-    let items;
-    if (freshItems.length >= 10) {
-      items = freshItems.slice(0, 100);
-    } else {
-      const alreadySeen = pool.filter(m => seenBrowseIds.has(m.id));
-      items = [...freshItems, ...alreadySeen].slice(0, 100);
-    }
-    items.slice(0, 25).forEach(m => {
+    // Cross-row browse deduplication:
+    // Real curated titles remain available in their genuine genre categories,
+    // while procedural items are strictly deduplicated so synthetic titles never repeat.
+    const curatedReal = pool.filter(m => !m._isProcedural);
+    const proceduralPool = pool.filter(m => m._isProcedural && !seenBrowseIds.has(m.id));
+    const freshPool = [...curatedReal, ...proceduralPool];
+    const items = (freshPool.length >= 10 ? freshPool : pool).slice(0, 100);
+    items.forEach(m => {
       if (m && m.id) seenBrowseIds.add(m.id);
     });
 

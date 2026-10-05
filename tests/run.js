@@ -119,6 +119,36 @@ if (i18nMatch) {
 check('settingAppLang exists in index.html', html.includes('id="settingAppLang"'));
 check('no blur focus theft of player', !app.includes('document.body?.focus()') && !app.includes('document.body.focus()'));
 
+/* --- cinematic cover & category priority guards --- */
+check('generateCinematicCover exists', typeof CC.generateCinematicCover === 'function');
+const sampleCover = CC.generateCinematicCover('Test Movie', 'Action', 2024, '8.5', 'movie');
+check('generateCinematicCover returns svg data uri', typeof sampleCover === 'string' && sampleCover.startsWith('data:image/svg+xml'));
+
+const actionItems = CC.getCuratedForCategory('action');
+check('action category returns items', actionItems.length > 0);
+check('action category prioritizes real curated items first', !actionItems[0]._isProcedural);
+
+const searchResults = CC.searchCurated('break');
+check('searchCurated prioritizes real curated titles first', searchResults.length > 0 && !searchResults[0]._isProcedural);
+
+const wednesday = allMedia.find(m => m.name.toLowerCase() === 'wednesday');
+check('wednesday exists in catalog', !!wednesday);
+if (wednesday) {
+  const vids = CC.getSeriesVideos(wednesday);
+  check('wednesday has zero season 0', !vids.some(v => v.season === 0));
+}
+
+const prisonBreak = allMedia.find(m => m.name.toLowerCase() === 'prison break');
+check('prison break exists in catalog', !!prisonBreak);
+if (prisonBreak) {
+  const vids = CC.getSeriesVideos(prisonBreak);
+  const pbSeasons = [...new Set(vids.map(v => v.season))];
+  check('prison break has 5 seasons', pbSeasons.length === 5, pbSeasons);
+}
+
+check('app has createPosterFallback', app.includes('function createPosterFallback'));
+check('no raw %20 in card fallback', !app.includes('${encodeURIComponent((m.name || \'?\').slice(0, 18))}'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 
