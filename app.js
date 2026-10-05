@@ -3187,7 +3187,9 @@ HTMLFormElement.prototype.submit = function() {
 });
 
 // Snap focus back if popunder attempts to blur the window during active playback
-// Instantly restores window & tab priority across PC and mobile devices without stealing active element focus inside the player iframe
+// Smart Pop-Under & Ad Guardian:
+// Protects against unauthorized popups, rogue background/foreground tabs, and redirects,
+// while permitting normal player interactions (subtitles/captions, audio, quality, fullscreen, volume, seeking).
 let _focusSnapTimer = null;
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
@@ -3197,14 +3199,44 @@ function snapWindowFocus() {
   }
 }
 
+function isLegitimatePlayerInteraction() {
+  const activeEl = document.activeElement;
+  const isIframe = !!(activeEl && activeEl.tagName === 'IFRAME');
+  const isPlayerChild = !!(activeEl && $('playerView')?.contains(activeEl));
+  const hasFocus = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
+  const isVisible = !document.hidden && document.visibilityState !== 'hidden';
+
+  // If focus is inside the player iframe/controls and document is visible,
+  // this is a normal user interaction (subtitles, audio, scrubber, volume) - do not steal focus!
+  return (isIframe || isPlayerChild) && hasFocus && isVisible;
+}
+
 ['blur', 'visibilitychange', 'pagehide'].forEach(evt => {
   window.addEventListener(evt, () => {
-    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    if (!$('playerView')?.classList.contains('show') || _allowNavigation) {
+      return;
+    }
+
+    // Rogue tab or mobile app switch detected (document hidden or pagehide fired)
+    if (document.hidden || document.visibilityState === 'hidden' || evt === 'pagehide') {
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
-      setTimeout(snapWindowFocus, 45);
-      setTimeout(snapWindowFocus, 120);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 20);
+      setTimeout(snapWindowFocus, 70);
+      return;
+    }
+
+    // Window blur event: do NOT steal focus if the user is interacting with player controls (subtitles, audio, etc.)
+    if (evt === 'blur') {
+      if (isLegitimatePlayerInteraction()) {
+        return;
+      }
+
+      // External popunder window stole OS focus: snap focus back to Netflix tab
+      snapWindowFocus();
+      clearTimeout(_focusSnapTimer);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 30);
+      setTimeout(snapWindowFocus, 80);
     }
   });
 });
@@ -3236,9 +3268,6 @@ let lastPlayerTap = 0;
   document.addEventListener(evt, () => {
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
       lastPlayerTap = Date.now();
-      setTimeout(snapWindowFocus, 25);
-      setTimeout(snapWindowFocus, 75);
-      setTimeout(snapWindowFocus, 160);
     }
   }, true);
 });
