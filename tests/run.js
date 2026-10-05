@@ -158,14 +158,13 @@ check('global window.open popup trap present', app.includes('window.open = funct
 check('self.open popup trap present', app.includes('self.open = window.open'));
 check('navigation lock beforeunload present', app.includes('_allowNavigation'));
 check('focus snap on blur/visibilitychange present', app.includes("'visibilitychange'") && app.includes("window.focus()"));
-check('smart player interaction guard present', app.includes('isLegitimatePlayerInteraction'));
-check('legitimate player actions (subtitles, audio, seeking) not treated as popunders', app.includes('if (isLegitimatePlayerInteraction())') && app.includes('return;'));
-check('pop-under ad detection on hidden document / new tab present', app.includes("document.hidden || document.visibilityState === 'hidden' || evt === 'pagehide'"));
-check('no aggressive click gesture timers that disrupt player controls', !app.includes('setTimeout(snapWindowFocus, 25)'));
+check('proactive gesture focus snap present', app.includes('setTimeout(snapWindowFocus, 25)'));
 check('default subtitle language is Arabic in app.js', app.includes("store.get('nf_sub_lang', 'ar')"));
 check('default subtitle language is Arabic in index.html settingSubLang', html.includes('id="settingSubLang"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
 check('default subtitle language is Arabic in index.html captionModalLangSelect', html.includes('id="captionModalLangSelect"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
 check('player transmits default Arabic subtitles on embed load', app.includes("f.contentWindow?.postMessage({ type: 'SUBTITLE_SET'"));
+check('pSubsTop button in player controls in index.html', html.includes('id="pSubsTop"'));
+check('dispatchSubtitlesToPlayer defined in app.js', app.includes('function dispatchSubtitlesToPlayer('));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

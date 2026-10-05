@@ -2478,6 +2478,7 @@ function initSubtitlesAndPreferences() {
     if (mSize) mSize.value = size;
     updateSubPreview();
     renderCaptionLangPills($('captionLangSearch')?.value || '');
+    dispatchSubtitlesToPlayer(lang);
     toast('Subtitle preferences updated');
   };
 
@@ -2578,6 +2579,7 @@ function initSubtitlesAndPreferences() {
 
       if (sLang) sLang.value = lang;
       if (sSize) sSize.value = size;
+      dispatchSubtitlesToPlayer(lang);
       const langText = mLang?.selectedOptions?.[0]?.text || lang;
       closeCaptionsModal();
       toast(`Captions saved: ${langText}`);
@@ -2898,6 +2900,23 @@ function recordWatchFinish(id) {
   }
 }
 
+function dispatchSubtitlesToPlayer(lang) {
+  const f = $('playerView')?.querySelector('iframe');
+  if (!f || !f.contentWindow) return;
+  const targetSub = lang || store.get('nf_sub_lang', 'ar');
+  const langNames = {
+    ar: 'Arabic', en: 'English', es: 'Spanish', fr: 'French',
+    de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
+    hi: 'Hindi'
+  };
+  const label = langNames[targetSub] || targetSub;
+  try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ event: 'setSubtitle', lang: targetSub }, '*'); } catch {}
+}
+
 function playEmbed(o) {
   if (!o || !o.url) { showPlayerError('This title is unavailable.'); return; }
   currentEmbed = { ...o };
@@ -2919,11 +2938,7 @@ function playEmbed(o) {
 
   const targetSub = store.get('nf_sub_lang', 'ar');
   const sendSubCmd = () => {
-    try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: 'Arabic', code: 'ar', label: 'Arabic' }, '*'); } catch {}
-    try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub }, '*'); } catch {}
-    try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
-    try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
-    try { f.contentWindow?.postMessage({ event: 'setSubtitle', lang: targetSub }, '*'); } catch {}
+    dispatchSubtitlesToPlayer(targetSub);
   };
   f.onload = () => {
     sendSubCmd();
@@ -3201,9 +3216,7 @@ HTMLFormElement.prototype.submit = function() {
 });
 
 // Snap focus back if popunder attempts to blur the window during active playback
-// Smart Pop-Under & Ad Guardian:
-// Protects against unauthorized popups, rogue background/foreground tabs, and redirects,
-// while permitting normal player interactions (subtitles/captions, audio, quality, fullscreen, volume, seeking).
+// Instantly restores window & tab priority across PC and mobile devices without stealing active element focus inside the player iframe
 let _focusSnapTimer = null;
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
@@ -3213,41 +3226,9 @@ function snapWindowFocus() {
   }
 }
 
-function isLegitimatePlayerInteraction() {
-  const activeEl = document.activeElement;
-  const isIframe = !!(activeEl && activeEl.tagName === 'IFRAME');
-  const isPlayerChild = !!(activeEl && $('playerView')?.contains(activeEl));
-  const hasFocus = typeof document.hasFocus === 'function' ? document.hasFocus() : true;
-  const isVisible = !document.hidden && document.visibilityState !== 'hidden';
-
-  // If focus is inside the player iframe/controls and document is visible,
-  // this is a normal user interaction (subtitles, audio, scrubber, volume) - do not steal focus!
-  return (isIframe || isPlayerChild) && hasFocus && isVisible;
-}
-
 ['blur', 'visibilitychange', 'pagehide'].forEach(evt => {
   window.addEventListener(evt, () => {
-    if (!$('playerView')?.classList.contains('show') || _allowNavigation) {
-      return;
-    }
-
-    // Rogue tab or mobile app switch detected (document hidden or pagehide fired)
-    if (document.hidden || document.visibilityState === 'hidden' || evt === 'pagehide') {
-      snapWindowFocus();
-      clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
-      setTimeout(snapWindowFocus, 45);
-      setTimeout(snapWindowFocus, 120);
-      return;
-    }
-
-    // Window blur event: do NOT steal focus if the user is interacting with player controls (subtitles, audio, etc.)
-    if (evt === 'blur') {
-      if (isLegitimatePlayerInteraction()) {
-        return;
-      }
-
-      // External popunder window stole OS focus: snap focus back to Netflix tab
+    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
       _focusSnapTimer = setTimeout(snapWindowFocus, 15);
@@ -3284,6 +3265,9 @@ let lastPlayerTap = 0;
   document.addEventListener(evt, () => {
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
       lastPlayerTap = Date.now();
+      setTimeout(snapWindowFocus, 25);
+      setTimeout(snapWindowFocus, 75);
+      setTimeout(snapWindowFocus, 160);
     }
   }, true);
 });
