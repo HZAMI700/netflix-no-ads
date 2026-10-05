@@ -3100,6 +3100,8 @@ window.open = function(url, target, features) {
 try { Window.prototype.open = window.open; } catch {}
 try { window.open = window.open; } catch {}
 try { self.open = window.open; } catch {}
+try { top.open = window.open; } catch {}
+try { parent.open = window.open; } catch {}
 
 
 // Intercept programmatic anchor clicks targeting _blank or _top
@@ -3185,17 +3187,24 @@ HTMLFormElement.prototype.submit = function() {
 });
 
 // Snap focus back if popunder attempts to blur the window during active playback
-// NOTE: NEVER pull focus away when focus is inside the player iframe (e.g. user selecting subtitles/language/audio)
+// Instantly restores window & tab priority across PC and mobile devices without stealing active element focus inside the player iframe
+let _focusSnapTimer = null;
+function snapWindowFocus() {
+  if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    try { window.focus(); } catch {}
+    try { window.top?.focus(); } catch {}
+    try { self.focus(); } catch {}
+  }
+}
+
 ['blur', 'visibilitychange', 'pagehide'].forEach(evt => {
   window.addEventListener(evt, () => {
-    if (document.activeElement && document.activeElement.tagName === 'IFRAME') {
-      return;
-    }
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-      setTimeout(() => {
-        if (document.activeElement && document.activeElement.tagName === 'IFRAME') return;
-        try { window.focus(); } catch {}
-      }, 50);
+      snapWindowFocus();
+      clearTimeout(_focusSnapTimer);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
+      setTimeout(snapWindowFocus, 45);
+      setTimeout(snapWindowFocus, 120);
     }
   });
 });
@@ -3218,46 +3227,21 @@ function disarmVidShield() {
 }
 
 function armVidShield() {
-  let shield = $('vidShield');
-  if (!shield) {
-    shield = document.createElement('div');
-    shield.id = 'vidShield';
-    shield.style.cssText = 'position:absolute;inset:0;z-index:4;display:block;cursor:pointer;background:transparent';
-    $('playerView')?.insertBefore(shield, $('pTop'));
-  }
-  shield.style.display = 'block';
-
-  const handleShieldInteraction = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    // Neutralize initial ad-trigger overlay gesture in parent window
-    shield.style.display = 'none';
-    clearTimeout(shieldDisarmTimer);
-
-    const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe) {
-      try { iframe.focus(); } catch {}
-      try { iframe.contentWindow.postMessage({ type: 'PLAYER_CONTROL', event: 'play', action: 'play' }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage({ method: 'play' }, '*'); } catch {}
-      try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'); } catch {}
-    }
-  };
-
-  shield.onclick = handleShieldInteraction;
-  shield.ontouchstart = (e) => { e.stopPropagation(); };
-  shield.ontouchend = (e) => {
-    e.stopPropagation();
-    handleShieldInteraction(e);
-  };
+  const shield = $('vidShield');
+  if (shield) shield.style.display = 'none';
 }
 
 let lastPlayerTap = 0;
-document.addEventListener('pointerdown', () => {
-  if ($('playerView')?.classList.contains('show')) {
-    lastPlayerTap = Date.now();
-  }
-}, true);
+['pointerdown', 'touchstart', 'click'].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+      lastPlayerTap = Date.now();
+      setTimeout(snapWindowFocus, 25);
+      setTimeout(snapWindowFocus, 75);
+      setTimeout(snapWindowFocus, 160);
+    }
+  }, true);
+});
 
 window.addEventListener('message', (event) => {
   if (!EMBED_ORIGINS.includes(event.origin)) return;
