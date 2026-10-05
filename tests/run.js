@@ -149,6 +149,14 @@ if (prisonBreak) {
 check('app has createPosterFallback', app.includes('function createPosterFallback'));
 check('no raw %20 in card fallback', !app.includes('${encodeURIComponent((m.name || \'?\').slice(0, 18))}'));
 
+/* --- popunder & ad blocking guards --- */
+check('player iframe sandboxed', app.includes("f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation')"));
+check('player iframe strictly omits allow-popups', !app.match(/f\.setAttribute\(['"]sandbox['"],[^)]*allow-popups/));
+check('player iframe strictly omits allow-top-navigation', !app.match(/f\.setAttribute\(['"]sandbox['"],[^)]*allow-top-navigation/));
+check('global window.open popup trap present', app.includes('window.open = function(url, target, features)'));
+check('self.open popup trap present', app.includes('self.open = window.open'));
+check('dynamic iframe sandbox guard present', app.includes("String(tagName).toLowerCase() === 'iframe'"));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 

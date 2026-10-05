@@ -2911,6 +2911,10 @@ function playEmbed(o) {
   f.src = o.url;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+  // Sandbox the player iframe: strictly permit playback, scripts, forms & same-origin storage
+  // while omitting allow-popups, allow-top-navigation, allow-modals & allow-downloads to permanently eliminate all popunder ads
+  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+  f.setAttribute('referrerpolicy', 'origin');
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
 }
@@ -3095,6 +3099,29 @@ window.open = function(url, target, features) {
   return null;
 };
 try { Window.prototype.open = window.open; } catch {}
+try { window.open = window.open; } catch {}
+try { self.open = window.open; } catch {}
+
+// Guard dynamically created iframes against unauthorized popup permissions
+const _nativeCreateElement = document.createElement;
+document.createElement = function(tagName, options) {
+  const el = _nativeCreateElement.call(document, tagName, options);
+  if (el && String(tagName).toLowerCase() === 'iframe') {
+    const origSetAttribute = el.setAttribute;
+    el.setAttribute = function(name, val) {
+      if (String(name).toLowerCase() === 'sandbox') {
+        val = String(val)
+          .replace(/allow-popups-to-escape-sandbox/g, '')
+          .replace(/allow-popups/g, '')
+          .replace(/allow-top-navigation-by-user-activation/g, '')
+          .replace(/allow-top-navigation/g, '')
+          .trim();
+      }
+      return origSetAttribute.call(this, name, val);
+    };
+  }
+  return el;
+};
 
 // Intercept programmatic anchor clicks targeting _blank or _top
 const _nativeAnchorClick = HTMLAnchorElement.prototype.click;
@@ -3203,15 +3230,8 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-function disarmVidShield() {
-  const shield = $('vidShield');
-  if (shield) shield.style.display = 'none';
-}
-
-function armVidShield() {
-  const shield = $('vidShield');
-  if (shield) shield.style.display = 'none';
-}
+function disarmVidShield() {}
+function armVidShield() {}
 
 let lastPlayerTap = 0;
 document.addEventListener('pointerdown', () => {
