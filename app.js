@@ -2748,6 +2748,7 @@ if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
   _allowNavigation = true;
+  disarmVidShield();
   closeCaptionsModal();
   closePlayerCustomModal();
   closeDownloadModal();
@@ -2911,12 +2912,10 @@ function playEmbed(o) {
   f.src = o.url;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
-  // Sandbox the player iframe: strictly permit playback, scripts, forms & same-origin storage
-  // while omitting allow-popups, allow-top-navigation, allow-modals & allow-downloads to permanently eliminate all popunder ads
-  f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
   f.setAttribute('referrerpolicy', 'origin');
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
+  armVidShield();
 }
 
 function playEmbedEntry(m) {
@@ -3102,26 +3101,6 @@ try { Window.prototype.open = window.open; } catch {}
 try { window.open = window.open; } catch {}
 try { self.open = window.open; } catch {}
 
-// Guard dynamically created iframes against unauthorized popup permissions
-const _nativeCreateElement = document.createElement;
-document.createElement = function(tagName, options) {
-  const el = _nativeCreateElement.call(document, tagName, options);
-  if (el && String(tagName).toLowerCase() === 'iframe') {
-    const origSetAttribute = el.setAttribute;
-    el.setAttribute = function(name, val) {
-      if (String(name).toLowerCase() === 'sandbox') {
-        val = String(val)
-          .replace(/allow-popups-to-escape-sandbox/g, '')
-          .replace(/allow-popups/g, '')
-          .replace(/allow-top-navigation-by-user-activation/g, '')
-          .replace(/allow-top-navigation/g, '')
-          .trim();
-      }
-      return origSetAttribute.call(this, name, val);
-    };
-  }
-  return el;
-};
 
 // Intercept programmatic anchor clicks targeting _blank or _top
 const _nativeAnchorClick = HTMLAnchorElement.prototype.click;
@@ -3230,8 +3209,48 @@ window.addEventListener('beforeunload', (e) => {
   }
 });
 
-function disarmVidShield() {}
-function armVidShield() {}
+let shieldDisarmTimer = null;
+
+function disarmVidShield() {
+  const shield = $('vidShield');
+  if (shield) shield.style.display = 'none';
+  clearTimeout(shieldDisarmTimer);
+}
+
+function armVidShield() {
+  let shield = $('vidShield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'vidShield';
+    shield.style.cssText = 'position:absolute;inset:0;z-index:4;display:block;cursor:pointer;background:transparent';
+    $('playerView')?.insertBefore(shield, $('pTop'));
+  }
+  shield.style.display = 'block';
+
+  const handleShieldInteraction = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Neutralize initial ad-trigger overlay gesture in parent window
+    shield.style.display = 'none';
+    clearTimeout(shieldDisarmTimer);
+
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe) {
+      try { iframe.focus(); } catch {}
+      try { iframe.contentWindow.postMessage({ type: 'PLAYER_CONTROL', event: 'play', action: 'play' }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage({ method: 'play' }, '*'); } catch {}
+      try { iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'); } catch {}
+    }
+  };
+
+  shield.onclick = handleShieldInteraction;
+  shield.ontouchstart = (e) => { e.stopPropagation(); };
+  shield.ontouchend = (e) => {
+    e.stopPropagation();
+    handleShieldInteraction(e);
+  };
+}
 
 let lastPlayerTap = 0;
 document.addEventListener('pointerdown', () => {
