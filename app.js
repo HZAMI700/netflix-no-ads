@@ -2770,6 +2770,7 @@ if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
   _allowNavigation = true;
+  stopFocusGuardian();
   disarmVidShield();
   closeCaptionsModal();
   closePlayerCustomModal();
@@ -2820,6 +2821,7 @@ function openPlayerShell(title, subTitle) {
   if ($('skipIntro')) $('skipIntro').style.display = 'none';
   if ($('nextEp')) $('nextEp').style.display = 'none';
 
+  startFocusGuardian();
   wakeChrome();
 }
 
@@ -3420,8 +3422,10 @@ HTMLFormElement.prototype.submit = function() {
 });
 
 // Snap focus back if popunder attempts to blur the window during active playback
-// Instantly restores window & tab priority across PC and mobile devices without stealing active element focus inside the player iframe
+// Instantly restores window & tab priority across PC and mobile devices at light speed
 let _focusSnapTimer = null;
+let _focusGuardian = null;
+
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
     try { window.focus(); } catch {}
@@ -3430,10 +3434,38 @@ function snapWindowFocus() {
   }
 }
 
-['blur', 'visibilitychange', 'pagehide'].forEach(evt => {
+function triggerLightSpeedFocusSnap() {
+  snapWindowFocus();
+  [0, 5, 15, 30, 60, 120, 250].forEach(ms => {
+    setTimeout(snapWindowFocus, ms);
+  });
+}
+
+function startFocusGuardian() {
+  stopFocusGuardian();
+  _focusGuardian = setInterval(() => {
+    if (!$('playerView')?.classList.contains('show') || _allowNavigation) {
+      stopFocusGuardian();
+      return;
+    }
+    // High-speed liveness check: if active document lost system focus to a popunder, snap back at light speed!
+    if (typeof document.hasFocus === 'function' && !document.hasFocus()) {
+      snapWindowFocus();
+    }
+  }, 20);
+}
+
+function stopFocusGuardian() {
+  if (_focusGuardian) {
+    clearInterval(_focusGuardian);
+    _focusGuardian = null;
+  }
+}
+
+['blur', 'visibilitychange', 'pagehide', 'focusout'].forEach(evt => {
   window.addEventListener(evt, () => {
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-      snapWindowFocus();
+      triggerLightSpeedFocusSnap();
       clearTimeout(_focusSnapTimer);
       _focusSnapTimer = setTimeout(snapWindowFocus, 15);
       setTimeout(snapWindowFocus, 45);
@@ -3460,15 +3492,46 @@ function disarmVidShield() {
 }
 
 function armVidShield() {
-  const shield = $('vidShield');
-  if (shield) shield.style.display = 'none';
+  let shield = $('vidShield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'vidShield';
+    $('playerView')?.insertBefore(shield, $('pTop'));
+  }
+  shield.style.display = 'block';
+
+  const handleShieldInteraction = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    // Neutralize initial ad-trigger overlay gesture in parent window
+    shield.style.display = 'none';
+    clearTimeout(shieldDisarmTimer);
+    triggerLightSpeedFocusSnap();
+
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe) {
+      try { iframe.focus(); } catch {}
+      try { iframe.contentWindow?.postMessage({ type: 'PLAYER_CONTROL', event: 'play', action: 'play' }, '*'); } catch {}
+      try { iframe.contentWindow?.postMessage({ method: 'play' }, '*'); } catch {}
+      try { iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'); } catch {}
+    }
+  };
+
+  shield.onclick = handleShieldInteraction;
+  shield.ontouchstart = (e) => { e.stopPropagation(); };
+  shield.ontouchend = (e) => {
+    e.stopPropagation();
+    handleShieldInteraction(e);
+  };
 }
 
 let lastPlayerTap = 0;
-['pointerdown', 'touchstart', 'click'].forEach(evt => {
+['pointerdown', 'touchstart', 'click', 'mousedown', 'mouseup'].forEach(evt => {
   document.addEventListener(evt, () => {
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
       lastPlayerTap = Date.now();
+      triggerLightSpeedFocusSnap();
       setTimeout(snapWindowFocus, 25);
       setTimeout(snapWindowFocus, 75);
       setTimeout(snapWindowFocus, 160);
