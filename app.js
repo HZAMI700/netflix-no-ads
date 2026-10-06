@@ -2901,7 +2901,8 @@ function playEpisode(season, episode) {
   currentDetail.ep = { s, e: ep };
   const ids = resolveMediaIdentifiers(m);
   const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
-  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
+  const imdb = ids.imdb || m.imdb || m.imdb_id;
+  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
   if (!url) {
     toast('Streaming is unavailable for this episode (missing ID).');
     return;
@@ -2976,7 +2977,7 @@ function updateSubtitleUrlParam(url, lang) {
   try {
     const u = new URL(url, window.location.href);
     if (!lang || lang === 'off') {
-      ['sub', 'subtitles', 'sub_lang', 'lang', 'default_sub', 'default_subtitle', 'default_subtitles', 'caption', 'captions', 'caption_lang', 'sub_language', 'sub_lang_label', 'srclang', 'c_lang', 'auto_sub', 'auto_subtitles', 'subtitle_lang', 'va_sub'].forEach(p => u.searchParams.delete(p));
+      ['sub', 'subtitles', 'sub_lang', 'lang', 'default_sub', 'default_subtitle', 'default_subtitles', 'caption', 'captions', 'caption_lang', 'sub_language', 'sub_lang_label', 'srclang', 'c_lang', 'auto_sub', 'auto_subtitles', 'subtitle_lang', 'va_sub', 'ds_lang'].forEach(p => u.searchParams.delete(p));
       u.searchParams.set('sub', 'off');
       u.searchParams.set('cc', '0');
     } else {
@@ -3006,12 +3007,13 @@ function updateSubtitleUrlParam(url, lang) {
       u.searchParams.set('player_subtitle', target);
       u.searchParams.set('player_subtitles', target);
       u.searchParams.set('player_lang', target);
+      u.searchParams.set('ds_lang', target);
     }
     return u.toString();
   } catch {
     if (!lang || lang === 'off') return url;
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}`;
+    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}&ds_lang=${encodeURIComponent(target)}`;
   }
 }
 
@@ -3025,13 +3027,13 @@ function updatePlayerServerUI() {
   const sel = $('playerServerSelect');
   const isServer2 = currentPlayerServer === 'server2';
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Server 2 (VidLink)' : 'Server 1 (Pro)';
+    lbl.textContent = isServer2 ? 'Server 2 (VidSrc)' : 'Server 1 (Pro)';
   }
   if (btn) {
     btn.setAttribute('data-server', currentPlayerServer);
     btn.title = isServer2
-      ? 'Current: Server 2 (VidLink Pro Player) — Click to switch to Server 1 (Pro Cinema Player)'
-      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (VidLink Pro Player)';
+      ? 'Current: Server 2 (VidSrc Player) — Click to switch to Server 1 (Pro Cinema Player)'
+      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (VidSrc Player)';
   }
   if (sel) {
     sel.value = currentPlayerServer;
@@ -3044,7 +3046,7 @@ function togglePlayerServer() {
 }
 
 function switchPlayerServer(newServer) {
-  currentPlayerServer = (newServer === 'server2' || newServer === 'vidlink') ? 'server2' : 'server1';
+  currentPlayerServer = (newServer === 'server2' || newServer === 'vidsrc') ? 'server2' : 'server1';
   store.set('nf_player_server', currentPlayerServer);
   updatePlayerServerUI();
 
@@ -3054,9 +3056,8 @@ function switchPlayerServer(newServer) {
   let newBaseUrl = null;
   if (currentEmbed.type === 'series') {
     const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
-    if (tmdbId) {
-      newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId }, currentEmbed.season || 1, currentEmbed.episode || 1, currentPlayerServer);
-    }
+    const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
+    newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, currentPlayerServer);
   } else {
     const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
     const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || imdb)?.moviedb_id : null);
@@ -3074,7 +3075,7 @@ function switchPlayerServer(newServer) {
   currentEmbed.server = currentPlayerServer;
   iframe.src = finalUrl;
 
-  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (VidLink Pro Player)' : 'Server 1 (Pro Cinema Player)';
+  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (VidSrc Player)' : 'Server 1 (Pro Cinema Player)';
   toast(`Switched to ${serverName}`);
 
   armVidShield();
@@ -3212,10 +3213,11 @@ function playEmbedEntry(m) {
   const ids = resolveMediaIdentifiers(m);
   if (m.type === 'series') {
     const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
-    if (!tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
+    const imdb = ids.imdb || m.imdb;
+    if (!tmdbId && !imdb) { toast('Streaming unavailable (missing ID).'); return; }
     const s = Math.max(1, Number(m.season || 1));
     const ep = Math.max(1, Number(m.episode || 1));
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
     if (!url) { toast('Streaming unavailable for this episode.'); return; }
     playEmbed({
       url,
@@ -3247,9 +3249,9 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidlink.pro', 'https://nextgencloudfabric.com'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com'];
 function readProgressStore() {
-  try { return JSON.parse(localStorage.getItem('vidLinkProgress') || '{}'); }
+  try { return JSON.parse(localStorage.getItem('vidsrcProgress') || localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
 }
 
@@ -3344,12 +3346,13 @@ function nextEpisode() {
   const e = currentEmbed;
   if (e?.type === 'series') {
     const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
-    if (!tmdbId) { toast('Streaming unavailable for next episode.'); return; }
+    const imdb = e.imdb;
+    if (!tmdbId && !imdb) { toast('Streaming unavailable for next episode.'); return; }
     const s = Math.max(1, Number(e.season || 1));
     const ep = Math.max(1, Number(e.episode || 1)) + 1;
     toast(`Loading episode ${ep}…`);
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
-    if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep });
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    if (url) playEmbed({ ...e, url, tmdbId, imdb, season: s, episode: ep, server: currentPlayerServer });
     else toast('Streaming unavailable for next episode.');
   }
 }
@@ -3597,27 +3600,43 @@ window.addEventListener('message', (event) => {
         }
       }, '*');
     } catch {}
-  } else if (msg.type === 'MEDIA_DATA' && msg.data) {
-    try {
-      const cur = readProgressStore();
-      cur[msg.data.id] = { ...msg.data, imdb: msg.data.imdb || msg.data.imdb_id || undefined };
-      localStorage.setItem('vidLinkProgress', JSON.stringify(cur));
-    } catch {}
-    syncEmbedProgress();
-  } else if (msg.type === 'PLAYER_EVENT' && msg.data?.event === 'ended') {
-    const e = currentEmbed;
-    if (e) {
-      const key = e.type === 'series' ? (e.tmdbId ? `tmdb:${e.tmdbId}` : e.id) : (e.imdb || e.id);
-      recordWatchFinish(key);
-    }
-    if (e?.type === 'series') {
-      const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
-      if (tmdbId) {
-        toast('Starting next episode…');
-        const s = Math.max(1, Number(e.season || 1));
-        const ep = Math.max(1, Number(e.episode || 1)) + 1;
-        const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
-        if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep, server: currentPlayerServer });
+  } else if (msg.type === 'PLAYER_EVENT') {
+    const d = msg.data || {};
+    if (d.player_status === 'completed' || d.event === 'ended') {
+      const e = currentEmbed;
+      if (e) {
+        const key = e.type === 'series' ? (e.tmdbId ? `tmdb:${e.tmdbId}` : e.id) : (e.imdb || e.id);
+        recordWatchFinish(key);
+      }
+      if (e?.type === 'series') {
+        const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
+        const imdb = e.imdb;
+        if (tmdbId || imdb) {
+          toast('Starting next episode…');
+          const s = Math.max(1, Number(e.season || 1));
+          const ep = Math.max(1, Number(e.episode || 1)) + 1;
+          const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+          if (url) playEmbed({ ...e, url, tmdbId, imdb, season: s, episode: ep, server: currentPlayerServer });
+        }
+      }
+    } else if (d.player_status === 'playing' || d.event === 'timeupdate') {
+      const pInfo = d.player_info;
+      const id = (pInfo && (pInfo.tmdb || pInfo.imdb)) || (currentEmbed && (currentEmbed.tmdbId || currentEmbed.imdb || currentEmbed.id));
+      const curTime = d.player_progress != null ? d.player_progress : d.currentTime;
+      const dur = d.player_duration != null ? d.player_duration : d.duration;
+      if (id && curTime != null) {
+        const cur = readProgressStore();
+        cur[id] = {
+          id,
+          title: currentEmbed?.title,
+          type: (pInfo?.mediaType === 'tv' || currentEmbed?.type === 'series') ? 'tv' : 'movie',
+          last_season_watched: pInfo?.season || currentEmbed?.season || 1,
+          last_episode_watched: pInfo?.episode || currentEmbed?.episode || 1,
+          imdb: pInfo?.imdb || currentEmbed?.imdb,
+          progress: { watched: curTime, duration: dur || 0 }
+        };
+        try { localStorage.setItem('vidsrcProgress', JSON.stringify(cur)); } catch {}
+        syncEmbedProgress();
       }
     }
   }

@@ -4,9 +4,13 @@
  * Media-link helpers — pure functions, no DOM.
  * Single place that knows how Watch and Download URLs are built.
  *
- * STREAMING (VidAPI/Vaplayer only — no other provider, no proxy):
- *   movie   → https://vaplayer.ru/embed/movie/{IMDB_ID}
- *   episode → https://vaplayer.ru/embed/tv/{TMDB_ID}/{SEASON}/{EPISODE}
+ * STREAMING:
+ *   Server 1 (Vaplayer/VidAPI):
+ *     movie   → https://vaplayer.ru/embed/movie/{IMDB_ID}
+ *     episode → https://vaplayer.ru/embed/tv/{TMDB_ID}/{SEASON}/{EPISODE}
+ *   Server 2 (VidSrc - vidsrc.sh):
+ *     movie   → https://vidsrc.sh/embed/movie/{ID} (IMDb or TMDb ID)
+ *     episode → https://vidsrc.sh/embed/tv/{ID}/{SEASON}/{EPISODE} (TMDb or IMDb ID)
  *
  * DOWNLOAD (OmniSave redirect only — never a direct file URL):
  *   base    → https://videodownloader.site/?utm_source=MB_Website
@@ -15,8 +19,7 @@
 
 const VAPLAYER_BASE = 'https://vaplayer.ru/embed';
 const VIDAPI_BASE = 'https://vidapi.ru/embed';
-const VIDLINK_BASE = 'https://vidlink.pro';
-const VIDLINK_PARAMS = 'primaryColor=b20710&secondaryColor=170000&iconColor=b20710&icons=vid&player=jw&autoplay=false&nextbutton=true';
+const VIDSRC_BASE = 'https://vidsrc.sh';
 const OMNISAVE_BASE = 'https://videodownloader.site/';
 const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
@@ -34,10 +37,10 @@ function getMovieStreamUrl(movie, server = 'server1') {
   const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
   const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
 
-  if (server === 'server2' || server === 'vidlink') {
-    const id = tmdb || (IMDB_RE.test(imdb) ? imdb : '');
+  if (server === 'server2' || server === 'vidsrc') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
     if (!id) return null;
-    return `${VIDLINK_BASE}/movie/${id}?${VIDLINK_PARAMS}`;
+    return `${VIDSRC_BASE}/embed/movie/${id}`;
   }
 
   if (server === 'vidapi') {
@@ -53,14 +56,19 @@ function getMovieStreamUrl(movie, server = 'server1') {
 
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
 function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
+  const imdb = series && typeof series.imdb === 'string' ? series.imdb.trim() : '';
   const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
   const s = toInt(season);
   const e = toInt(episode);
-  if (!tmdb || !/^\d+$/.test(tmdb) || !s || !e) return null;
+  if (!s || !e) return null;
 
-  if (server === 'server2' || server === 'vidlink') {
-    return `${VIDLINK_BASE}/tv/${tmdb}/${s}/${e}?${VIDLINK_PARAMS}`;
+  if (server === 'server2' || server === 'vidsrc') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${VIDSRC_BASE}/embed/tv/${id}/${s}/${e}`;
   }
+
+  if (!tmdb || !/^\d+$/.test(tmdb)) return null;
 
   if (server === 'vidapi') {
     return `${VIDAPI_BASE}/tv/${tmdb}/${s}/${e}`;
@@ -179,8 +187,7 @@ function get02MovieDownloaderEpisodeUrl(imdbId, season, episode) {
 const MediaLinks = {
   VAPLAYER_BASE,
   VIDAPI_BASE,
-  VIDLINK_BASE,
-  VIDLINK_PARAMS,
+  VIDSRC_BASE,
   OMNISAVE_BASE,
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
