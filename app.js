@@ -2825,6 +2825,42 @@ function openPlayerShell(title, subTitle) {
   wakeChrome();
 }
 
+function resolveMediaIdentifiers(m) {
+  if (!m) return { tmdbId: null, imdb: null };
+  let tmdbId = m.tmdbId != null ? String(m.tmdbId).trim() : (m.moviedb_id != null ? String(m.moviedb_id).trim() : null);
+  let imdb = m.imdb ? String(m.imdb).trim() : (m.imdb_id ? String(m.imdb_id).trim() : null);
+
+  const rawId = String(m.id || '').trim();
+  if (!tmdbId && /^\d+$/.test(rawId)) tmdbId = rawId;
+  if (!tmdbId && rawId.startsWith('tmdb:')) tmdbId = rawId.slice(5).trim();
+  if (!imdb && /^tt\d+$/.test(rawId)) imdb = rawId;
+
+  if ((!tmdbId || !imdb) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+    const cur = CuratedCatalog.getCuratedById(rawId) ||
+                (imdb ? CuratedCatalog.getCuratedById(imdb) : null) ||
+                (tmdbId ? CuratedCatalog.getCuratedById(tmdbId) : null);
+    if (cur) {
+      if (!tmdbId && cur.moviedb_id) tmdbId = String(cur.moviedb_id);
+      if (!tmdbId && cur.tmdbId) tmdbId = String(cur.tmdbId);
+      if (!imdb && cur.id && /^tt\d+$/.test(cur.id)) imdb = cur.id;
+    }
+  }
+
+  if ((!tmdbId || !imdb) && m.name && typeof allMedia !== 'undefined' && Array.isArray(allMedia)) {
+    const titleMatch = allMedia.find(item => item && item.name && item.name.toLowerCase() === m.name.toLowerCase() && item.type === (m.type || 'movie'));
+    if (titleMatch) {
+      if (!tmdbId && titleMatch.moviedb_id) tmdbId = String(titleMatch.moviedb_id);
+      if (!tmdbId && titleMatch.tmdbId) tmdbId = String(titleMatch.tmdbId);
+      if (!imdb && titleMatch.id && /^tt\d+$/.test(titleMatch.id)) imdb = titleMatch.id;
+    }
+  }
+
+  return {
+    tmdbId: tmdbId && /^\d+$/.test(tmdbId) ? tmdbId : null,
+    imdb: imdb && /^tt\d+$/.test(imdb) ? imdb : null
+  };
+}
+
 function playStream() {
   const m = currentDetail?.meta;
   if (!m) return;
@@ -2834,8 +2870,10 @@ function playStream() {
     playEpisode(s, ep);
     return;
   }
-  const tmdbId = m.moviedb_id || m.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb || m.imdb_id)?.moviedb_id : null);
-  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id, tmdbId }, currentPlayerServer);
+  const ids = resolveMediaIdentifiers(m);
+  const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
+  const imdb = ids.imdb || m.imdb || m.imdb_id || (String(m.id || '').startsWith('tt') ? m.id : null);
+  const url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
   if (!url) {
     closeDetail();
     $('playerView').classList.add('show');
@@ -2847,7 +2885,7 @@ function playStream() {
     url,
     type: 'movie',
     id: m.id,
-    imdb: m.id || m.imdb_id,
+    imdb,
     title: m.name,
     poster: poster(m),
     tmdbId,
@@ -2861,7 +2899,8 @@ function playEpisode(season, episode) {
   const s = Math.max(1, Number(season) || 1);
   const ep = Math.max(1, Number(episode) || 1);
   currentDetail.ep = { s, e: ep };
-  const tmdbId = m.moviedb_id || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id)?.moviedb_id : null);
+  const ids = resolveMediaIdentifiers(m);
+  const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
   const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
   if (!url) {
     toast('Streaming is unavailable for this episode (missing ID).');
@@ -2872,7 +2911,7 @@ function playEpisode(season, episode) {
     type: 'series',
     id: m.id,
     tmdbId,
-    imdb: m.id || m.imdb_id,
+    imdb: ids.imdb || m.imdb || m.imdb_id,
     season: s,
     episode: ep,
     title: m.name,
@@ -2960,6 +2999,13 @@ function updateSubtitleUrlParam(url, lang) {
       u.searchParams.set('auto_subtitles', '1');
       u.searchParams.set('subtitle_lang', target);
       u.searchParams.set('va_sub', target);
+      u.searchParams.set('va_subtitle_lang', target);
+      u.searchParams.set('va_caption', target);
+      u.searchParams.set('player_sub', target);
+      u.searchParams.set('player_sub_lang', target);
+      u.searchParams.set('player_subtitle', target);
+      u.searchParams.set('player_subtitles', target);
+      u.searchParams.set('player_lang', target);
     }
     return u.toString();
   } catch {
@@ -3108,6 +3154,18 @@ function dispatchSubtitlesToPlayer(lang) {
   try { f.contentWindow?.postMessage({ type: 'PLAYER_SET_SUBTITLE', lang: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ action: 'setSubtitle', language: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ command: 'set_subtitle', lang: targetSub }, '*'); } catch {}
+
+  try {
+    for (let i = 0; i < window.frames.length; i++) {
+      try { window.frames[i].postMessage({ type: 'STORAGE_INIT', data: storageData }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SET_SUBTITLES', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SET_SUBTITLE', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ event: 'setSubtitle', lang: targetSub, language: label }, '*'); } catch {}
+    }
+  } catch {}
 }
 
 function playEmbed(o) {
@@ -3151,8 +3209,9 @@ function playEmbed(o) {
 }
 
 function playEmbedEntry(m) {
+  const ids = resolveMediaIdentifiers(m);
   if (m.type === 'series') {
-    const tmdbId = m.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb)?.moviedb_id : null);
+    const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
     if (!tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
     const s = Math.max(1, Number(m.season || 1));
     const ep = Math.max(1, Number(m.episode || 1));
@@ -3163,7 +3222,7 @@ function playEmbedEntry(m) {
       type: 'series',
       id: m.id,
       tmdbId,
-      imdb: m.imdb,
+      imdb: ids.imdb || m.imdb,
       season: s,
       episode: ep,
       title: m.name,
@@ -3172,8 +3231,8 @@ function playEmbedEntry(m) {
     });
     return;
   }
-  const tmdbId = m.tmdbId || m.moviedb_id || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb)?.moviedb_id : null);
-  const imdb = m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
+  const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
+  const imdb = ids.imdb || m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
   const url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
   if (!url) { toast('Streaming unavailable (missing ID).'); return; }
   playEmbed({
@@ -3188,7 +3247,7 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidlink.pro'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidlink.pro', 'https://nextgencloudfabric.com'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
@@ -3492,38 +3551,8 @@ function disarmVidShield() {
 }
 
 function armVidShield() {
-  let shield = $('vidShield');
-  if (!shield) {
-    shield = document.createElement('div');
-    shield.id = 'vidShield';
-    $('playerView')?.insertBefore(shield, $('pTop'));
-  }
-  shield.style.display = 'block';
-
-  const handleShieldInteraction = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    // Neutralize initial ad-trigger overlay gesture in parent window
-    shield.style.display = 'none';
-    clearTimeout(shieldDisarmTimer);
-    triggerLightSpeedFocusSnap();
-
-    const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe) {
-      try { iframe.focus(); } catch {}
-      try { iframe.contentWindow?.postMessage({ type: 'PLAYER_CONTROL', event: 'play', action: 'play' }, '*'); } catch {}
-      try { iframe.contentWindow?.postMessage({ method: 'play' }, '*'); } catch {}
-      try { iframe.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'); } catch {}
-    }
-  };
-
-  shield.onclick = handleShieldInteraction;
-  shield.ontouchstart = (e) => { e.stopPropagation(); };
-  shield.ontouchend = (e) => {
-    e.stopPropagation();
-    handleShieldInteraction(e);
-  };
+  const shield = $('vidShield');
+  if (shield) shield.style.display = 'none';
 }
 
 let lastPlayerTap = 0;
@@ -3543,7 +3572,7 @@ window.addEventListener('message', (event) => {
   if (!EMBED_ORIGINS.includes(event.origin)) return;
   const msg = event.data || {};
   if (msg.type === 'STORAGE_GET_ALL') {
-    const targetSub = store.get('nf_sub_lang', 'ar');
+    const targetSub = store.get('nf_sub_lang', 'ar') || 'ar';
     try {
       event.source?.postMessage({
         type: 'STORAGE_INIT',
@@ -3558,7 +3587,13 @@ window.addEventListener('message', (event) => {
           player_lang: targetSub,
           player_sub_lang: targetSub,
           default_sub: targetSub,
-          sub_lang: targetSub
+          sub_lang: targetSub,
+          subtitles: targetSub,
+          caption: targetSub,
+          captions: targetSub,
+          caption_lang: targetSub,
+          cc: targetSub,
+          cc_lang: targetSub
         }
       }, '*');
     } catch {}

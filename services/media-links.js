@@ -41,12 +41,14 @@ function getMovieStreamUrl(movie, server = 'server1') {
   }
 
   if (server === 'vidapi') {
-    if (!IMDB_RE.test(imdb)) return null;
-    return `${VIDAPI_BASE}/movie/${imdb}`;
+    const id = IMDB_RE.test(imdb) ? imdb : (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${VIDAPI_BASE}/movie/${id}`;
   }
 
-  if (!IMDB_RE.test(imdb)) return null;
-  return `${VAPLAYER_BASE}/movie/${imdb}`;
+  const id = IMDB_RE.test(imdb) ? imdb : (/^\d+$/.test(tmdb) ? tmdb : '');
+  if (!id) return null;
+  return `${VAPLAYER_BASE}/movie/${id}`;
 }
 
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
