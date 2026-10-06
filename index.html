@@ -9,6 +9,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>ZFLEXY — Watch Movies &amp; TV Shows Online</title>
 <meta name="description" content="Zflexy streaming portal. Educational purposes only.">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), accelerometer=()">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https: http:; object-src 'none'; base-uri 'self';">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23141414%22/><text x=%2250%25%22 y=%2274%25%22 font-family=%22Impact,sans-serif%22 font-size=%2226%22 font-weight=%22bold%22 fill=%22%23E50914%22 text-anchor=%22middle%22>Z</text></svg>">
 <link rel="preconnect" href="https://v3-cinemeta.strem.io">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -337,10 +341,10 @@
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 1 — VidVault (Primary)</b>
+                <b>Server 1 — Direct High Speed</b>
                 <span class="server-label">Default</span>
               </div>
-              <div class="sci-url">https://vidvault.to (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
+              <div class="sci-url">Direct High Speed Server (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
             </div>
             <span class="sci-badge">Fast Download</span>
           </div>
@@ -348,10 +352,10 @@
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 2 — 02MovieDownloader</b>
+                <b>Server 2 — Multi-Quality Mirror</b>
                 <span class="server-label alt">Alternative</span>
               </div>
-              <div class="sci-url">https://02moviedownloader.site/api/download (Multi-quality stream links)</div>
+              <div class="sci-url">Multi-Quality Download Mirror (Multi-resolution video links)</div>
             </div>
             <span class="sci-badge alt">Multi-Quality</span>
           </div>
@@ -359,10 +363,10 @@
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator mirror"></span>
-                <b>Server 3 — OmniSave</b>
+                <b>Server 3 — Global Search Mirror</b>
                 <span class="server-label mirror">Mirror</span>
               </div>
-              <div class="sci-url">https://videodownloader.site (Web search mirror with title fallback)</div>
+              <div class="sci-url">Universal Search Mirror (Web search mirror with title fallback)</div>
             </div>
             <span class="sci-badge mirror">Search Mirror</span>
           </div>
@@ -482,13 +486,13 @@
     </div>
 
     <div class="server-list" id="serverList">
-      <!-- Server 1 — VidVault (Primary) -->
+      <!-- Server 1 — Direct High Speed -->
       <div class="server-card primary-server" id="serverCardVidvault">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label">Server 1</span>
-            <span class="server-name">VidVault</span>
+            <span class="server-name">Direct High Speed</span>
             <span class="server-tag-highlight">Fastest Direct</span>
           </div>
           <span class="server-speed">High Speed • Primary</span>
@@ -499,20 +503,20 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Download (Server 1)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy VidVault Direct Link">
+          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy Direct Download Link (Server 1)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
           </button>
         </div>
       </div>
 
-      <!-- Server 2 — 02MovieDownloader (Alternative) -->
+      <!-- Server 2 — Multi-Quality Mirror -->
       <div class="server-card" id="serverCard02">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label alt">Server 2</span>
-            <span class="server-name">02MovieDownloader</span>
+            <span class="server-name">Multi-Quality Mirror</span>
             <span class="server-tag-highlight alt">Alternative Server</span>
           </div>
           <span class="server-speed">Multi-Quality API</span>
@@ -523,20 +527,20 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Download (Server 2)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopy02" title="Copy 02MovieDownloader Direct Link">
+          <button class="btn-server-copy" id="serverCopy02" title="Copy Multi-Quality Download Link (Server 2)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
           </button>
         </div>
       </div>
 
-      <!-- Server 3 — OmniSave Search Mirror -->
+      <!-- Server 3 — Global Search Mirror -->
       <div class="server-card mirror-server" id="serverCardOmni">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator mirror"></span>
             <span class="server-label mirror">Server 3</span>
-            <span class="server-name">OmniSave</span>
+            <span class="server-name">Global Search Mirror</span>
             <span class="server-tag-highlight mirror">Search Mirror</span>
           </div>
           <span class="server-speed">Web Search</span>
@@ -717,8 +721,8 @@
         <div class="caption-pref-group" style="grid-column: 1 / -1;">
           <label for="playerServerSelect">Video Player / Streaming Engine</label>
           <select id="playerServerSelect" class="settings-select">
-            <option value="server1" selected>Server 1: Pro Cinema Player (Vaplayer Engine - High Definition)</option>
-            <option value="server2">Server 2: VidSrc Player (vidsrc.sh - Fast HD Stream)</option>
+            <option value="server1" selected>Server 1: High Definition Stream</option>
+            <option value="server2">Server 2: Fast Mirror Stream</option>
           </select>
         </div>
       </div>

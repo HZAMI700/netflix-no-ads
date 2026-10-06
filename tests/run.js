@@ -76,7 +76,7 @@ check('omnisave linked', app.includes('openOmnisave') && fs.readFileSync(path.jo
 /* --- catalog scale & deduplication guards --- */
 const CC = require('../services/curated-catalog.js');
 const allMedia = CC.CURATED_MEDIA;
-check('catalog scale > 80,000', allMedia.length >= 80000, allMedia.length);
+check('catalog scale > 140,000', allMedia.length >= 140000, allMedia.length);
 
 const allIds = new Set();
 let dupIdCount = 0;
@@ -180,6 +180,24 @@ check('updatePlayerServerUI defined in app.js', app.includes('function updatePla
 check('server-pill styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.player-pill-btn.server-pill'));
 check('STORAGE_GET_ALL handled in app.js', app.includes("msg.type === 'STORAGE_GET_ALL'"));
 check('default Arabic in updateSubtitleUrlParam', app.includes("target = lang || 'ar'"));
+
+/* --- removal & list management guards --- */
+check('removeFromHistory defined in app.js', app.includes('function removeFromHistory('));
+check('removeFromMyList defined in app.js', app.includes('function removeFromMyList('));
+check('card click removes from history or mylist prior to navigation', app.includes('removeFromHistory(m.id)') && app.includes('removeFromMyList(m.id)'));
+check('My List cards include remove button', app.includes('_inMyList: true'));
+
+/* --- security hardening & anti-tracking guards --- */
+check('CSP meta tag present in index.html', html.includes('http-equiv="Content-Security-Policy"'));
+check('Strict Referrer Policy present in index.html', html.includes('strict-origin-when-cross-origin'));
+check('Permissions-Policy meta tag present in index.html', html.includes('http-equiv="Permissions-Policy"'));
+check('Anti-clickjacking frame guard present in app.js', app.includes('window.top !== window.self'));
+check('Anti-tracking beacon guard present in app.js', app.includes('navigator.sendBeacon'));
+check('XSS escapeHtml sanitization present in app.js', app.includes('function escapeHtml('));
+
+/* --- generic server naming guards (no exposed brands) --- */
+check('download servers use generic names in HTML', html.includes('Server 1 — Direct High Speed') && html.includes('Server 2 — Multi-Quality Mirror') && html.includes('Server 3 — Global Search Mirror'));
+check('player servers use generic names in HTML', html.includes('Server 1: High Definition Stream') && html.includes('Server 2: Fast Mirror Stream'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

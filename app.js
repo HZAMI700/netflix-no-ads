@@ -2,6 +2,39 @@
  * Streaming: VidAPI/Vaplayer embeds only. Downloads: OmniSave redirect only. */
 'use strict';
 
+// Defensive Security Hardening: Anti-Clickjacking Frame Guard
+if (typeof window !== 'undefined' && window.top !== window.self) {
+  try {
+    window.top.location = window.self.location;
+  } catch {
+    if (document.documentElement) document.documentElement.style.display = 'none';
+  }
+}
+
+// Defensive Security: Anti-Tracking Beacon Protection (blocks telemetry to third-party endpoints)
+if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+  const _origSendBeacon = navigator.sendBeacon.bind(navigator);
+  navigator.sendBeacon = function(url, data) {
+    try {
+      const u = new URL(url, window.location.href);
+      if (u.hostname !== window.location.hostname && u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
+        return false;
+      }
+    } catch {}
+    return _origSendBeacon(url, data);
+  };
+}
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 const CINEMETA = 'https://v3-cinemeta.strem.io';
 
 const $ = id => document.getElementById(id);
@@ -317,7 +350,7 @@ async function doSearch(q) {
     ]).filter(isCleanSafe);
     $('searchResults').innerHTML = all.length
       ? ''
-      : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${q}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
+      : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${escapeHtml(q)}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
     currentSearchResults = all;
     currentSearchOffset = 0;
     renderSearchChunk();
@@ -851,6 +884,59 @@ if (portalEl) {
   });
 }
 
+function removeFromHistory(id) {
+  if (!id) return;
+  const strId = String(id);
+  const cleanId = strId.replace(/^tmdb:/, '');
+  let removedTitle = '';
+
+  for (const k of Object.keys(history)) {
+    const entry = history[k];
+    if (
+      k === strId ||
+      k === `tmdb:${cleanId}` ||
+      k === cleanId ||
+      (entry && (String(entry.id) === strId || String(entry.tmdbId) === cleanId || entry.imdb === strId))
+    ) {
+      if (entry?.title) removedTitle = entry.title;
+      delete history[k];
+    }
+  }
+
+  store.set('nf_history', history);
+
+  try {
+    const raw = localStorage.getItem('vidsrcProgress');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed[cleanId]) {
+        delete parsed[cleanId];
+        localStorage.setItem('vidsrcProgress', JSON.stringify(parsed));
+      }
+    }
+  } catch {}
+
+  renderContinueRow();
+  toast(removedTitle ? `Removed "${removedTitle}" from history` : 'Removed from history');
+}
+
+function removeFromMyList(id) {
+  if (!id) return;
+  const i = myList.findIndex(x => x.id === id);
+  if (i >= 0) {
+    const name = myList[i].name || myList[i].title || 'title';
+    myList.splice(i, 1);
+    store.set('nf_mylist', myList);
+    if (currentDetail?.meta?.id === id) updateModalListButton(id);
+    const heroListBtn = $('heroList');
+    if (heroListBtn && heroItems[heroIdx]?.id === id) {
+      heroListBtn.innerHTML = `<svg class="icon-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span class="hero-list-txt">My List</span>`;
+    }
+    renderMyList();
+    toast(`Removed "${name}" from My List`);
+  }
+}
+
 function buildCard(m, badge, rank) {
   if (!m || !isCleanSafe(m)) return document.createComment('filtered');
   const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
@@ -860,6 +946,7 @@ function buildCard(m, badge, rank) {
 
   const isContinue = (m._progress != null && !m._finished);
   const isFinished = !!m._finished;
+  const isInMyList = !!m._inMyList;
 
   let badgeMarkup = '';
   if (isFinished) {
@@ -872,8 +959,8 @@ function buildCard(m, badge, rank) {
     ? `<div class="progress"><i style="width:${Math.round(m._progress * 100)}%"></i></div>`
     : '';
 
-  const removeBtn = (isContinue || isFinished)
-    ? `<span class="remove-x" title="${isFinished ? 'Remove from Finished Watching' : 'Remove from Continue Watching'}">✕</span>`
+  const removeBtn = (isContinue || isFinished || isInMyList)
+    ? `<span class="remove-x" title="${isInMyList ? 'Remove from My List' : (isFinished ? 'Remove from Finished Watching' : 'Remove from Continue Watching')}">✕</span>`
     : '';
 
   const finishToggleBtn = isContinue
@@ -890,7 +977,7 @@ function buildCard(m, badge, rank) {
       ${top10Html}
       ${finishToggleBtn}
       ${removeBtn}
-      <img loading="lazy" src="${poster(m)}" alt="${(m.name || '').replace(/"/g, '')}">
+      <img loading="lazy" src="${poster(m)}" alt="${escapeHtml(m.name || m.title || '')}">
       ${prog}
     </div>
   `;
@@ -899,7 +986,7 @@ function buildCard(m, badge, rank) {
   if (cardImg) {
     cardImg.onerror = function() {
       this.onerror = null;
-      this.src = createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type);
+      this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type);
     };
   }
 
@@ -909,28 +996,31 @@ function buildCard(m, badge, rank) {
 
   el.onclick = e => {
     if (isRowDragging) return;
-    if (m._embed) { playEmbedEntry(m); return; }
-    
+
     const rx = e.target.closest('.remove-x');
     if (rx) {
-      delete history[m.id];
-      store.set('nf_history', history);
-      renderContinueRow();
-      toast(`Removed "${m.name || 'title'}" from list`);
+      e.preventDefault();
       e.stopPropagation();
+      if (isInMyList) {
+        removeFromMyList(m.id);
+      } else {
+        removeFromHistory(m.id);
+      }
       return;
     }
 
     const fc = e.target.closest('.finish-check');
     if (fc) {
+      e.preventDefault();
+      e.stopPropagation();
       if (!history[m.id]) {
         history[m.id] = {
-          title: m.name,
+          title: m.name || m.title,
           type: m.type || type,
           progress: 1.0,
           finished: true,
           poster: poster(m),
-          imdb: m.imdb || (m.id.startsWith('tt') ? m.id : null),
+          imdb: m.imdb || (typeof m.id === 'string' && m.id.startsWith('tt') ? m.id : null),
           tmdbId: m.tmdbId,
           lastWatched: Date.now()
         };
@@ -941,8 +1031,7 @@ function buildCard(m, badge, rank) {
       }
       store.set('nf_history', history);
       renderContinueRow();
-      toast(`Marked "${m.name}" as finished`);
-      e.stopPropagation();
+      toast(`Marked "${m.name || m.title}" as finished`);
       return;
     }
 
@@ -1435,7 +1524,7 @@ function renderMyList() {
     `;
     return;
   }
-  myList.forEach(m => g.appendChild(buildCard(m)));
+  myList.forEach(m => g.appendChild(buildCard({ ...m, _inMyList: true })));
 }
 
 /* ---------- BROWSE (ORGANIZED TV SHOWS, MOVIES, NEW & POPULAR) ---------- */
@@ -1587,7 +1676,7 @@ async function filterBrowseByGenre(genre) {
     : [];
   const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
 
-  gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${genre}</h2></div>`;
+  gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
   currentBrowseResults = items;
   currentBrowseOffset = 0;
   renderBrowseChunk();
@@ -1728,21 +1817,21 @@ function openOmnisave(query) {
   const url = MediaLinks.omnisaveUrl(query);
   safeOpenDownloadUrl(url);
   if (!query) {
-    toast('OmniSave opened in a new tab');
+    toast('Server 3 (Global Search Mirror) opened in a new tab');
     return;
   }
   try {
     const done = navigator.clipboard && navigator.clipboard.writeText(query);
     if (done && done.then) {
       done.then(
-        () => toast('OmniSave opened — title copied to clipboard'),
-        () => toast('OmniSave opened in a new tab')
+        () => toast('Server 3 opened — title copied to clipboard'),
+        () => toast('Server 3 opened in a new tab')
       );
     } else {
-      toast('OmniSave opened in a new tab');
+      toast('Server 3 opened in a new tab');
     }
   } catch {
-    toast('OmniSave opened in a new tab');
+    toast('Server 3 opened in a new tab');
   }
 }
 
@@ -1851,11 +1940,11 @@ function openDownloadModal(ctx) {
   if (b1) {
     b1.onclick = () => {
       if (!vidVaultUrl) {
-        toast('IMDb ID missing for this title on VidVault');
+        toast('IMDb ID missing for this title on Server 1');
         return;
       }
       safeOpenDownloadUrl(vidVaultUrl);
-      toast('Opening Server 1 — VidVault…');
+      toast('Opening Server 1 — Direct High Speed…');
       closeDownloadModal();
     };
   }
@@ -1864,16 +1953,16 @@ function openDownloadModal(ctx) {
   if (c1) {
     c1.onclick = () => {
       if (!vidVaultUrl) {
-        toast('No VidVault link available for this title');
+        toast('No Server 1 link available for this title');
         return;
       }
       try {
         navigator.clipboard.writeText(vidVaultUrl).then(
-          () => toast('Server 1 (VidVault) link copied to clipboard!'),
-          () => toast('VidVault link ready')
+          () => toast('Server 1 direct link copied to clipboard!'),
+          () => toast('Server 1 link ready')
         );
       } catch {
-        toast('VidVault link ready');
+        toast('Server 1 link ready');
       }
     };
   }
@@ -1882,11 +1971,11 @@ function openDownloadModal(ctx) {
   if (b2) {
     b2.onclick = () => {
       if (!movie02Url) {
-        toast('IMDb ID missing for this title on 02MovieDownloader');
+        toast('IMDb ID missing for this title on Server 2');
         return;
       }
       safeOpenDownloadUrl(movie02Url);
-      toast('Opening Server 2 — 02MovieDownloader…');
+      toast('Opening Server 2 — Multi-Quality Mirror…');
       closeDownloadModal();
     };
   }
@@ -1895,16 +1984,16 @@ function openDownloadModal(ctx) {
   if (c2) {
     c2.onclick = () => {
       if (!movie02Url) {
-        toast('No 02Downloader link available for this title');
+        toast('No Server 2 link available for this title');
         return;
       }
       try {
         navigator.clipboard.writeText(movie02Url).then(
-          () => toast('Server 2 (02Downloader) link copied to clipboard!'),
-          () => toast('02Downloader link ready')
+          () => toast('Server 2 link copied to clipboard!'),
+          () => toast('Server 2 link ready')
         );
       } catch {
-        toast('02Downloader link ready');
+        toast('Server 2 link ready');
       }
     };
   }
@@ -1913,7 +2002,7 @@ function openDownloadModal(ctx) {
   if (b3) {
     b3.onclick = () => {
       safeOpenDownloadUrl(omniUrl);
-      toast('Opening OmniSave search mirror…');
+      toast('Opening Server 3 — Global Search Mirror…');
       closeDownloadModal();
     };
   }
@@ -3027,13 +3116,13 @@ function updatePlayerServerUI() {
   const sel = $('playerServerSelect');
   const isServer2 = currentPlayerServer === 'server2';
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Server 2 (VidSrc)' : 'Server 1 (Pro)';
+    lbl.textContent = isServer2 ? 'Server 2 (Fast)' : 'Server 1 (HD)';
   }
   if (btn) {
     btn.setAttribute('data-server', currentPlayerServer);
     btn.title = isServer2
-      ? 'Current: Server 2 (VidSrc Player) — Click to switch to Server 1 (Pro Cinema Player)'
-      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (VidSrc Player)';
+      ? 'Current: Server 2 (Fast Mirror Stream) — Click to switch to Server 1 (High Definition Stream)'
+      : 'Current: Server 1 (High Definition Stream) — Click to switch to Server 2 (Fast Mirror Stream)';
   }
   if (sel) {
     sel.value = currentPlayerServer;
@@ -3075,7 +3164,7 @@ function switchPlayerServer(newServer) {
   currentEmbed.server = currentPlayerServer;
   iframe.src = finalUrl;
 
-  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (VidSrc Player)' : 'Server 1 (Pro Cinema Player)';
+  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (Fast Mirror Stream)' : 'Server 1 (High Definition Stream)';
   toast(`Switched to ${serverName}`);
 
   armVidShield();
