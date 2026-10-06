@@ -3487,6 +3487,7 @@ HTMLFormElement.prototype.submit = function() {
 // Instantly restores window & tab priority across PC and mobile devices at light speed
 let _focusSnapTimer = null;
 let _focusGuardian = null;
+let _lastActiveElement = null;
 
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
@@ -3498,23 +3499,33 @@ function snapWindowFocus() {
 
 function triggerLightSpeedFocusSnap() {
   snapWindowFocus();
-  [0, 5, 15, 30, 60, 120, 250].forEach(ms => {
+  [0, 2, 5, 10, 15, 25, 40, 60, 90, 130, 180, 250, 350, 500, 750, 1000, 1500].forEach(ms => {
     setTimeout(snapWindowFocus, ms);
   });
 }
 
 function startFocusGuardian() {
   stopFocusGuardian();
+  _lastActiveElement = document.activeElement;
   _focusGuardian = setInterval(() => {
     if (!$('playerView')?.classList.contains('show') || _allowNavigation) {
       stopFocusGuardian();
       return;
     }
-    // High-speed liveness check: if active document lost system focus to a popunder, snap back at light speed!
-    if (typeof document.hasFocus === 'function' && !document.hasFocus()) {
-      snapWindowFocus();
+    // High-speed liveness check: if active document lost system focus or visibility to a popunder, snap back at light speed!
+    const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
+    const lostFocus = typeof document.hasFocus === 'function' && !document.hasFocus();
+    if (isHidden || lostFocus) {
+      triggerLightSpeedFocusSnap();
     }
-  }, 20);
+
+    // Detect when focus shifts to player iframe (user clicked video player) to immediately shield against delayed popups
+    const curActive = document.activeElement;
+    if (curActive && curActive !== _lastActiveElement && (curActive.tagName === 'IFRAME' || curActive.closest?.('#playerView'))) {
+      triggerLightSpeedFocusSnap();
+    }
+    _lastActiveElement = curActive;
+  }, 10);
 }
 
 function stopFocusGuardian() {
@@ -3524,17 +3535,24 @@ function stopFocusGuardian() {
   }
 }
 
+const _handleFocusLossOrVisibility = () => {
+  if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    triggerLightSpeedFocusSnap();
+    clearTimeout(_focusSnapTimer);
+    _focusSnapTimer = setTimeout(snapWindowFocus, 10);
+    setTimeout(snapWindowFocus, 25);
+    setTimeout(snapWindowFocus, 45);
+    setTimeout(snapWindowFocus, 120);
+    setTimeout(snapWindowFocus, 300);
+    setTimeout(snapWindowFocus, 600);
+  }
+};
+
 ['blur', 'visibilitychange', 'pagehide', 'focusout'].forEach(evt => {
-  window.addEventListener(evt, () => {
-    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-      triggerLightSpeedFocusSnap();
-      clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 15);
-      setTimeout(snapWindowFocus, 45);
-      setTimeout(snapWindowFocus, 120);
-    }
-  });
+  window.addEventListener(evt, _handleFocusLossOrVisibility, true);
+  document.addEventListener(evt, _handleFocusLossOrVisibility, true);
 });
+try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 
 let _allowNavigation = false;
 window.addEventListener('beforeunload', (e) => {
@@ -3560,15 +3578,32 @@ function armVidShield() {
 
 let lastPlayerTap = 0;
 ['pointerdown', 'touchstart', 'click', 'mousedown', 'mouseup'].forEach(evt => {
-  document.addEventListener(evt, () => {
+  const handleInteraction = () => {
     if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
       lastPlayerTap = Date.now();
       triggerLightSpeedFocusSnap();
       setTimeout(snapWindowFocus, 25);
       setTimeout(snapWindowFocus, 75);
       setTimeout(snapWindowFocus, 160);
+      setTimeout(snapWindowFocus, 350);
     }
-  }, true);
+  };
+  window.addEventListener(evt, handleInteraction, true);
+  document.addEventListener(evt, handleInteraction, true);
+});
+
+// Proactively monitor pointer approaching player iframe to anticipate clicks
+['pointermove', 'mousemove', 'touchmove', 'mouseenter'].forEach(evt => {
+  window.addEventListener(evt, (e) => {
+    if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+      const pv = $('playerView');
+      if (pv && (e.target === pv || pv.contains(e.target))) {
+        if (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus())) {
+          triggerLightSpeedFocusSnap();
+        }
+      }
+    }
+  }, { capture: true, passive: true });
 });
 
 window.addEventListener('message', (event) => {
