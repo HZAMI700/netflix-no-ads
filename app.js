@@ -2544,14 +2544,6 @@ function initSubtitlesAndPreferences() {
     };
   }
 
-  const pSubsTop = $('pSubsTop');
-  if (pSubsTop) {
-    pSubsTop.onclick = (e) => {
-      e.stopPropagation();
-      openCaptionsModal();
-    };
-  }
-
   const captionsModalClose = $('captionsModalClose');
   if (captionsModalClose) {
     captionsModalClose.onclick = () => closeCaptionsModal();
@@ -2975,21 +2967,7 @@ function updateSubtitleUrlParam(url, lang) {
 }
 
 function updateSubtitleUI() {
-  const currentLang = store.get('nf_sub_lang', 'ar');
-  const langNames = {
-    ar: 'Arabic', en: 'English', es: 'Spanish', fr: 'French',
-    de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
-    hi: 'Hindi'
-  };
-  const label = langNames[currentLang] || (currentLang === 'off' ? 'Off' : currentLang.toUpperCase());
-  const btn = $('pSubsTop');
-  const span = btn?.querySelector('span');
-  if (span) {
-    span.textContent = currentLang === 'off' ? 'Subtitles (Off)' : `Subtitles (${label})`;
-  }
-  if (btn) {
-    btn.title = currentLang === 'off' ? 'Subtitles: Off (Click to change)' : `Subtitles: ${label} (Click to change)`;
-  }
+  // Top player subtitles option removed in favor of native bottom captions defaulting to Arabic
 }
 
 function updatePlayerServerUI() {

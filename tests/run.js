@@ -165,7 +165,7 @@ check('default subtitle language is Arabic in app.js', app.includes("store.get('
 check('default subtitle language is Arabic in index.html settingSubLang', html.includes('id="settingSubLang"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
 check('default subtitle language is Arabic in index.html captionModalLangSelect', html.includes('id="captionModalLangSelect"') && html.includes('<option value="ar" selected>Arabic (العربية)</option>'));
 check('player transmits default Arabic subtitles on embed load', app.includes("f.contentWindow?.postMessage({ type: 'SUBTITLE_SET'"));
-check('pSubsTop button in player controls in index.html', html.includes('id="pSubsTop"'));
+check('no top subtitles button in player controls in index.html', !html.includes('id="pSubsTop"'));
 check('dispatchSubtitlesToPlayer defined in app.js', app.includes('function dispatchSubtitlesToPlayer('));
 check('updateSubtitleUrlParam defined in app.js', app.includes('function updateSubtitleUrlParam('));
 check('applySubtitleToActivePlayer defined in app.js', app.includes('function applySubtitleToActivePlayer('));
