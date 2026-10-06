@@ -2832,12 +2832,13 @@ function playStream() {
     playEpisode(s, ep);
     return;
   }
-  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id }, currentPlayerServer);
+  const tmdbId = m.moviedb_id || m.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb || m.imdb_id)?.moviedb_id : null);
+  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id, tmdbId }, currentPlayerServer);
   if (!url) {
     closeDetail();
     $('playerView').classList.add('show');
     if ($('pTitle')) $('pTitle').textContent = m.name;
-    showPlayerError('Streaming is unavailable for this title (missing valid IMDb ID).');
+    showPlayerError('Streaming is unavailable for this title (missing valid ID).');
     return;
   }
   playEmbed({
@@ -2847,7 +2848,7 @@ function playStream() {
     imdb: m.id || m.imdb_id,
     title: m.name,
     poster: poster(m),
-    tmdbId: m.moviedb_id,
+    tmdbId,
     server: currentPlayerServer
   });
 }
@@ -2976,13 +2977,13 @@ function updatePlayerServerUI() {
   const sel = $('playerServerSelect');
   const isServer2 = currentPlayerServer === 'server2';
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Server 2 (Cloud CDN)' : 'Server 1 (Pro)';
+    lbl.textContent = isServer2 ? 'Server 2 (VidLink)' : 'Server 1 (Pro)';
   }
   if (btn) {
     btn.setAttribute('data-server', currentPlayerServer);
     btn.title = isServer2
-      ? 'Current: Server 2 (Cloud CDN Player) — Click to switch to Server 1 (Pro Cinema Player)'
-      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (Cloud CDN Player)';
+      ? 'Current: Server 2 (VidLink Pro Player) — Click to switch to Server 1 (Pro Cinema Player)'
+      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (VidLink Pro Player)';
   }
   if (sel) {
     sel.value = currentPlayerServer;
@@ -2995,7 +2996,7 @@ function togglePlayerServer() {
 }
 
 function switchPlayerServer(newServer) {
-  currentPlayerServer = newServer === 'server2' ? 'server2' : 'server1';
+  currentPlayerServer = (newServer === 'server2' || newServer === 'vidlink') ? 'server2' : 'server1';
   store.set('nf_player_server', currentPlayerServer);
   updatePlayerServerUI();
 
@@ -3004,19 +3005,18 @@ function switchPlayerServer(newServer) {
 
   let newBaseUrl = null;
   if (currentEmbed.type === 'series') {
-    const tmdbId = currentEmbed.tmdbId || currentEmbed.id;
+    const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
     if (tmdbId) {
       newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId }, currentEmbed.season || 1, currentEmbed.episode || 1, currentPlayerServer);
     }
   } else {
-    const imdb = currentEmbed.imdb || currentEmbed.id;
-    if (imdb) {
-      newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb }, currentPlayerServer);
-    }
+    const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
+    const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || imdb)?.moviedb_id : null);
+    newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
   }
 
   if (!newBaseUrl) {
-    toast('Server change unavailable for this title');
+    toast('Server switch unavailable for this title');
     return;
   }
 
@@ -3026,8 +3026,10 @@ function switchPlayerServer(newServer) {
   currentEmbed.server = currentPlayerServer;
   iframe.src = finalUrl;
 
-  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (Cloud CDN Player)' : 'Server 1 (Pro Cinema Player)';
+  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (VidLink Pro Player)' : 'Server 1 (Pro Cinema Player)';
   toast(`Switched to ${serverName}`);
+
+  armVidShield();
 
   const sendSubCmd = () => {
     dispatchSubtitlesToPlayer(targetSub);
@@ -3168,9 +3170,10 @@ function playEmbedEntry(m) {
     });
     return;
   }
+  const tmdbId = m.tmdbId || m.moviedb_id || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb)?.moviedb_id : null);
   const imdb = m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
-  const url = MediaLinks.getMovieStreamUrl({ imdb }, currentPlayerServer);
-  if (!url) { toast('Streaming unavailable (missing IMDb ID).'); return; }
+  const url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+  if (!url) { toast('Streaming unavailable (missing ID).'); return; }
   playEmbed({
     url,
     type: 'movie',
@@ -3178,12 +3181,12 @@ function playEmbedEntry(m) {
     imdb,
     title: m.name,
     poster: poster(m),
-    tmdbId: m.tmdbId,
+    tmdbId,
     server: currentPlayerServer
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidlink.pro'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }

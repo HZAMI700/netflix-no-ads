@@ -21,8 +21,8 @@ check('episode missing season → null', ML.getEpisodeStreamUrl({ tmdbId: 1399 }
 check('episode missing ep → null', ML.getEpisodeStreamUrl({ tmdbId: 1399 }, 1, 0) === null);
 check('episode missing tmdb → null', ML.getEpisodeStreamUrl({}, 1, 1) === null);
 check('episode zero/negative → null', ML.getEpisodeStreamUrl({ tmdbId: 1 }, -1, 1) === null);
-check('movie embed server2 exact', ML.getMovieStreamUrl({ imdb: 'tt23779058' }, 'server2') === 'https://vidapi.ru/embed/movie/tt23779058');
-check('episode embed server2 exact', ML.getEpisodeStreamUrl({ tmdbId: 205715 }, 1, 1, 'server2') === 'https://vidapi.ru/embed/tv/205715/1/1');
+check('movie embed server2 vidlink exact', ML.getMovieStreamUrl({ tmdbId: 786892 }, 'server2').startsWith('https://vidlink.pro/movie/786892'));
+check('episode embed server2 vidlink exact', ML.getEpisodeStreamUrl({ tmdbId: 94997 }, 1, 1, 'server2').startsWith('https://vidlink.pro/tv/94997/1/1'));
 
 /* --- download queries --- */
 check('movie query plain', ML.getMovieDownloadSearch({ title: 'Interstellar' }) === 'Interstellar');
@@ -62,11 +62,12 @@ check('02moviedownloader bad id → null', ML.get02MovieDownloaderMovieUrl('') =
 /* --- architecture guards: single provider, no direct downloads --- */
 const app = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-const bannedStreaming = ['vidlink.pro', 'vidsrc', 'torrentio.strem.fun', 'webtor.io', 'webtorrent', 'magnet:?xt='];
+const bannedStreaming = ['vidsrc', 'torrentio.strem.fun', 'webtor.io', 'webtorrent', 'magnet:?xt='];
 bannedStreaming.forEach((t) => {
-  check(`no second provider: ${t}`, !app.includes(t) && !html.includes(t));
+  check(`no banned provider: ${t}`, !app.includes(t) && !html.includes(t));
 });
 check('vaplayer movie embed used', app.includes('https://vaplayer.ru/embed/movie/') || fs.readFileSync(path.join(__dirname, '..', 'services', 'media-links.js'), 'utf8').includes('vaplayer.ru'));
+check('vidlink stream provider used', app.includes('https://vidlink.pro') && fs.readFileSync(path.join(__dirname, '..', 'services', 'media-links.js'), 'utf8').includes('vidlink.pro'));
 check('no direct-download engine', !/getBlob|createObjectURL|createReadStream|torrent\.destroy|client\.add\(/.test(app));
 check('no download modal markup', !html.includes('dlBackdrop') && !html.includes('mp4Backdrop'));
 check('no torrent UI copy', !/torrentio|magnet|WebRTC/i.test(html));

@@ -15,6 +15,8 @@
 
 const VAPLAYER_BASE = 'https://vaplayer.ru/embed';
 const VIDAPI_BASE = 'https://vidapi.ru/embed';
+const VIDLINK_BASE = 'https://vidlink.pro';
+const VIDLINK_PARAMS = 'primaryColor=b20710&secondaryColor=170000&iconColor=b20710&icons=vid&player=jw&autoplay=false&nextbutton=true';
 const OMNISAVE_BASE = 'https://videodownloader.site/';
 const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
@@ -27,22 +29,42 @@ function toInt(n) {
   return Number.isInteger(v) && v > 0 ? v : null;
 }
 
-/** Movie embed. Returns null when the IMDb ID is missing/invalid. */
+/** Movie embed. Returns null when the IMDb/TMDB ID is missing/invalid. */
 function getMovieStreamUrl(movie, server = 'server1') {
   const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
+  const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+
+  if (server === 'server2' || server === 'vidlink') {
+    const id = tmdb || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${VIDLINK_BASE}/movie/${id}?${VIDLINK_PARAMS}`;
+  }
+
+  if (server === 'vidapi') {
+    if (!IMDB_RE.test(imdb)) return null;
+    return `${VIDAPI_BASE}/movie/${imdb}`;
+  }
+
   if (!IMDB_RE.test(imdb)) return null;
-  const base = (server === 'server2' || server === 'vidapi') ? VIDAPI_BASE : VAPLAYER_BASE;
-  return `${base}/movie/${imdb}`;
+  return `${VAPLAYER_BASE}/movie/${imdb}`;
 }
 
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
 function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
-  const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : '';
+  const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
   const s = toInt(season);
   const e = toInt(episode);
   if (!tmdb || !/^\d+$/.test(tmdb) || !s || !e) return null;
-  const base = (server === 'server2' || server === 'vidapi') ? VIDAPI_BASE : VAPLAYER_BASE;
-  return `${base}/tv/${tmdb}/${s}/${e}`;
+
+  if (server === 'server2' || server === 'vidlink') {
+    return `${VIDLINK_BASE}/tv/${tmdb}/${s}/${e}?${VIDLINK_PARAMS}`;
+  }
+
+  if (server === 'vidapi') {
+    return `${VIDAPI_BASE}/tv/${tmdb}/${s}/${e}`;
+  }
+
+  return `${VAPLAYER_BASE}/tv/${tmdb}/${s}/${e}`;
 }
 
 /**
@@ -155,6 +177,8 @@ function get02MovieDownloaderEpisodeUrl(imdbId, season, episode) {
 const MediaLinks = {
   VAPLAYER_BASE,
   VIDAPI_BASE,
+  VIDLINK_BASE,
+  VIDLINK_PARAMS,
   OMNISAVE_BASE,
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
