@@ -21,6 +21,8 @@ check('episode missing season → null', ML.getEpisodeStreamUrl({ tmdbId: 1399 }
 check('episode missing ep → null', ML.getEpisodeStreamUrl({ tmdbId: 1399 }, 1, 0) === null);
 check('episode missing tmdb → null', ML.getEpisodeStreamUrl({}, 1, 1) === null);
 check('episode zero/negative → null', ML.getEpisodeStreamUrl({ tmdbId: 1 }, -1, 1) === null);
+check('movie embed server2 exact', ML.getMovieStreamUrl({ imdb: 'tt23779058' }, 'server2') === 'https://vidapi.ru/embed/movie/tt23779058');
+check('episode embed server2 exact', ML.getEpisodeStreamUrl({ tmdbId: 205715 }, 1, 1, 'server2') === 'https://vidapi.ru/embed/tv/205715/1/1');
 
 /* --- download queries --- */
 check('movie query plain', ML.getMovieDownloadSearch({ title: 'Interstellar' }) === 'Interstellar');
@@ -168,6 +170,15 @@ check('dispatchSubtitlesToPlayer defined in app.js', app.includes('function disp
 check('updateSubtitleUrlParam defined in app.js', app.includes('function updateSubtitleUrlParam('));
 check('applySubtitleToActivePlayer defined in app.js', app.includes('function applySubtitleToActivePlayer('));
 check('playEmbed uses updateSubtitleUrlParam', app.includes('updateSubtitleUrlParam(o.url, targetSub)'));
+check('pServerTop button in player controls in index.html', html.includes('id="pServerTop"'));
+check('pServerLabel in index.html', html.includes('id="pServerLabel"'));
+check('playerServerSelect in index.html', html.includes('id="playerServerSelect"'));
+check('switchPlayerServer defined in app.js', app.includes('function switchPlayerServer('));
+check('togglePlayerServer defined in app.js', app.includes('function togglePlayerServer('));
+check('updatePlayerServerUI defined in app.js', app.includes('function updatePlayerServerUI('));
+check('server-pill styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.player-pill-btn.server-pill'));
+check('STORAGE_GET_ALL handled in app.js', app.includes("msg.type === 'STORAGE_GET_ALL'"));
+check('default Arabic in updateSubtitleUrlParam', app.includes("target = lang || 'ar'"));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

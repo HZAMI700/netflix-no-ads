@@ -85,6 +85,7 @@ let heroItems = [], heroIdx = 0, heroTimer = null;
 let currentDetail = null;
 let currentStream = null;
 let currentEmbed = null;
+let currentPlayerServer = store.get('nf_player_server', 'server1');
 
 const PROFILES = [
   { id: 'Z', name: 'You', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
@@ -2609,6 +2610,15 @@ function initSubtitlesAndPreferences() {
     };
   }
 
+  // Player server switcher top button setup
+  const pServerTop = $('pServerTop');
+  if (pServerTop) {
+    pServerTop.onclick = (e) => {
+      e.stopPropagation();
+      togglePlayerServer();
+    };
+  }
+
   // Player customization modal setup
   const pCustomTop = $('pCustomizeTop');
   if (pCustomTop) {
@@ -2640,6 +2650,10 @@ function initSubtitlesAndPreferences() {
       };
       store.set('nf_player_prefs', prefs);
       applyPlayerTheme(prefs.theme);
+      const selectedServer = $('playerServerSelect')?.value || 'server1';
+      if (selectedServer !== currentPlayerServer) {
+        switchPlayerServer(selectedServer);
+      }
       closePlayerCustomModal();
       toast('Player settings saved');
     };
@@ -2652,10 +2666,12 @@ function initSubtitlesAndPreferences() {
       store.set('nf_player_prefs', defaults);
       if ($('playerSpeedSelect')) $('playerSpeedSelect').value = '1';
       if ($('playerThemeSelect')) $('playerThemeSelect').value = 'red';
+      if ($('playerServerSelect')) $('playerServerSelect').value = 'server1';
       if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = true;
       if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = true;
       if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = true;
       applyPlayerTheme('red');
+      if (currentPlayerServer !== 'server1') switchPlayerServer('server1');
       toast('Reset to default player settings');
     };
   }
@@ -2701,6 +2717,7 @@ function openPlayerCustomModal() {
   const prefs = store.get('nf_player_prefs', { speed: '1', theme: 'red', autoNext: true, autoSkip: true, smoothScrub: true });
   if ($('playerSpeedSelect')) $('playerSpeedSelect').value = prefs.speed || '1';
   if ($('playerThemeSelect')) $('playerThemeSelect').value = prefs.theme || 'red';
+  if ($('playerServerSelect')) $('playerServerSelect').value = currentPlayerServer;
   if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = prefs.autoNext !== false;
   if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = prefs.autoSkip !== false;
   if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = prefs.smoothScrub !== false;
@@ -2823,7 +2840,7 @@ function playStream() {
     playEpisode(s, ep);
     return;
   }
-  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id });
+  const url = MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id }, currentPlayerServer);
   if (!url) {
     closeDetail();
     $('playerView').classList.add('show');
@@ -2838,7 +2855,8 @@ function playStream() {
     imdb: m.id || m.imdb_id,
     title: m.name,
     poster: poster(m),
-    tmdbId: m.moviedb_id
+    tmdbId: m.moviedb_id,
+    server: currentPlayerServer
   });
 }
 
@@ -2849,7 +2867,7 @@ function playEpisode(season, episode) {
   const ep = Math.max(1, Number(episode) || 1);
   currentDetail.ep = { s, e: ep };
   const tmdbId = m.moviedb_id || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id)?.moviedb_id : null);
-  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
+  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
   if (!url) {
     toast('Streaming is unavailable for this episode (missing ID).');
     return;
@@ -2863,7 +2881,8 @@ function playEpisode(season, episode) {
     season: s,
     episode: ep,
     title: m.name,
-    poster: poster(m)
+    poster: poster(m),
+    server: currentPlayerServer
   });
 }
 
@@ -2913,34 +2932,138 @@ function recordWatchFinish(id) {
 
 function updateSubtitleUrlParam(url, lang) {
   if (!url) return url;
+  const target = lang || 'ar';
+  const langNames = {
+    ar: 'Arabic', en: 'English', es: 'Spanish', fr: 'French',
+    de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
+    hi: 'Hindi'
+  };
+  const label = langNames[target] || target;
   try {
     const u = new URL(url, window.location.href);
     if (!lang || lang === 'off') {
-      u.searchParams.delete('sub');
-      u.searchParams.delete('subtitles');
-      u.searchParams.delete('sub_lang');
-      u.searchParams.delete('lang');
-      u.searchParams.delete('default_sub');
+      ['sub', 'subtitles', 'sub_lang', 'lang', 'default_sub', 'default_subtitle', 'default_subtitles', 'caption', 'captions', 'caption_lang', 'sub_language', 'sub_lang_label', 'srclang', 'c_lang', 'auto_sub', 'auto_subtitles', 'subtitle_lang', 'va_sub'].forEach(p => u.searchParams.delete(p));
       u.searchParams.set('sub', 'off');
       u.searchParams.set('cc', '0');
     } else {
-      u.searchParams.set('sub', lang);
-      u.searchParams.set('subtitles', lang);
-      u.searchParams.set('sub_lang', lang);
-      u.searchParams.set('lang', lang);
-      u.searchParams.set('default_sub', lang);
+      u.searchParams.set('sub', target);
+      u.searchParams.set('subtitles', target);
+      u.searchParams.set('sub_lang', target);
+      u.searchParams.set('lang', target);
+      u.searchParams.set('default_sub', target);
+      u.searchParams.set('default_subtitle', target);
+      u.searchParams.set('default_subtitles', target);
+      u.searchParams.set('caption', target);
+      u.searchParams.set('captions', target);
+      u.searchParams.set('caption_lang', target);
       u.searchParams.set('cc', '1');
+      u.searchParams.set('cc_lang', target);
+      u.searchParams.set('sub_language', label);
+      u.searchParams.set('sub_lang_label', label);
+      u.searchParams.set('srclang', target);
+      u.searchParams.set('auto_sub', target);
+      u.searchParams.set('auto_subtitles', '1');
+      u.searchParams.set('subtitle_lang', target);
+      u.searchParams.set('va_sub', target);
     }
     return u.toString();
   } catch {
     if (!lang || lang === 'off') return url;
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}sub=${encodeURIComponent(lang)}&subtitles=${encodeURIComponent(lang)}&sub_lang=${encodeURIComponent(lang)}&lang=${encodeURIComponent(lang)}&default_sub=${encodeURIComponent(lang)}&cc=1`;
+    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}`;
   }
+}
+
+function updateSubtitleUI() {
+  const currentLang = store.get('nf_sub_lang', 'ar');
+  const langNames = {
+    ar: 'Arabic', en: 'English', es: 'Spanish', fr: 'French',
+    de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
+    hi: 'Hindi'
+  };
+  const label = langNames[currentLang] || (currentLang === 'off' ? 'Off' : currentLang.toUpperCase());
+  const btn = $('pSubsTop');
+  const span = btn?.querySelector('span');
+  if (span) {
+    span.textContent = currentLang === 'off' ? 'Subtitles (Off)' : `Subtitles (${label})`;
+  }
+  if (btn) {
+    btn.title = currentLang === 'off' ? 'Subtitles: Off (Click to change)' : `Subtitles: ${label} (Click to change)`;
+  }
+}
+
+function updatePlayerServerUI() {
+  const lbl = $('pServerLabel');
+  const btn = $('pServerTop');
+  const sel = $('playerServerSelect');
+  const isServer2 = currentPlayerServer === 'server2';
+  if (lbl) {
+    lbl.textContent = isServer2 ? 'Server 2 (Cloud CDN)' : 'Server 1 (Pro)';
+  }
+  if (btn) {
+    btn.setAttribute('data-server', currentPlayerServer);
+    btn.title = isServer2
+      ? 'Current: Server 2 (Cloud CDN Player) — Click to switch to Server 1 (Pro Cinema Player)'
+      : 'Current: Server 1 (Pro Cinema Player) — Click to switch to Server 2 (Cloud CDN Player)';
+  }
+  if (sel) {
+    sel.value = currentPlayerServer;
+  }
+}
+
+function togglePlayerServer() {
+  const nextServer = currentPlayerServer === 'server1' ? 'server2' : 'server1';
+  switchPlayerServer(nextServer);
+}
+
+function switchPlayerServer(newServer) {
+  currentPlayerServer = newServer === 'server2' ? 'server2' : 'server1';
+  store.set('nf_player_server', currentPlayerServer);
+  updatePlayerServerUI();
+
+  const iframe = $('playerView')?.querySelector('iframe');
+  if (!iframe || !currentEmbed) return;
+
+  let newBaseUrl = null;
+  if (currentEmbed.type === 'series') {
+    const tmdbId = currentEmbed.tmdbId || currentEmbed.id;
+    if (tmdbId) {
+      newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId }, currentEmbed.season || 1, currentEmbed.episode || 1, currentPlayerServer);
+    }
+  } else {
+    const imdb = currentEmbed.imdb || currentEmbed.id;
+    if (imdb) {
+      newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb }, currentPlayerServer);
+    }
+  }
+
+  if (!newBaseUrl) {
+    toast('Server change unavailable for this title');
+    return;
+  }
+
+  const targetSub = store.get('nf_sub_lang', 'ar');
+  const finalUrl = updateSubtitleUrlParam(newBaseUrl, targetSub);
+  currentEmbed.url = finalUrl;
+  currentEmbed.server = currentPlayerServer;
+  iframe.src = finalUrl;
+
+  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (Cloud CDN Player)' : 'Server 1 (Pro Cinema Player)';
+  toast(`Switched to ${serverName}`);
+
+  const sendSubCmd = () => {
+    dispatchSubtitlesToPlayer(targetSub);
+  };
+  sendSubCmd();
+  setTimeout(sendSubCmd, 250);
+  setTimeout(sendSubCmd, 600);
+  setTimeout(sendSubCmd, 1500);
 }
 
 function applySubtitleToActivePlayer(lang) {
   const targetSub = lang || store.get('nf_sub_lang', 'ar');
+  store.set('nf_sub_lang', targetSub);
+  updateSubtitleUI();
   dispatchSubtitlesToPlayer(targetSub);
   const iframe = $('playerView')?.querySelector('iframe');
   if (!iframe || !currentEmbed || !currentEmbed.url) return;
@@ -2965,22 +3088,58 @@ function dispatchSubtitlesToPlayer(lang) {
     hi: 'Hindi'
   };
   const label = langNames[targetSub] || targetSub;
-  try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
-  try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub }, '*'); } catch {}
+
+  try {
+    localStorage.setItem('subtitleLang', targetSub);
+    localStorage.setItem('va_subtitle_lang', targetSub);
+    localStorage.setItem('va_sub', targetSub);
+    localStorage.setItem('player_subtitle', targetSub);
+    localStorage.setItem('player_sub_lang', targetSub);
+  } catch {}
+
+  const storageData = {
+    subtitleLang: targetSub,
+    va_subtitle_lang: targetSub,
+    va_sub: targetSub,
+    va_caption: targetSub,
+    player_subtitle: targetSub,
+    player_sub: targetSub,
+    player_subtitles: targetSub,
+    player_lang: targetSub,
+    player_sub_lang: targetSub,
+    default_sub: targetSub,
+    sub_lang: targetSub
+  };
+
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_INIT', data: storageData }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
-  try { f.contentWindow?.postMessage({ event: 'setSubtitle', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_subtitle', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_sub_lang', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_sub', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLE', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'setSubtitle', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ event: 'setSubtitle', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ event: 'set_subtitle', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'PLAYER_SET_SUBTITLE', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ action: 'setSubtitle', language: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ command: 'set_subtitle', lang: targetSub }, '*'); } catch {}
 }
 
 function playEmbed(o) {
   if (!o || !o.url) { showPlayerError('This title is unavailable.'); return; }
-  currentEmbed = { ...o };
+  currentEmbed = { ...o, server: currentPlayerServer };
   currentStream = o;
   recordWatchStart(o);
   const sub = o.type === 'series'
-    ? `Season ${o.season || 1}, Episode ${o.episode || 1} • HD Stream`
-    : `${o.year ? o.year + ' • ' : ''}HD Stream • OpenSubtitles v3`;
+    ? `Season ${o.season || 1}, Episode ${o.episode || 1} • HD Stream • Arabic Subtitles`
+    : `${o.year ? o.year + ' • ' : ''}HD Stream • Arabic Subtitles`;
   openPlayerShell(o.title, sub);
+
+  updatePlayerServerUI();
+  updateSubtitleUI();
 
   const targetSub = store.get('nf_sub_lang', 'ar');
   const embedUrlWithSub = updateSubtitleUrlParam(o.url, targetSub);
@@ -2998,10 +3157,14 @@ function playEmbed(o) {
   const sendSubCmd = () => {
     dispatchSubtitlesToPlayer(targetSub);
   };
+  sendSubCmd();
   f.onload = () => {
     sendSubCmd();
+    setTimeout(sendSubCmd, 250);
     setTimeout(sendSubCmd, 600);
-    setTimeout(sendSubCmd, 1800);
+    setTimeout(sendSubCmd, 1200);
+    setTimeout(sendSubCmd, 2500);
+    setTimeout(sendSubCmd, 4000);
   };
 }
 
@@ -3011,7 +3174,7 @@ function playEmbedEntry(m) {
     if (!tmdbId) { toast('Streaming unavailable (missing ID).'); return; }
     const s = Math.max(1, Number(m.season || 1));
     const ep = Math.max(1, Number(m.episode || 1));
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
+    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
     if (!url) { toast('Streaming unavailable for this episode.'); return; }
     playEmbed({
       url,
@@ -3022,12 +3185,13 @@ function playEmbedEntry(m) {
       season: s,
       episode: ep,
       title: m.name,
-      poster: poster(m)
+      poster: poster(m),
+      server: currentPlayerServer
     });
     return;
   }
   const imdb = m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
-  const url = MediaLinks.getMovieStreamUrl({ imdb });
+  const url = MediaLinks.getMovieStreamUrl({ imdb }, currentPlayerServer);
   if (!url) { toast('Streaming unavailable (missing IMDb ID).'); return; }
   playEmbed({
     url,
@@ -3036,7 +3200,8 @@ function playEmbedEntry(m) {
     imdb,
     title: m.name,
     poster: poster(m),
-    tmdbId: m.tmdbId
+    tmdbId: m.tmdbId,
+    server: currentPlayerServer
   });
 }
 
@@ -3333,7 +3498,27 @@ let lastPlayerTap = 0;
 window.addEventListener('message', (event) => {
   if (!EMBED_ORIGINS.includes(event.origin)) return;
   const msg = event.data || {};
-  if (msg.type === 'MEDIA_DATA' && msg.data) {
+  if (msg.type === 'STORAGE_GET_ALL') {
+    const targetSub = store.get('nf_sub_lang', 'ar');
+    try {
+      event.source?.postMessage({
+        type: 'STORAGE_INIT',
+        data: {
+          subtitleLang: targetSub,
+          va_subtitle_lang: targetSub,
+          va_sub: targetSub,
+          va_caption: targetSub,
+          player_subtitle: targetSub,
+          player_sub: targetSub,
+          player_subtitles: targetSub,
+          player_lang: targetSub,
+          player_sub_lang: targetSub,
+          default_sub: targetSub,
+          sub_lang: targetSub
+        }
+      }, '*');
+    } catch {}
+  } else if (msg.type === 'MEDIA_DATA' && msg.data) {
     try {
       const cur = readProgressStore();
       cur[msg.data.id] = { ...msg.data, imdb: msg.data.imdb || msg.data.imdb_id || undefined };
@@ -3352,8 +3537,8 @@ window.addEventListener('message', (event) => {
         toast('Starting next episode…');
         const s = Math.max(1, Number(e.season || 1));
         const ep = Math.max(1, Number(e.episode || 1)) + 1;
-        const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep);
-        if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep });
+        const url = MediaLinks.getEpisodeStreamUrl({ tmdbId }, s, ep, currentPlayerServer);
+        if (url) playEmbed({ ...e, url, tmdbId, season: s, episode: ep, server: currentPlayerServer });
       }
     }
   }
