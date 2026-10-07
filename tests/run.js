@@ -199,6 +199,10 @@ check('XSS escapeHtml sanitization present in app.js', app.includes('function es
 check('download servers use generic names in HTML', html.includes('Server 1 — Direct High Speed') && html.includes('Server 2 — Multi-Quality Mirror') && html.includes('Server 3 — Global Search Mirror'));
 check('player servers use generic names in HTML', html.includes('Server 1: High Definition Stream') && html.includes('Server 2: Fast Mirror Stream'));
 
+/* --- branding guard --- */
+check('website name is STREAMNARO in index.html', html.includes('STREAMNARO') && html.includes('Streamnaro'));
+check('no legacy brand name in index.html or app.js', !/zflexy/i.test(html) && !/zflexy/i.test(app));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 

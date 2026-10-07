@@ -465,7 +465,7 @@ const HOME_ROWS = [
   { id: 'popular_series', title: 'Trending & High-Voltage TV Series', url: ['series/top', 'series/top/skip=100', 'series/top/skip=200'], limit: 100 },
   { id: 'toprated_movies', title: 'IMDb Top Rated Cinema Masterpieces', url: ['movie/imdbRating', 'movie/imdbRating/skip=100', 'movie/imdbRating/skip=200'], limit: 100 },
   { id: 'toprated_series', title: 'Critically Acclaimed & Award-Winning Series', url: ['series/imdbRating', 'series/imdbRating/skip=100', 'series/imdbRating/skip=200'], limit: 100 },
-  { id: 'new_releases', title: 'New Releases & Fresh Seasons on Zflexy', url: ['movie/year', 'series/year', 'movie/year/skip=100', 'series/year/skip=100'], badge: 'NEW', limit: 100 },
+  { id: 'new_releases', title: 'New Releases & Fresh Seasons on Streamnaro', url: ['movie/year', 'series/year', 'movie/year/skip=100', 'series/year/skip=100'], badge: 'NEW', limit: 100 },
   { id: 'action', title: 'High-Octane Action, Heists & Adrenaline', url: ['movie/top/genre=Action', 'movie/top/genre=Action/skip=100', 'movie/top/genre=Action/skip=200'], limit: 100 },
   { id: 'action_series', title: 'Action, Espionage & Adventure TV Series', url: ['series/top/genre=Action', 'series/top/genre=Adventure', 'series/top/genre=Action/skip=100'], limit: 100 },
   { id: 'scifi', title: 'Sci-Fi, Cyberpunk & Futuristic Worlds', url: ['movie/top/genre=Sci-Fi', 'series/top/genre=Sci-Fi', 'movie/top/genre=Sci-Fi/skip=100', 'series/top/genre=Sci-Fi/skip=100'], limit: 100 },
@@ -1517,7 +1517,7 @@ function renderMyList() {
     g.innerHTML = `
       <div class="empty" style="grid-column:1/-1">
         <h2>Your List is Empty</h2>
-        <p>Explore titles on Zflexy and add your favorites to watch them anytime.</p>
+        <p>Explore titles on Streamnaro and add your favorites to watch them anytime.</p>
         <br>
         <button class="btn-red" onclick="document.querySelector('[data-nav=home]').click()">Explore Titles</button>
       </div>

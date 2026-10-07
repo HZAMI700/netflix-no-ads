@@ -1,6 +1,6 @@
 'use strict';
 /**
- * Zflexy Curated Media Catalog & Content Safety Audit System
+ * Streamnaro Curated Media Catalog & Content Safety Audit System
  * 100% verified, clean, non-sexual titles with complete metadata.
  * Every title includes verified IMDb ID, TMDb ID, genres, rating, synopsis, and high-res art.
  */
