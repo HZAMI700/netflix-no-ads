@@ -180,6 +180,15 @@ check('updatePlayerServerUI defined in app.js', app.includes('function updatePla
 check('server-pill styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.player-pill-btn.server-pill'));
 check('STORAGE_GET_ALL handled in app.js', app.includes("msg.type === 'STORAGE_GET_ALL'"));
 check('default Arabic in updateSubtitleUrlParam', app.includes("target = lang || 'ar'"));
+check('pControlZoneShield present in index.html', html.includes('id="pControlZoneShield"'));
+check('pControlZoneShield styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.p-control-zone-shield'));
+check('pBottomBar present in index.html', html.includes('id="pBottomBar"'));
+check('pBottomCaptions present in index.html', html.includes('id="pBottomCaptions"'));
+check('pBottomSettings present in index.html', html.includes('id="pBottomSettings"'));
+check('playerCustomSubLangSelect present in index.html', html.includes('id="playerCustomSubLangSelect"'));
+check('pControlZoneShield handled in app.js', app.includes('pControlZoneShield'));
+check('pBottomCaptions handled in app.js', app.includes('pBottomCaptions'));
+check('pBottomSettings handled in app.js', app.includes('pBottomSettings'));
 
 /* --- removal & list management guards --- */
 check('removeFromHistory defined in app.js', app.includes('function removeFromHistory('));

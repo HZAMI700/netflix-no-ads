@@ -718,6 +718,23 @@
           </select>
         </div>
         <div class="caption-pref-group" style="grid-column: 1 / -1;">
+          <label for="playerCustomSubLangSelect">Default Subtitle Language</label>
+          <select id="playerCustomSubLangSelect" class="settings-select">
+            <option value="ar" selected>Arabic (العربية) — Default</option>
+            <option value="en">English</option>
+            <option value="es">Spanish (Español)</option>
+            <option value="fr">French (Français)</option>
+            <option value="de">German (Deutsch)</option>
+            <option value="it">Italian (Italiano)</option>
+            <option value="pt">Portuguese (Português)</option>
+            <option value="ru">Russian (Русский)</option>
+            <option value="tr">Turkish (Türkçe)</option>
+            <option value="ja">Japanese (日本語)</option>
+            <option value="hi">Hindi (हिन्दी)</option>
+            <option value="off">Off (Subtitles Disabled)</option>
+          </select>
+        </div>
+        <div class="caption-pref-group" style="grid-column: 1 / -1;">
           <label for="playerServerSelect">Video Player / Streaming Engine</label>
           <select id="playerServerSelect" class="settings-select">
             <option value="server1" selected>Server 1: High Definition Stream</option>
@@ -752,6 +769,7 @@
 <!-- PLAYER VIEW -->
 <div id="playerView">
   <div id="vidShield"></div>
+  <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
   <video id="playerVideo" playsinline style="display:none !important"></video>
   <div class="p-top" id="pTop">
     <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
@@ -763,7 +781,7 @@
     </div>
       <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-        <span id="pServerLabel">Server 1 (Pro)</span>
+        <span id="pServerLabel">Server 1 (HD)</span>
       </button>
       <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -794,6 +812,18 @@
         Starting in <span id="nextCount">25</span>s…
         <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
       </div>
+    </div>
+  </div>
+  <div class="p-bottom-bar" id="pBottomBar">
+    <div class="p-bottom-right">
+      <button class="player-pill-btn p-bottom-btn" id="pBottomCaptions" title="Subtitles &amp; Captions (Default: Arabic)" aria-label="Subtitles and Captions">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect><path d="M7 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1zM14 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"></path></svg>
+        <span id="pBottomCaptionsLabel">Captions: Arabic</span>
+      </button>
+      <button class="player-pill-btn p-bottom-btn" id="pBottomSettings" title="Player Settings (Speed, Theme, Engine)" aria-label="Player Settings">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span>Settings</span>
+      </button>
     </div>
   </div>
 </div>

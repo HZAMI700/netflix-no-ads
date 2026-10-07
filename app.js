@@ -2682,12 +2682,12 @@ function initSubtitlesAndPreferences() {
   const ccBtn = $('captionOpenPlayerCC');
   if (ccBtn) {
     ccBtn.onclick = () => {
+      const cur = store.get('nf_sub_lang', 'ar') || 'ar';
+      const next = cur === 'ar' ? 'en' : (cur === 'en' ? 'off' : 'ar');
+      applySubtitleToActivePlayer(next);
       closeCaptionsModal();
-      const iframe = $('playerView')?.querySelector('iframe');
-      if (iframe) {
-        try { iframe.focus(); } catch {}
-      }
-      toast('Tap the CC icon in the player bar to choose subtitles');
+      const names = { ar: 'Arabic (العربية)', en: 'English', off: 'Disabled' };
+      toast(`Subtitles switched: ${names[next] || next}`);
     };
   }
 
@@ -2707,6 +2707,46 @@ function initSubtitlesAndPreferences() {
       e.stopPropagation();
       openPlayerCustomModal();
     };
+  }
+
+  // Safe ad-proof bottom controls and defensive gesture shield
+  const pBottomCaps = $('pBottomCaptions');
+  if (pBottomCaps) {
+    pBottomCaps.onclick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      triggerLightSpeedFocusSnap();
+      openCaptionsModal();
+    };
+  }
+
+  const pBottomSet = $('pBottomSettings');
+  if (pBottomSet) {
+    pBottomSet.onclick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      triggerLightSpeedFocusSnap();
+      openPlayerCustomModal();
+    };
+  }
+
+  const pZoneShield = $('pControlZoneShield');
+  if (pZoneShield) {
+    const handleControlShield = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      triggerLightSpeedFocusSnap();
+      const rect = pZoneShield.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < rect.width * 0.55) {
+        openCaptionsModal();
+      } else {
+        openPlayerCustomModal();
+      }
+    };
+    ['click', 'mousedown', 'pointerdown', 'touchstart'].forEach(evt => {
+      pZoneShield.addEventListener(evt, handleControlShield, { capture: true });
+    });
   }
 
   const pCustomClose = $('playerCustomModalClose');
@@ -2731,6 +2771,10 @@ function initSubtitlesAndPreferences() {
       };
       store.set('nf_player_prefs', prefs);
       applyPlayerTheme(prefs.theme);
+      const selectedSubLang = $('playerCustomSubLangSelect')?.value || store.get('nf_sub_lang', 'ar');
+      if (selectedSubLang && selectedSubLang !== store.get('nf_sub_lang', 'ar')) {
+        applySubtitleToActivePlayer(selectedSubLang);
+      }
       const selectedServer = $('playerServerSelect')?.value || 'server1';
       if (selectedServer !== currentPlayerServer) {
         switchPlayerServer(selectedServer);
@@ -2748,10 +2792,12 @@ function initSubtitlesAndPreferences() {
       if ($('playerSpeedSelect')) $('playerSpeedSelect').value = '1';
       if ($('playerThemeSelect')) $('playerThemeSelect').value = 'red';
       if ($('playerServerSelect')) $('playerServerSelect').value = 'server1';
+      if ($('playerCustomSubLangSelect')) $('playerCustomSubLangSelect').value = 'ar';
       if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = true;
       if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = true;
       if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = true;
       applyPlayerTheme('red');
+      applySubtitleToActivePlayer('ar');
       if (currentPlayerServer !== 'server1') switchPlayerServer('server1');
       toast('Reset to default player settings');
     };
@@ -2799,6 +2845,7 @@ function openPlayerCustomModal() {
   if ($('playerSpeedSelect')) $('playerSpeedSelect').value = prefs.speed || '1';
   if ($('playerThemeSelect')) $('playerThemeSelect').value = prefs.theme || 'red';
   if ($('playerServerSelect')) $('playerServerSelect').value = currentPlayerServer;
+  if ($('playerCustomSubLangSelect')) $('playerCustomSubLangSelect').value = store.get('nf_sub_lang', 'ar') || 'ar';
   if ($('playerAutoNextToggle')) $('playerAutoNextToggle').checked = prefs.autoNext !== false;
   if ($('playerAutoSkipToggle')) $('playerAutoSkipToggle').checked = prefs.autoSkip !== false;
   if ($('playerSmoothScrubToggle')) $('playerSmoothScrubToggle').checked = prefs.smoothScrub !== false;
@@ -2814,10 +2861,16 @@ function closePlayerCustomModal() {
 let hideT = null;
 function wakeChrome() {
   const pTop = $('pTop');
+  const pBottomBar = $('pBottomBar');
   if (pTop) {
     pTop.classList.remove('hidden');
     pTop.style.opacity = '1';
     pTop.style.pointerEvents = 'auto';
+  }
+  if (pBottomBar) {
+    pBottomBar.classList.remove('hidden');
+    pBottomBar.style.opacity = '1';
+    pBottomBar.style.pointerEvents = 'auto';
   }
   clearTimeout(hideT);
   hideT = setTimeout(() => {
@@ -2825,6 +2878,11 @@ function wakeChrome() {
       pTop.classList.add('hidden');
       pTop.style.opacity = '0';
       pTop.style.pointerEvents = 'none';
+    }
+    if (pBottomBar) {
+      pBottomBar.classList.add('hidden');
+      pBottomBar.style.opacity = '0';
+      pBottomBar.style.pointerEvents = 'none';
     }
   }, 4000);
 }
@@ -2838,7 +2896,7 @@ function togglePlayerPlayback() {
   }
 }
 
-['pTop', 'pTopSensor'].forEach(id => {
+['pTop', 'pTopSensor', 'pBottomBar', 'pControlZoneShield'].forEach(id => {
   const el = $(id);
   if (el) {
     ['mousemove', 'touchstart', 'pointerdown', 'click'].forEach(evt => {
@@ -2867,6 +2925,8 @@ function closePlayer() {
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
+  const pBottomBar = $('pBottomBar');
+  if (pBottomBar) pBottomBar.classList.add('hidden');
   hidePlayerError();
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
 
@@ -3107,7 +3167,25 @@ function updateSubtitleUrlParam(url, lang) {
 }
 
 function updateSubtitleUI() {
-  // Top player subtitles option removed in favor of native bottom captions defaulting to Arabic
+  const currentLang = store.get('nf_sub_lang', 'ar') || 'ar';
+  const langNames = {
+    ar: 'Arabic', en: 'English', es: 'Spanish', fr: 'French',
+    de: 'German', it: 'Italian', pt: 'Portuguese', ru: 'Russian',
+    tr: 'Turkish', ja: 'Japanese', hi: 'Hindi', off: 'Off'
+  };
+  const label = langNames[currentLang] || (currentLang === 'off' ? 'Off' : currentLang.toUpperCase());
+  const bLabel = $('pBottomCaptionsLabel');
+  if (bLabel) {
+    bLabel.textContent = `Captions: ${label}`;
+  }
+  const modalSelect = $('captionModalLangSelect');
+  if (modalSelect && modalSelect.value !== currentLang) {
+    modalSelect.value = currentLang;
+  }
+  const customSubSelect = $('playerCustomSubLangSelect');
+  if (customSubSelect && customSubSelect.value !== currentLang) {
+    customSubSelect.value = currentLang;
+  }
 }
 
 function updatePlayerServerUI() {
@@ -3657,12 +3735,16 @@ let shieldDisarmTimer = null;
 function disarmVidShield() {
   const shield = $('vidShield');
   if (shield) shield.style.display = 'none';
+  const zoneShield = $('pControlZoneShield');
+  if (zoneShield) zoneShield.style.display = 'none';
   clearTimeout(shieldDisarmTimer);
 }
 
 function armVidShield() {
   const shield = $('vidShield');
   if (shield) shield.style.display = 'none';
+  const zoneShield = $('pControlZoneShield');
+  if (zoneShield) zoneShield.style.display = 'block';
 }
 
 let lastPlayerTap = 0;
