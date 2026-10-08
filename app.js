@@ -2732,21 +2732,8 @@ function initSubtitlesAndPreferences() {
 
   const pZoneShield = $('pControlZoneShield');
   if (pZoneShield) {
-    const handleControlShield = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      triggerLightSpeedFocusSnap();
-      const rect = pZoneShield.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      if (clickX < rect.width * 0.55) {
-        openCaptionsModal();
-      } else {
-        openPlayerCustomModal();
-      }
-    };
-    ['click', 'mousedown', 'pointerdown', 'touchstart'].forEach(evt => {
-      pZoneShield.addEventListener(evt, handleControlShield, { capture: true });
-    });
+    pZoneShield.style.display = 'none';
+    pZoneShield.style.pointerEvents = 'none';
   }
 
   const pCustomClose = $('playerCustomModalClose');
@@ -3682,16 +3669,11 @@ function startFocusGuardian() {
     // High-speed liveness check: if active document lost system focus or visibility to a popunder, snap back at light speed!
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
     const lostFocus = typeof document.hasFocus === 'function' && !document.hasFocus();
-    if (isHidden || lostFocus) {
+    const isPlayerFocused = document.activeElement?.tagName === 'IFRAME';
+    if (isHidden || (lostFocus && !isPlayerFocused)) {
       triggerLightSpeedFocusSnap();
     }
-
-    // Detect when focus shifts to player iframe (user clicked video player) to immediately shield against delayed popups
-    const curActive = document.activeElement;
-    if (curActive && curActive !== _lastActiveElement && (curActive.tagName === 'IFRAME' || curActive.closest?.('#playerView'))) {
-      triggerLightSpeedFocusSnap();
-    }
-    _lastActiveElement = curActive;
+    _lastActiveElement = document.activeElement;
   }, 10);
 }
 
@@ -3704,14 +3686,17 @@ function stopFocusGuardian() {
 
 const _handleFocusLossOrVisibility = () => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-    triggerLightSpeedFocusSnap();
-    clearTimeout(_focusSnapTimer);
-    _focusSnapTimer = setTimeout(snapWindowFocus, 10);
-    setTimeout(snapWindowFocus, 25);
-    setTimeout(snapWindowFocus, 45);
-    setTimeout(snapWindowFocus, 120);
-    setTimeout(snapWindowFocus, 300);
-    setTimeout(snapWindowFocus, 600);
+    const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
+    if (isHidden || document.activeElement?.tagName !== 'IFRAME') {
+      triggerLightSpeedFocusSnap();
+      clearTimeout(_focusSnapTimer);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 10);
+      setTimeout(snapWindowFocus, 25);
+      setTimeout(snapWindowFocus, 45);
+      setTimeout(snapWindowFocus, 120);
+      setTimeout(snapWindowFocus, 300);
+      setTimeout(snapWindowFocus, 600);
+    }
   }
 };
 
@@ -3736,7 +3721,10 @@ function disarmVidShield() {
   const shield = $('vidShield');
   if (shield) shield.style.display = 'none';
   const zoneShield = $('pControlZoneShield');
-  if (zoneShield) zoneShield.style.display = 'none';
+  if (zoneShield) {
+    zoneShield.style.display = 'none';
+    zoneShield.style.pointerEvents = 'none';
+  }
   clearTimeout(shieldDisarmTimer);
 }
 
@@ -3744,7 +3732,10 @@ function armVidShield() {
   const shield = $('vidShield');
   if (shield) shield.style.display = 'none';
   const zoneShield = $('pControlZoneShield');
-  if (zoneShield) zoneShield.style.display = 'block';
+  if (zoneShield) {
+    zoneShield.style.display = 'none';
+    zoneShield.style.pointerEvents = 'none';
+  }
 }
 
 let lastPlayerTap = 0;
