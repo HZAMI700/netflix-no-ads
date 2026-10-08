@@ -1,0 +1,205 @@
+'use strict';
+
+/**
+ * Media-link helpers — pure functions, no DOM.
+ * Single place that knows how Watch and Download URLs are built.
+ *
+ * STREAMING:
+ *   Server 1 (Vaplayer/VidAPI):
+ *     movie   → https://vaplayer.ru/embed/movie/{IMDB_ID}
+ *     episode → https://vaplayer.ru/embed/tv/{TMDB_ID}/{SEASON}/{EPISODE}
+ *   Server 2 (VidSrc - vidsrc.sh):
+ *     movie   → https://vidsrc.sh/embed/movie/{ID} (IMDb or TMDb ID)
+ *     episode → https://vidsrc.sh/embed/tv/{ID}/{SEASON}/{EPISODE} (TMDb or IMDb ID)
+ *
+ * DOWNLOAD (OmniSave redirect only — never a direct file URL):
+ *   base    → https://videodownloader.site/?utm_source=MB_Website
+ *   search  → base + &q={query}  (their declared SearchAction target is ?q=)
+ */
+
+const VAPLAYER_BASE = 'https://vaplayer.ru/embed';
+const VIDAPI_BASE = 'https://vidapi.ru/embed';
+const VIDSRC_BASE = 'https://vidsrc.sh';
+const OMNISAVE_BASE = 'https://videodownloader.site/';
+const OMNISAVE_UTM = 'utm_source=MB_Website';
+const VIDVAULT_BASE = 'https://vidvault.to';
+const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
+
+const IMDB_RE = /^tt\d+$/;
+
+function toInt(n) {
+  const v = Number(n);
+  return Number.isInteger(v) && v > 0 ? v : null;
+}
+
+/** Movie embed. Returns null when the IMDb/TMDB ID is missing/invalid. */
+function getMovieStreamUrl(movie, server = 'server1') {
+  const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
+  const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+
+  if (server === 'server2' || server === 'vidsrc') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${VIDSRC_BASE}/embed/movie/${id}`;
+  }
+
+  if (server === 'vidapi') {
+    const id = IMDB_RE.test(imdb) ? imdb : (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${VIDAPI_BASE}/movie/${id}`;
+  }
+
+  const id = IMDB_RE.test(imdb) ? imdb : (/^\d+$/.test(tmdb) ? tmdb : '');
+  if (!id) return null;
+  return `${VAPLAYER_BASE}/movie/${id}`;
+}
+
+/** Episode embed. Returns null when TMDB id / season / episode are missing. */
+function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
+  const imdb = series && typeof series.imdb === 'string' ? series.imdb.trim() : '';
+  const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!s || !e) return null;
+
+  if (server === 'server2' || server === 'vidsrc') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${VIDSRC_BASE}/embed/tv/${id}/${s}/${e}`;
+  }
+
+  if (!tmdb || !/^\d+$/.test(tmdb)) return null;
+
+  if (server === 'vidapi') {
+    return `${VIDAPI_BASE}/tv/${tmdb}/${s}/${e}`;
+  }
+
+  return `${VAPLAYER_BASE}/tv/${tmdb}/${s}/${e}`;
+}
+
+/**
+ * Clean display title for search queries. Preserves the original wording
+ * (including years like "Blade Runner 2049", Arabic, punctuation,
+ * apostrophes) — only trims, collapses whitespace, and drops [...] technical
+ * tags which are never part of a real title.
+ */
+function cleanTitle(title) {
+  if (typeof title !== 'string') return '';
+  return title
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+/** Movie download query: just the clean title. */
+function getMovieDownloadSearch(movie) {
+  return cleanTitle(movie && movie.title);
+}
+
+/**
+ * Episode download query. Prefers "Series S01E03"; falls back to
+ * "Series Season 1 Episode 3" wording when only partial numbers exist,
+ * and to the bare title when numbers are missing.
+ */
+function getEpisodeDownloadSearch(series, season, episode) {
+  const title = cleanTitle(series && series.title);
+  if (!title) return '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (s && e) return `${title} S${pad2(s)}E${pad2(e)}`;
+  if (s && !e) return `${title} Season ${s}`;
+  if (!s && e) return `${title} Episode ${e}`;
+  return title;
+}
+
+/**
+ * OmniSave URL for a search query. Uses their declared ?q= search target
+ * plus our utm tag. Empty query → plain base URL (their homepage).
+ */
+function omnisaveUrl(query) {
+  const base = `${OMNISAVE_BASE}?${OMNISAVE_UTM}`;
+  const q = typeof query === 'string' ? query.trim() : '';
+  if (!q) return base;
+  return `${base}&q=${encodeURIComponent(q)}`;
+}
+
+function extractImdbId(val) {
+  if (!val) return '';
+  if (typeof val === 'string') return val.trim();
+  if (typeof val.imdb === 'string') return val.imdb.trim();
+  if (typeof val.id === 'string' && val.id.startsWith('tt')) return val.id.split(':')[0].trim();
+  if (typeof val.imdb_id === 'string') return val.imdb_id.trim();
+  return '';
+}
+
+/**
+ * Server 1: VidVault Movie Download URL
+ * https://vidvault.to/movie/{IMDB_ID}
+ * Example: https://vidvault.to/movie/tt0816692
+ */
+function getVidVaultMovieUrl(imdbId) {
+  const imdb = extractImdbId(imdbId);
+  if (!IMDB_RE.test(imdb)) return null;
+  return `${VIDVAULT_BASE}/movie/${imdb}`;
+}
+
+/**
+ * Server 1: VidVault TV Episode Download URL
+ * https://vidvault.to/tv/{IMDB_ID}/{SEASON}/{EPISODE}
+ * Example: https://vidvault.to/tv/tt5071412/1/1
+ */
+function getVidVaultEpisodeUrl(imdbId, season, episode) {
+  const imdb = extractImdbId(imdbId);
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!IMDB_RE.test(imdb) || !s || !e) return null;
+  return `${VIDVAULT_BASE}/tv/${imdb}/${s}/${e}`;
+}
+
+/**
+ * Server 2: 02MovieDownloader Movie Download URL
+ * https://02moviedownloader.site/api/download/movie/{IMDB_ID}
+ * Example: https://02moviedownloader.site/api/download/movie/tt0468569
+ */
+function get02MovieDownloaderMovieUrl(imdbId) {
+  const imdb = extractImdbId(imdbId);
+  if (!IMDB_RE.test(imdb)) return null;
+  return `${MOVIEDOWNLOADER02_BASE}/api/download/movie/${imdb}`;
+}
+
+/**
+ * Server 2: 02MovieDownloader TV Episode Download URL
+ * https://02moviedownloader.site/api/download/tv/{IMDB_ID}/{SEASON}/{EPISODE}
+ * Example: https://02moviedownloader.site/api/download/tv/tt11126994/1/1
+ */
+function get02MovieDownloaderEpisodeUrl(imdbId, season, episode) {
+  const imdb = extractImdbId(imdbId);
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!IMDB_RE.test(imdb) || !s || !e) return null;
+  return `${MOVIEDOWNLOADER02_BASE}/api/download/tv/${imdb}/${s}/${e}`;
+}
+
+const MediaLinks = {
+  VAPLAYER_BASE,
+  VIDAPI_BASE,
+  VIDSRC_BASE,
+  OMNISAVE_BASE,
+  VIDVAULT_BASE,
+  MOVIEDOWNLOADER02_BASE,
+  getMovieStreamUrl,
+  getEpisodeStreamUrl,
+  cleanTitle,
+  getMovieDownloadSearch,
+  getEpisodeDownloadSearch,
+  omnisaveUrl,
+  getVidVaultMovieUrl,
+  getVidVaultEpisodeUrl,
+  get02MovieDownloaderMovieUrl,
+  get02MovieDownloaderEpisodeUrl,
+};
+if (typeof module !== 'undefined' && module.exports) module.exports = MediaLinks;

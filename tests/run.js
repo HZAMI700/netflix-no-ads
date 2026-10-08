@@ -212,6 +212,13 @@ check('player servers use generic names in HTML', html.includes('Server 1: High 
 check('website name is STREAMNARO in index.html', html.includes('STREAMNARO') && html.includes('Streamnaro'));
 check('no legacy brand name in index.html or app.js', !/zflexy/i.test(html) && !/zflexy/i.test(app));
 
+/* --- next episode & autoplay guards --- */
+check('pNextTop button present in player controls in index.html', html.includes('id="pNextTop"'));
+check('nextEpisode defined in app.js', app.includes('function nextEpisode('));
+check('pNextTop wired in app.js', app.includes('pNextTop.onclick ='));
+check('next-ep-pill styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.player-pill-btn.next-ep-pill'));
+check('autonext supported in app.js', app.includes("'autonext', '1'"));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 
