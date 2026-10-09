@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /assets/private/
+
+# Production Sitemaps (Compliant Sitemap Index)
+Sitemap: https://streamnaro.com/sitemap.xml
+Sitemap: https://streamnaro.com/sitemap-1.xml
+Sitemap: https://streamnaro.com/sitemap-2.xml
+Sitemap: https://streamnaro.com/sitemap-3.xml
+Sitemap: https://streamnaro.com/sitemap-4.xml
