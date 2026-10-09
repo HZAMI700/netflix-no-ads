@@ -3145,6 +3145,7 @@ function updateSubtitleUrlParam(url, lang) {
       u.searchParams.set('player_subtitles', target);
       u.searchParams.set('player_lang', target);
       u.searchParams.set('ds_lang', target);
+      u.searchParams.set('autoplay', '1');
       if (url.includes('/tv/') || (currentEmbed && currentEmbed.type === 'series')) {
         u.searchParams.set('autonext', '1');
       }
@@ -3154,7 +3155,7 @@ function updateSubtitleUrlParam(url, lang) {
     if (!lang || lang === 'off') return url;
     const isTv = url.includes('/tv/') || (currentEmbed && currentEmbed.type === 'series');
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}&ds_lang=${encodeURIComponent(target)}${isTv ? '&autonext=1' : ''}`;
+    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}&ds_lang=${encodeURIComponent(target)}&autoplay=1${isTv ? '&autonext=1' : ''}`;
   }
 }
 
@@ -3596,6 +3597,8 @@ try { window.open = window.open; } catch {}
 try { self.open = window.open; } catch {}
 try { top.open = window.open; } catch {}
 try { parent.open = window.open; } catch {}
+try { Object.defineProperty(window, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
+try { Object.defineProperty(self, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
 
 
 // Intercept programmatic anchor clicks targeting _blank or _top
@@ -3712,8 +3715,7 @@ function startFocusGuardian() {
     // High-speed liveness check: if active document lost system focus or visibility to a popunder, snap back at light speed!
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
     const lostFocus = typeof document.hasFocus === 'function' && !document.hasFocus();
-    const isPlayerFocused = document.activeElement?.tagName === 'IFRAME';
-    if (isHidden || (lostFocus && !isPlayerFocused)) {
+    if (isHidden || lostFocus) {
       triggerLightSpeedFocusSnap();
     }
     _lastActiveElement = document.activeElement;
@@ -3729,17 +3731,14 @@ function stopFocusGuardian() {
 
 const _handleFocusLossOrVisibility = () => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-    const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
-    if (isHidden || document.activeElement?.tagName !== 'IFRAME') {
-      triggerLightSpeedFocusSnap();
-      clearTimeout(_focusSnapTimer);
-      _focusSnapTimer = setTimeout(snapWindowFocus, 10);
-      setTimeout(snapWindowFocus, 25);
-      setTimeout(snapWindowFocus, 45);
-      setTimeout(snapWindowFocus, 120);
-      setTimeout(snapWindowFocus, 300);
-      setTimeout(snapWindowFocus, 600);
-    }
+    triggerLightSpeedFocusSnap();
+    clearTimeout(_focusSnapTimer);
+    _focusSnapTimer = setTimeout(snapWindowFocus, 10);
+    setTimeout(snapWindowFocus, 25);
+    setTimeout(snapWindowFocus, 45);
+    setTimeout(snapWindowFocus, 120);
+    setTimeout(snapWindowFocus, 300);
+    setTimeout(snapWindowFocus, 600);
   }
 };
 

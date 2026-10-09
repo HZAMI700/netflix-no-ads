@@ -49,7 +49,13 @@ public class MainActivity extends AppCompatActivity {
         "fastclick", "revenuehits", "popcash", "bidvertiser",
         "infolinks", "admaven", "trafficfactory", "eroadvertising",
         "tsyndicate", "tsyndication", "plugrush", "rtmark",
-        "ad-maven", "onclicksuper", "adbit", "yllix"
+        "ad-maven", "onclicksuper", "adbit", "yllix",
+        "bidgear", "galaksion", "clickaine", "adtelligent", "adtrue",
+        "pubfuture", "adoperator", "adkeeper", "adster", "trafficforce",
+        "onclickperformance", "onclickalgo", "go.ad2up", "oclaserver",
+        "mcloud", "pushbullet", "ad-delivery", "feedaty", "adcolony",
+        "adroll", "taboola", "outbrain", "mgid", "revcontent",
+        "adblade", "adkernel", "trackvoluum", "voluumtrk", "propeller"
     };
 
     private static boolean isAdUrl(String urlStr) {
@@ -59,6 +65,22 @@ public class MainActivity extends AppCompatActivity {
             if (lower.contains(pattern)) return true;
         }
         return false;
+    }
+
+    private static boolean isAllowedStreamingOrCdnHost(String host) {
+        if (host == null || host.isEmpty()) return false;
+        return host.contains("vidsrc") ||
+               host.contains("vaplayer") ||
+               host.contains("vidapi") ||
+               host.contains("nextgencloudfabric") ||
+               host.contains("cloudflare") ||
+               host.contains("tmdb") ||
+               host.contains("themoviedb") ||
+               host.contains("opensubtitles") ||
+               host.contains("strem") ||
+               host.contains("gstatic") ||
+               host.contains("googleapis") ||
+               host.contains("google");
     }
 
     @SuppressLint({"SetJavaScriptEnabled"})
@@ -90,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Native Popunder / Popup Blocker:
         // Set supportMultipleWindows to true so that window.open() triggers onCreateWindow
-        // where we intercept and strictly reject it, rather than letting it navigate the WebView.
+        // where we intercept with a throwaway WebView and drop it immediately.
         ws.setSupportMultipleWindows(true);
         ws.setJavaScriptCanOpenWindowsAutomatically(false);
 
@@ -102,12 +124,26 @@ public class MainActivity extends AppCompatActivity {
                 "(function() {" +
                 "  try {" +
                 "    var noop = function() { return null; };" +
-                "    window.open = noop;" +
-                "    if (window.Window && window.Window.prototype) window.Window.prototype.open = noop;" +
+                "    try { Object.defineProperty(window, 'open', { value: noop, writable: false, configurable: false }); } catch(e) { window.open = noop; }" +
+                "    if (window.Window && window.Window.prototype) {" +
+                "      try { Object.defineProperty(window.Window.prototype, 'open', { value: noop, writable: false, configurable: false }); } catch(e) { window.Window.prototype.open = noop; }" +
+                "    }" +
                 "    window.alert = function() {};" +
                 "    window.confirm = function() { return false; };" +
                 "    window.prompt = function() { return null; };" +
-                "    try { Object.defineProperty(window, 'open', { value: noop, writable: false, configurable: false }); } catch(e) {}" +
+                "    try {" +
+                "      var origClick = HTMLAnchorElement.prototype.click;" +
+                "      HTMLAnchorElement.prototype.click = function() {" +
+                "        var t = (this.getAttribute('target') || '').toLowerCase();" +
+                "        if (t === '_blank' || t === '_top' || t === '_parent') {" +
+                "          var h = (this.getAttribute('href') || '').toLowerCase();" +
+                "          if (!h.includes('videodownloader.site') && !h.includes('vidvault.to') && !h.includes('02moviedownloader.site')) {" +
+                "            return;" +
+                "          }" +
+                "        }" +
+                "        return origClick.apply(this, arguments);" +
+                "      };" +
+                "    } catch(e) {}" +
                 "  } catch(e) {}" +
                 "})();",
                 allowedOrigins
@@ -134,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
                 String host = url.getHost() != null ? url.getHost().toLowerCase() : "";
+                String urlStr = url.toString().toLowerCase();
 
                 // 1. Internal Streamnaro app assets — allow navigation
                 if (host.equals("appassets.androidplatform.net")) {
@@ -149,26 +186,60 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
 
-                // 3. Prevent top-level main frame hijack / ad redirect
+                // 3. Immediately block any recognized ad or popunder pattern
+                if (isAdUrl(urlStr)) {
+                    return true;
+                }
+
+                // 4. Main frame protection: NEVER allow external websites or rogue redirects
+                // to navigate or replace the main Streamnaro app interface!
                 if (request.isForMainFrame()) {
-                    // Refuse navigation away from Streamnaro
                     return true;
                 }
 
-                // 4. Block ad domains inside subframes
-                if (isAdUrl(url.toString())) {
-                    return true;
+                // 5. Subframe protection: allow only legitimate streaming and CDN domains to load subframes.
+                if (isAllowedStreamingOrCdnHost(host)) {
+                    return false;
                 }
 
-                return false;
+                // Block any unapproved subframe navigation
+                return true;
             }
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
-                // 100% Reject all popup / popunder window creation attempts
-                return false;
+                // 100% Intercept all popup and popunder window creation attempts.
+                // If we return false, Android WebView defaults to launching the system browser (Chrome)!
+                // Instead, handle it with an invisible throwaway WebView that is immediately destroyed.
+                if (resultMsg != null) {
+                    try {
+                        WebView dummy = new WebView(MainActivity.this);
+                        dummy.setWebViewClient(new WebViewClient() {
+                            @Override
+                            public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
+                                v.destroy();
+                                return true;
+                            }
+                            @Override
+                            public void onPageStarted(WebView v, String url, android.graphics.Bitmap favicon) {
+                                v.stopLoading();
+                                v.destroy();
+                            }
+                            @Nullable
+                            @Override
+                            public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest req) {
+                                return new WebResourceResponse("text/plain", "UTF-8", new ByteArrayInputStream("".getBytes()));
+                            }
+                        });
+                        WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
+                        transport.setWebView(dummy);
+                        resultMsg.sendToTarget();
+                        return true;
+                    } catch (Exception ignored) {}
+                }
+                return true;
             }
 
             @Override
