@@ -219,6 +219,15 @@ check('pNextTop wired in app.js', app.includes('pNextTop.onclick ='));
 check('next-ep-pill styled in styles.css', fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8').includes('.player-pill-btn.next-ep-pill'));
 check('autonext supported in app.js', app.includes("'autonext', '1'"));
 
+/* --- continue watching series vs movie navigation & episode motion guards --- */
+const cssContent = fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8');
+check('continue watching series routes to openDetail with focus episode', app.includes("openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true })"));
+check('continue watching movie launches player directly', app.includes('playEmbedEntry(m);') && app.includes("tp === 'series'"));
+check('openDetail supports continueTarget focus season and episode', app.includes('function openDetail(id, type, autoplay, continueTarget)') && app.includes('shouldHighlight'));
+check('episode card highlights target episode with resume pill', app.includes('ep-target-focus') && app.includes('ep-resume-pill'));
+check('episode card motion animation styled in styles.css', cssContent.includes('epFocusMotion') && cssContent.includes('.ep-card.ep-target-focus.ep-motion-active'));
+check('detailBackdrop has smooth scroll behavior', cssContent.includes('#detailBackdrop') && cssContent.includes('scroll-behavior: smooth;'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 

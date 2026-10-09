@@ -796,12 +796,21 @@ function openCardPortal(card, m, badge, rank) {
   portal.onclick = (e) => {
     const a = e.target.closest('[data-pa]')?.dataset.pa;
     const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
+    const isContinue = (m._progress != null && !m._finished);
+    const isTv = (type === 'series' || m.type === 'series' || m.type === 'tv');
 
     if (a === 'play') {
       closeCardPortal();
-      if (m._embed) {
+      if (m._embed || isContinue) {
         if (isFinished) m._progress = 0;
-        playEmbedEntry(m);
+        if (isTv) {
+          const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
+          const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
+          const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
+          openDetail(m.id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+        } else {
+          playEmbedEntry(m);
+        }
       } else {
         openDetail(m.id, type, true);
       }
@@ -854,8 +863,18 @@ function openCardPortal(card, m, badge, rank) {
       });
     } else {
       closeCardPortal();
-      if (m._embed) { playEmbedEntry(m); }
-      else { openDetail(m.id, type, false); }
+      if (m._embed || isContinue) {
+        if (isTv) {
+          const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
+          const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
+          const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
+          openDetail(m.id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+        } else {
+          playEmbedEntry(m);
+        }
+      } else {
+        openDetail(m.id, type, false);
+      }
     }
   };
 }
@@ -1043,9 +1062,20 @@ function buildCard(m, badge, rank) {
       renderContinueRow();
     }
 
-    if (m._embed) { playEmbedEntry(m); return; }
+    const id = m.id, tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
 
-    const id = m.id, tp = m.type || type;
+    if (m._embed || isContinue) {
+      if (tp === 'series') {
+        const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
+        const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
+        const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
+        openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+        return;
+      }
+      playEmbedEntry(m);
+      return;
+    }
+
     openDetail(id, tp, false);
   };
 
@@ -1180,11 +1210,14 @@ function formatEpisodeRuntime(v, m) {
 }
 
 /* ---------- DETAIL MODAL ---------- */
-async function openDetail(id, type, autoplay) {
+async function openDetail(id, type, autoplay, continueTarget) {
   closeCardPortal();
-  type = type === 'series' ? 'series' : 'movie';
+  type = (type === 'series' || type === 'tv') ? 'series' : 'movie';
   const backdropEl = $('detailBackdrop');
-  if (backdropEl) backdropEl.classList.add('show');
+  if (backdropEl) {
+    backdropEl.scrollTop = 0;
+    backdropEl.classList.add('show');
+  }
   document.body.style.overflow = 'hidden';
 
   if ($('dTitle')) $('dTitle').textContent = 'Loading…';
@@ -1229,6 +1262,13 @@ async function openDetail(id, type, autoplay) {
       if (cur && cur.moviedb_id) m.moviedb_id = cur.moviedb_id;
     }
     currentDetail = { meta: m, type, streams: [], ep: { s: 1, e: 1 } };
+
+    const hist = history[id] || history[String(id).replace(/^tmdb:/, '')] || (m && history[m.id]);
+    const reqSeason = continueTarget ? Number(continueTarget.focusSeason || continueTarget.season) : NaN;
+    const reqEpisode = continueTarget ? Number(continueTarget.focusEpisode || continueTarget.episode) : NaN;
+    let targetSeason = Number.isInteger(reqSeason) && reqSeason > 0 ? reqSeason : 1;
+    let targetEpisode = Number.isInteger(reqEpisode) && reqEpisode > 0 ? reqEpisode : 1;
+    const shouldHighlight = !!(continueTarget && (continueTarget.highlight || continueTarget.focusEpisode || continueTarget.focusSeason));
 
     if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
     if ($('dTitle')) $('dTitle').textContent = m.name;
@@ -1297,12 +1337,17 @@ async function openDetail(id, type, autoplay) {
       const seasons = [...new Set(vids.map(v => Number(v.season)))].filter(s => s > 0).sort((a, b) => a - b);
       if (!seasons.length) seasons.push(1);
 
+      if (!seasons.includes(targetSeason)) {
+        targetSeason = seasons.includes(1) ? 1 : seasons[0];
+      }
+      currentDetail.ep = { s: targetSeason, e: targetEpisode };
+
       if ($('seasonSel')) {
         $('seasonSel').innerHTML = seasons.map(s => `<option value="${s}">Season ${s}</option>`).join('');
-        const defaultSeason = seasons.includes(1) ? 1 : seasons[0];
 
+        let hasScrolledFocus = false;
         const renderEps = () => {
-          const s = Math.max(1, +$('seasonSel').value || defaultSeason);
+          const s = Math.max(1, +$('seasonSel').value || targetSeason);
           currentDetail.ep.s = s;
           const list = $('epList');
           if (!list) return;
@@ -1313,10 +1358,18 @@ async function openDetail(id, type, autoplay) {
             currentDetail.ep.e = Math.max(1, Number(seasonVids[0].episode));
           }
 
+          let matchedTargetCard = null;
+
           seasonVids.forEach(v => {
             const epNum = Math.max(1, Number(v.episode) || 1);
+            const isTargetEpisode = shouldHighlight && (s === targetSeason && epNum === targetEpisode);
             const d = document.createElement('div');
-            d.className = 'ep-card';
+            d.className = 'ep-card' + (isTargetEpisode ? ' ep-target-focus' : '');
+            if (isTargetEpisode) {
+              d.id = 'epCardFocusTarget';
+              currentDetail.ep.e = epNum;
+              matchedTargetCard = d;
+            }
             d.innerHTML = `
               <div class="ep-num">${epNum}</div>
               <div class="ep-thumb">
@@ -1330,7 +1383,10 @@ async function openDetail(id, type, autoplay) {
               <div class="ep-details">
                 <div class="ep-title-row">
                   <b>${epNum}. ${v.title || v.name || 'Episode ' + epNum}</b>
-                  <span class="ep-duration">${formatEpisodeRuntime(v, m)}</span>
+                  <div class="ep-title-meta">
+                    ${isTargetEpisode ? `<span class="ep-resume-pill"><span class="ep-resume-pulse-dot"></span>Resume S${s}:E${epNum}</span>` : ''}
+                    <span class="ep-duration">${formatEpisodeRuntime(v, m)}</span>
+                  </div>
                 </div>
                 <div class="ep-desc">${(v.overview || 'No description available.').slice(0, 150)}</div>
               </div>
@@ -1358,9 +1414,22 @@ async function openDetail(id, type, autoplay) {
             d.appendChild(dl);
             list.appendChild(d);
           });
+
+          if (shouldHighlight && !hasScrolledFocus) {
+            hasScrolledFocus = true;
+            setTimeout(() => {
+              const target = matchedTargetCard || $('epWrap');
+              if (target && target.isConnected) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (matchedTargetCard) {
+                  matchedTargetCard.classList.add('ep-motion-active');
+                }
+              }
+            }, 300);
+          }
         };
         $('seasonSel').onchange = renderEps;
-        $('seasonSel').value = defaultSeason;
+        $('seasonSel').value = String(targetSeason);
         renderEps();
       }
     } else {
@@ -1407,7 +1476,11 @@ async function openDetail(id, type, autoplay) {
 
     if ($('dPlay')) {
       $('dPlay').disabled = !canWatch;
-      $('dPlay').title = canWatch ? 'Watch now' : 'Streaming unavailable for this title';
+      if (shouldHighlight && type === 'series') {
+        $('dPlay').title = `Resume Season ${targetSeason}, Episode ${targetEpisode}`;
+      } else {
+        $('dPlay').title = canWatch ? 'Watch now' : 'Streaming unavailable for this title';
+      }
       $('dPlay').onclick = () => playStream();
     }
 
