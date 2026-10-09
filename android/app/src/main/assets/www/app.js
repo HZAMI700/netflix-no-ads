@@ -3185,29 +3185,27 @@ function updatePlayerServerUI() {
   const lbl = $('pServerLabel');
   const btn = $('pServerTop');
   const sel = $('playerServerSelect');
-  const isServer2 = currentPlayerServer === 'server2';
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Server 2 (Fast)' : 'Server 1 (HD)';
+    lbl.textContent = 'Server 1 (HD)';
   }
   if (btn) {
-    btn.setAttribute('data-server', currentPlayerServer);
-    btn.title = isServer2
-      ? 'Current: Server 2 (Fast Mirror Stream) — Click to switch to Server 1 (High Definition Stream)'
-      : 'Current: Server 1 (High Definition Stream) — Click to switch to Server 2 (Fast Mirror Stream)';
+    btn.setAttribute('data-server', 'server1');
+    btn.title = 'Watching Server: Server 1: High Definition Stream (Vidapi)';
   }
   if (sel) {
-    sel.value = currentPlayerServer;
+    sel.value = 'server1';
   }
 }
 
 function togglePlayerServer() {
-  const nextServer = currentPlayerServer === 'server1' ? 'server2' : 'server1';
-  switchPlayerServer(nextServer);
+  // User explicitly instructed: "just keep the vidapi server watching"
+  switchPlayerServer('server1');
 }
 
 function switchPlayerServer(newServer) {
-  currentPlayerServer = (newServer === 'server2' || newServer === 'vidsrc') ? 'server2' : 'server1';
-  store.set('nf_player_server', currentPlayerServer);
+  // User explicitly instructed: "just keep the vidapi server watching" (vidsrc disabled for watching)
+  currentPlayerServer = 'server1';
+  store.set('nf_player_server', 'server1');
   updatePlayerServerUI();
 
   const iframe = $('playerView')?.querySelector('iframe');
@@ -3217,11 +3215,11 @@ function switchPlayerServer(newServer) {
   if (currentEmbed.type === 'series') {
     const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
     const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
-    newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, currentPlayerServer);
+    newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, 'server1');
   } else {
     const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
     const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || imdb)?.moviedb_id : null);
-    newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+    newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
   }
 
   if (!newBaseUrl) {
@@ -3232,11 +3230,10 @@ function switchPlayerServer(newServer) {
   const targetSub = store.get('nf_sub_lang', 'ar');
   const finalUrl = updateSubtitleUrlParam(newBaseUrl, targetSub);
   currentEmbed.url = finalUrl;
-  currentEmbed.server = currentPlayerServer;
+  currentEmbed.server = 'server1';
   iframe.src = finalUrl;
 
-  const serverName = currentPlayerServer === 'server2' ? 'Server 2 (Fast Mirror Stream)' : 'Server 1 (High Definition Stream)';
-  toast(`Switched to ${serverName}`);
+  toast('Watching Server: Server 1 (High Definition Stream)');
 
   armVidShield();
 
@@ -3301,6 +3298,8 @@ function dispatchSubtitlesToPlayer(lang) {
   };
 
   try { f.contentWindow?.postMessage({ type: 'STORAGE_INIT', data: storageData }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'shown_at', value: String(Date.now() + 3153600000000) }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'unloaded_at', value: String(Date.now() + 3153600000000) }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_subtitle', value: targetSub }, '*'); } catch {}
@@ -3815,6 +3814,7 @@ window.addEventListener('message', (event) => {
   const msg = event.data || {};
   if (msg.type === 'STORAGE_GET_ALL') {
     const targetSub = store.get('nf_sub_lang', 'ar') || 'ar';
+    const futureTime = String(Date.now() + 3153600000000);
     try {
       event.source?.postMessage({
         type: 'STORAGE_INIT',
@@ -3835,7 +3835,9 @@ window.addEventListener('message', (event) => {
           captions: targetSub,
           caption_lang: targetSub,
           cc: targetSub,
-          cc_lang: targetSub
+          cc_lang: targetSub,
+          shown_at: futureTime,
+          unloaded_at: futureTime
         }
       }, '*');
     } catch {}

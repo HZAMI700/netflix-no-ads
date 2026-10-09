@@ -123,16 +123,44 @@ public class MainActivity extends AppCompatActivity {
                 webView,
                 "(function() {" +
                 "  try {" +
+                "    /* 1. Defuse vaplayer ad timer: Mark ad as shown for the next 100 years */" +
+                "    try {" +
+                "      var futureTs = String(Date.now() + 3153600000000);" +
+                "      localStorage.setItem('shown_at', futureTs);" +
+                "      localStorage.setItem('unloaded_at', futureTs);" +
+                "    } catch(e) {}" +
+                "" +
+                "    /* 2. Neutralize window.open across window, Window.prototype, and self */" +
                 "    var noop = function() { return null; };" +
-                "    try { Object.defineProperty(window, 'open', { value: noop, writable: false, configurable: false }); } catch(e) { window.open = noop; }" +
+                "    try { window.open = noop; } catch(e) {}" +
+                "    try { Object.defineProperty(window, 'open', { value: noop, writable: false, configurable: false }); } catch(e) {}" +
                 "    if (window.Window && window.Window.prototype) {" +
-                "      try { Object.defineProperty(window.Window.prototype, 'open', { value: noop, writable: false, configurable: false }); } catch(e) { window.Window.prototype.open = noop; }" +
+                "      try { window.Window.prototype.open = noop; } catch(e) {}" +
+                "      try { Object.defineProperty(window.Window.prototype, 'open', { value: noop, writable: false, configurable: false }); } catch(e) {}" +
                 "    }" +
+                "    try { self.open = noop; } catch(e) {}" +
                 "    window.alert = function() {};" +
                 "    window.confirm = function() { return false; };" +
                 "    window.prompt = function() { return null; };" +
+                "" +
+                "    /* 3. Neutralize form submissions targeting _blank or rogue ad targets */" +
                 "    try {" +
-                "      var origClick = HTMLAnchorElement.prototype.click;" +
+                "      var origFormSubmit = HTMLFormElement.prototype.submit;" +
+                "      HTMLFormElement.prototype.submit = function() {" +
+                "        var act = (this.getAttribute('action') || this.action || '').toLowerCase();" +
+                "        var tgt = (this.getAttribute('target') || this.target || '').toLowerCase();" +
+                "        if (tgt === '_blank' || tgt === '_top' || tgt === '_parent' || tgt === '') {" +
+                "          if (!act.includes('videodownloader.site') && !act.includes('vidvault.to') && !act.includes('02moviedownloader.site')) {" +
+                "            return;" +
+                "          }" +
+                "        }" +
+                "        return origFormSubmit.apply(this, arguments);" +
+                "      };" +
+                "    } catch(e) {}" +
+                "" +
+                "    /* 4. Neutralize anchor clicks targeting _blank */" +
+                "    try {" +
+                "      var origAnchorClick = HTMLAnchorElement.prototype.click;" +
                 "      HTMLAnchorElement.prototype.click = function() {" +
                 "        var t = (this.getAttribute('target') || '').toLowerCase();" +
                 "        if (t === '_blank' || t === '_top' || t === '_parent') {" +
@@ -141,7 +169,28 @@ public class MainActivity extends AppCompatActivity {
                 "            return;" +
                 "          }" +
                 "        }" +
-                "        return origClick.apply(this, arguments);" +
+                "        return origAnchorClick.apply(this, arguments);" +
+                "      };" +
+                "    } catch(e) {}" +
+                "" +
+                "    /* 5. Defuse dynamic about:blank iframe window.open bypass */" +
+                "    try {" +
+                "      var origCreateEl = Document.prototype.createElement;" +
+                "      Document.prototype.createElement = function(tagName) {" +
+                "        var el = origCreateEl.apply(this, arguments);" +
+                "        if (tagName && String(tagName).toLowerCase() === 'iframe') {" +
+                "          try {" +
+                "            Object.defineProperty(el, 'contentWindow', {" +
+                "              get: function() {" +
+                "                var cw = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow').get.call(this);" +
+                "                if (cw) { try { cw.open = noop; } catch(e) {} }" +
+                "                return cw;" +
+                "              }," +
+                "              configurable: true" +
+                "            });" +
+                "          } catch(e) {}" +
+                "        }" +
+                "        return el;" +
                 "      };" +
                 "    } catch(e) {}" +
                 "  } catch(e) {}" +
@@ -212,20 +261,21 @@ public class MainActivity extends AppCompatActivity {
             public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
                 // 100% Intercept all popup and popunder window creation attempts.
                 // If we return false, Android WebView defaults to launching the system browser (Chrome)!
-                // Instead, handle it with an invisible throwaway WebView that is immediately destroyed.
+                // Instead, handle it with an invisible inert throwaway WebView with JS disabled.
                 if (resultMsg != null) {
                     try {
                         WebView dummy = new WebView(MainActivity.this);
+                        WebSettings dummyWs = dummy.getSettings();
+                        dummyWs.setJavaScriptEnabled(false);
+                        dummyWs.setSupportMultipleWindows(false);
                         dummy.setWebViewClient(new WebViewClient() {
                             @Override
                             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest req) {
-                                v.destroy();
                                 return true;
                             }
                             @Override
                             public void onPageStarted(WebView v, String url, android.graphics.Bitmap favicon) {
                                 v.stopLoading();
-                                v.destroy();
                             }
                             @Nullable
                             @Override
