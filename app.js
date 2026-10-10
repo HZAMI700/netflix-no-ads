@@ -790,7 +790,7 @@ function onCardMouseLeave(card) {
 
 function openCardPortal(card, m, badge, rank) {
   const portal = $('cardPortal');
-  if (!portal || isScrolling || isRowDragging) return;
+  if (!portal || !card || isScrolling || isRowDragging) return;
 
   const rect = card.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return;
@@ -899,7 +899,8 @@ function openCardPortal(card, m, badge, rank) {
   portal.onclick = (e) => {
     const a = e.target.closest('[data-pa]')?.dataset.pa;
     const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
-    let tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
+    const fallbackType = (m.id && String(m.id).startsWith('tt') ? 'movie' : 'movie');
+    let tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || fallbackType);
     if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
       const cur = CuratedCatalog.getCuratedById(id);
       if (cur && cur.type) tp = cur.type;
@@ -920,7 +921,7 @@ function openCardPortal(card, m, badge, rank) {
           playEmbedEntry(m);
         }
       } else {
-        openDetail(id, tp, true);
+        openDetail(id, tp, true, null, m);
       }
     } else if (a === 'list') {
       toggleList(m);
@@ -983,7 +984,7 @@ function openCardPortal(card, m, badge, rank) {
           playEmbedEntry(m);
         }
       } else {
-        openDetail(id, tp, false);
+        openDetail(id, tp, false, null, m);
       }
     }
   };
@@ -1102,13 +1103,14 @@ function buildCard(m, badge, rank) {
     : '';
 
   const titleText = escapeHtml(m.name || m.title || '');
-  const titleOverlay = isLandscape
-    ? `<div class="card-title-fallback">${titleText}</div>`
-    : '';
+  const titleOverlay = `<div class="card-title-fallback">${titleText}</div>`;
 
   const cardImgSrc = isLandscape
     ? (m.background || backdrop(m) || m.poster || poster(m, true))
     : (m.poster || poster(m, false));
+
+  const isPriorityImg = (rank && rank <= 10) || isLandscape;
+  const imgLoadingAttr = isPriorityImg ? 'loading="eager" decoding="async"' : 'loading="lazy" decoding="async"';
 
   el.innerHTML = `
     <div class="card-inner">
@@ -1116,7 +1118,7 @@ function buildCard(m, badge, rank) {
       ${top10Html}
       ${finishToggleBtn}
       ${removeBtn}
-      <img loading="lazy" src="${cardImgSrc}" alt="${titleText}">
+      <img ${imgLoadingAttr} src="${cardImgSrc}" alt="${titleText}">
       ${titleOverlay}
       ${prog}
     </div>
@@ -1124,6 +1126,13 @@ function buildCard(m, badge, rank) {
 
   const cardImg = el.querySelector('img');
   if (cardImg) {
+    if (cardImg.complete && cardImg.naturalWidth > 0) {
+      el.classList.add('img-loaded');
+    } else {
+      cardImg.onload = function() {
+        el.classList.add('img-loaded');
+      };
+    }
     cardImg.onerror = function() {
       this.onerror = null;
       el.classList.add('show-title-overlay');
@@ -1189,7 +1198,8 @@ function buildCard(m, badge, rank) {
     }
 
     const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
-    let tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
+    const rawType = m.type || (m.id && String(m.id).startsWith('tt') ? 'movie' : 'movie');
+    let tp = (rawType === 'series' || rawType === 'tv') ? 'series' : (m.type || type);
     if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
       const cur = CuratedCatalog.getCuratedById(id);
       if (cur && cur.type) tp = cur.type;
@@ -1207,7 +1217,7 @@ function buildCard(m, badge, rank) {
       return;
     }
 
-    openDetail(id, tp, false);
+    openDetail(id, tp, false, null, m);
   };
 
   return el;
@@ -1250,8 +1260,8 @@ function renderHero(i) {
   if ($('heroMaturity')) $('heroMaturity').textContent = ageRating(m);
   if ($('heroKickerType')) $('heroKickerType').textContent = m.type === 'series' ? 'S E R I E S' : 'F I L M';
 
-  if ($('heroPlay')) $('heroPlay').onclick = () => openDetail(m.id, m.type || 'movie', true);
-  if ($('heroInfo')) $('heroInfo').onclick = () => openDetail(m.id, m.type || 'movie', false);
+  if ($('heroPlay')) $('heroPlay').onclick = () => openDetail(m.id, m.type || 'movie', true, null, m);
+  if ($('heroInfo')) $('heroInfo').onclick = () => openDetail(m.id, m.type || 'movie', false, null, m);
 
   const heroListBtn = $('heroList');
   if (heroListBtn) {
@@ -1374,7 +1384,7 @@ async function renderDetailRecommendations(m, type) {
           this.src = createPosterFallback(s.name || s.title, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type);
         };
       }
-      d.onclick = () => openDetail(s.id, s.type || type, false);
+      d.onclick = () => openDetail(s.id, s.type || type, false, null, s);
       simGrid.appendChild(d);
     });
   };
@@ -1655,6 +1665,7 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
 }
 
 async function openDetail(id, type, autoplay, continueTarget) {
+  const preloadedMeta = arguments[4] || (continueTarget && continueTarget.name ? continueTarget : null);
   closeCardPortal();
   type = (type === 'series' || type === 'tv') ? 'series' : 'movie';
 
@@ -1682,8 +1693,11 @@ async function openDetail(id, type, autoplay, continueTarget) {
     backdropEl.classList.add('show');
   }
 
-  // 1. Resolve from CuratedCatalog immediately (0ms)
+  // 1. Resolve from CuratedCatalog or preloadedMeta immediately (0ms)
   let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
+  if (!m && preloadedMeta && (preloadedMeta.name || preloadedMeta.title)) {
+    m = preloadedMeta;
+  }
   if (!m && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) {
     const hits = CuratedCatalog.searchCurated(String(id).replace(/^(tmdb:|tt)/, ''));
     if (hits && hits.length) m = hits[0];
@@ -1708,6 +1722,24 @@ async function openDetail(id, type, autoplay, continueTarget) {
     }
   } catch (err) {
     console.warn('Cinemeta metadata fetch failed:', err);
+  }
+
+  // 3. Resilient fallback: ensure title is playable even if network is offline
+  if (!m && id) {
+    const cleanId = String(id).trim();
+    m = {
+      id: cleanId,
+      imdb_id: cleanId.startsWith('tt') ? cleanId : null,
+      moviedb_id: cleanId.startsWith('tmdb:') ? cleanId.replace('tmdb:', '') : null,
+      name: (preloadedMeta?.name || preloadedMeta?.title) || (cleanId.startsWith('tt') ? 'Title ' + cleanId : cleanId),
+      type,
+      year: '2024',
+      imdbRating: '8.2',
+      description: 'Stream available on high-speed servers.',
+      genres: ['Action', 'Drama']
+    };
+    renderDetailUI(m, type, autoplay, continueTarget);
+    return;
   }
 
   if (!m || !isCleanSafe(m)) {

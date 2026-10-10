@@ -886,32 +886,22 @@ const CURATED_TITLE_MAP = new Map();
 for (let i = 0; i < CURATED_MEDIA.length; i++) {
   const m = CURATED_MEDIA[i];
   if (!m) continue;
-  if (m.id) {
-    const sId = String(m.id).trim();
+  const sId = String(m.id || m.imdb_id || m.imdb || '').trim();
+  if (sId) {
     CURATED_MAP.set(sId, m);
-    CURATED_MAP.set(sId.toLowerCase(), m);
-  }
-  if (m.imdb_id) {
-    const sImdb = String(m.imdb_id).trim();
-    CURATED_MAP.set(sImdb, m);
-    CURATED_MAP.set(sImdb.toLowerCase(), m);
-  }
-  if (m.imdb) {
-    const sImdb = String(m.imdb).trim();
-    CURATED_MAP.set(sImdb, m);
-    CURATED_MAP.set(sImdb.toLowerCase(), m);
+    const low = sId.toLowerCase();
+    if (low !== sId) CURATED_MAP.set(low, m);
   }
   if (m.moviedb_id) {
     const sMdb = String(m.moviedb_id).trim();
     CURATED_MAP.set(sMdb, m);
     CURATED_MAP.set(`tmdb:${sMdb}`, m);
-    CURATED_MAP.set(`tmdb:${sMdb}`.toLowerCase(), m);
   }
   if (m.name) {
     const n = m.name.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
   }
-  if (m.title) {
+  if (m.title && m.title !== m.name) {
     const t = m.title.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
   }
@@ -999,8 +989,13 @@ function getCuratedForCategory(catId) {
     for (let i = 0; i < list.length; i++) {
       const m = list[i];
       if (filterFn(m)) {
-        if (!m._isProcedural) real.push(m);
-        else proc.push(m);
+        if (!m._isProcedural) {
+          real.push(m);
+          if (real.length >= count) break;
+        } else {
+          proc.push(m);
+          if (real.length + proc.length >= count * 1.5 && i > 250) break;
+        }
       }
     }
     return [...real, ...proc].slice(0, count);

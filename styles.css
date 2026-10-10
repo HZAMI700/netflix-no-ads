@@ -849,7 +849,7 @@ img {
   height: 100%;
   border-radius: 6px;
   overflow: hidden;
-  background: #202020;
+  background: linear-gradient(180deg, #282828 0%, #1c1c1c 55%, #101010 100%);
 }
 .card img {
   width: 100%;
@@ -872,7 +872,7 @@ img {
   color: #ffffff;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.95), 0 0 4px rgba(0, 0, 0, 0.9);
   pointer-events: none;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.25s ease;
   z-index: 3;
   display: -webkit-box;
@@ -882,9 +882,18 @@ img {
   line-height: 1.25;
 }
 
+.card.img-loaded:not(:hover) .card-title-fallback {
+  opacity: 0;
+}
+.card.landscape.img-loaded:not(:hover) .card-title-fallback {
+  opacity: 0;
+}
+
+.card.show-title-overlay .card-title-fallback,
 .card.landscape.show-title-overlay .card-title-fallback,
+.card:hover .card-title-fallback,
 .card.landscape:hover .card-title-fallback {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 /* Badges */
