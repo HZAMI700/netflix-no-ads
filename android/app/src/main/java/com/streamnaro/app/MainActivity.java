@@ -338,6 +338,21 @@ public class MainActivity extends AppCompatActivity {
                 // Check if user is inside player view or modal
                 webView.evaluateJavascript(
                     "(function() {" +
+                    "  var sm = document.getElementById('serverModal');" +
+                    "  if (sm && sm.classList.contains('show')) {" +
+                    "    var smc = document.getElementById('serverModalClose');" +
+                    "    if (smc) { smc.click(); return 'handled'; }" +
+                    "  }" +
+                    "  var cm = document.getElementById('captionsModalBackdrop');" +
+                    "  if (cm && cm.classList.contains('show')) {" +
+                    "    var cmc = document.getElementById('captionsModalClose');" +
+                    "    if (cmc) { cmc.click(); return 'handled'; }" +
+                    "  }" +
+                    "  var pm = document.getElementById('playerCustomModalBackdrop');" +
+                    "  if (pm && pm.classList.contains('show')) {" +
+                    "    var pmc = document.getElementById('playerCustomModalClose');" +
+                    "    if (pmc) { pmc.click(); return 'handled'; }" +
+                    "  }" +
                     "  var pv = document.getElementById('playerView');" +
                     "  if (pv && pv.classList.contains('show')) {" +
                     "    var pb = document.getElementById('pBack');" +
@@ -345,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
                     "  }" +
                     "  var db = document.getElementById('detailBackdrop');" +
                     "  if (db && db.classList.contains('show')) {" +
-                    "    var dc = document.getElementById('detailClose');" +
+                    "    var dc = document.getElementById('dBackBtn') || document.getElementById('dClose') || document.getElementById('detailClose');" +
                     "    if (dc) { dc.click(); return 'handled'; }" +
                     "  }" +
                     "  return 'none';" +

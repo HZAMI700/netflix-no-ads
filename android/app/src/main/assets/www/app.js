@@ -664,15 +664,22 @@ async function buildHome() {
   wrap.innerHTML = HOME_ROWS.map(r => renderRowSection(r)).join('');
   wrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
 
-  // Hero carousel init
-  try {
-    const top = await fetchCatalog('movie/top');
-    heroItems = top.slice(0, 8);
+  // Hero carousel init: instant from CuratedCatalog top10, then background enrichment
+  if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
+    heroItems = CuratedCatalog.getCuratedForCategory('top10').slice(0, 8);
     renderHero(0);
     clearInterval(heroTimer);
     heroTimer = setInterval(() => renderHero((heroIdx + 1) % heroItems.length), 8000);
-  } catch {
-    if ($('heroTitle')) $('heroTitle').textContent = 'Stranger Things';
+  } else {
+    try {
+      const top = await fetchCatalog('movie/top');
+      heroItems = top.slice(0, 8);
+      renderHero(0);
+      clearInterval(heroTimer);
+      heroTimer = setInterval(() => renderHero((heroIdx + 1) % heroItems.length), 8000);
+    } catch {
+      if ($('heroTitle')) $('heroTitle').textContent = 'Stranger Things';
+    }
   }
 
   // Track titles shown across rows on the home screen to prevent duplication
@@ -681,7 +688,7 @@ async function buildHome() {
     seenHomeIds.add(heroItems[0].id);
   }
 
-  // Populate rows
+  // Phase 1: Instant synchronous population from CuratedCatalog (0ms)
   let shown = 0;
   for (const r of HOME_ROWS) {
     const sec = $('row-' + r.id);
@@ -697,11 +704,8 @@ async function buildHome() {
       items = myList;
     } else {
       let pool = [];
-      for (const u of r.url) {
-        pool = pool.concat(await fetchCatalog(u));
-      }
       if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
-        pool = pool.concat(CuratedCatalog.getCuratedForCategory(r.id));
+        pool = CuratedCatalog.getCuratedForCategory(r.id) || [];
       }
       pool = dedupeMetas(pool).filter(isCleanSafe);
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
@@ -710,16 +714,11 @@ async function buildHome() {
         pool = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0));
       }
 
-      // Cross-row home screen deduplication:
-      // Real curated titles (blockbusters, iconic series) remain in their genuine genre rows,
-      // while procedural titles are strictly deduplicated so users never see the same synthetic cards repeated.
       const curatedReal = pool.filter(m => !m._isProcedural);
       const proceduralPool = pool.filter(m => m._isProcedural && !seenHomeIds.has(m.id));
       const freshPool = [...curatedReal, ...proceduralPool];
       const max = r.limit || 60;
       items = (freshPool.length >= 10 ? freshPool : pool).slice(0, max);
-
-      // Track items shown to prevent repeating procedural cards in later rows
       items.forEach(m => {
         if (m && m.id) seenHomeIds.add(m.id);
       });
@@ -728,11 +727,41 @@ async function buildHome() {
     if (!items.length) continue;
     sec.style.display = '';
     sec.classList.add('enter');
-    sec.style.animationDelay = (shown++ * 60) + 'ms';
+    sec.style.animationDelay = (shown++ * 30) + 'ms';
     track.innerHTML = '';
     items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
   }
+
+  // Phase 2: Non-blocking background enrichment
+  HOME_ROWS.forEach(async r => {
+    if (r.dynamic || !r.url) return;
+    try {
+      const urls = Array.isArray(r.url) ? r.url : [r.url];
+      const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
+      const cinemetaMetas = fetched.flat().filter(isCleanSafe);
+      if (!cinemetaMetas.length) return;
+
+      const sec = $('row-' + r.id);
+      if (!sec) return;
+      const track = sec.querySelector('.row-track');
+      if (!track) return;
+
+      let curated = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory)
+        ? CuratedCatalog.getCuratedForCategory(r.id) || []
+        : [];
+      let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
+      if (r.genre) combined = combined.filter(m => (m.genres || []).includes(r.genre));
+      const max = r.limit || 60;
+      const items = combined.slice(0, max);
+      if (!items.length) return;
+
+      sec.style.display = '';
+      track.innerHTML = '';
+      items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+      track.dispatchEvent(new Event('scroll'));
+    } catch (e) {}
+  });
 }
 
 /* ---------- NETFLIX CARD HOVER PORTAL ---------- */
@@ -869,24 +898,29 @@ function openCardPortal(card, m, badge, rank) {
 
   portal.onclick = (e) => {
     const a = e.target.closest('[data-pa]')?.dataset.pa;
-    const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
+    const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
+    let tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
+    if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const cur = CuratedCatalog.getCuratedById(id);
+      if (cur && cur.type) tp = cur.type;
+    }
     const isContinue = (m._progress != null && !m._finished);
-    const isTv = (type === 'series' || m.type === 'series' || m.type === 'tv');
+    const isTv = (tp === 'series');
 
     if (a === 'play') {
       closeCardPortal();
       if (m._embed || isContinue) {
         if (isFinished) m._progress = 0;
         if (isTv) {
-          const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
+          const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
           const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
           const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
-          openDetail(m.id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+          openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
         } else {
           playEmbedEntry(m);
         }
       } else {
-        openDetail(m.id, type, true);
+        openDetail(id, tp, true);
       }
     } else if (a === 'list') {
       toggleList(m);
@@ -894,43 +928,45 @@ function openCardPortal(card, m, badge, rank) {
       if (listBtn) {
         listBtn.classList.add('anim-pop');
         setTimeout(() => listBtn.classList.remove('anim-pop'), 400);
-        const nowInList = myList.some(x => x.id === m.id);
+        const nowInList = myList.some(x => x.id === id || x.id === m.id);
         listBtn.innerHTML = nowInList
           ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>'
           : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
         listBtn.classList.toggle('solid', nowInList);
       }
     } else if (a === 'like') {
-      likes[m.id] = !likes[m.id];
-      delete dislikes[m.id];
+      const likeKey = id || m.id;
+      likes[likeKey] = !likes[likeKey];
+      delete dislikes[likeKey];
       store.set('nf_likes', likes);
-      toast(likes[m.id] ? `Added "${m.name || 'title'}" to Favourites` : `Removed "${m.name || 'title'}" from Favourites`);
+      toast(likes[likeKey] ? `Added "${m.name || 'title'}" to Favourites` : `Removed "${m.name || 'title'}" from Favourites`);
       const likeBtn = portal.querySelector('[data-pa="like"]');
       if (likeBtn) {
         likeBtn.classList.add('anim-pop');
         setTimeout(() => likeBtn.classList.remove('anim-pop'), 400);
-        likeBtn.classList.toggle('solid', !!likes[m.id]);
-        likeBtn.classList.toggle('liked', !!likes[m.id]);
+        likeBtn.classList.toggle('solid', !!likes[likeKey]);
+        likeBtn.classList.toggle('liked', !!likes[likeKey]);
       }
-      if (currentDetail?.meta?.id === m.id) updateModalLikeButton(m.id);
+      if (currentDetail?.meta?.id === id || currentDetail?.meta?.id === m.id) updateModalLikeButton(id || m.id);
     } else if (a === 'dislike') {
-      dislikes[m.id] = !dislikes[m.id];
-      delete likes[m.id];
+      const likeKey = id || m.id;
+      dislikes[likeKey] = !dislikes[likeKey];
+      delete likes[likeKey];
       store.set('nf_likes', likes);
-      toast(dislikes[m.id] ? 'Not for me' : 'Rating removed');
+      toast(dislikes[likeKey] ? 'Not for me' : 'Rating removed');
       const likeBtn = portal.querySelector('[data-pa="like"]');
       if (likeBtn) {
         likeBtn.classList.remove('solid');
         likeBtn.classList.remove('liked');
       }
-      if (currentDetail?.meta?.id === m.id) updateModalLikeButton(m.id);
+      if (currentDetail?.meta?.id === id || currentDetail?.meta?.id === m.id) updateModalLikeButton(id || m.id);
     } else if (a === 'dl') {
       closeCardPortal();
       const rawImdb = m.id || m.imdb_id;
       const imdb = rawImdb ? String(rawImdb).split(':')[0].trim() : null;
       openDownloadModal({
         title: m.name,
-        type: m.type || type,
+        type: tp,
         imdb,
         tmdbId: m.moviedb_id,
         year: (m.releaseInfo || m.year || '').toString().slice(0, 4)
@@ -939,15 +975,15 @@ function openCardPortal(card, m, badge, rank) {
       closeCardPortal();
       if (m._embed || isContinue) {
         if (isTv) {
-          const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
+          const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
           const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
           const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
-          openDetail(m.id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+          openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
         } else {
           playEmbedEntry(m);
         }
       } else {
-        openDetail(m.id, type, false);
+        openDetail(id, tp, false);
       }
     }
   };

@@ -253,6 +253,8 @@ check('loadCategoryRows populates synchronously from CuratedCatalog in phase 1',
 check('openDetail renders UI instantly with CuratedCatalog match before enrichment', app.includes('renderDetailUI(m, type, autoplay, continueTarget)') && app.includes('enrichDetailFromCinemeta(id, type, m)'));
 check('wireRowControls has calibrated drag threshold >= 18px', app.includes('dragDist > 18'));
 check('getJSON includes AbortController timeout to prevent infinite stalls', app.includes('AbortController') && app.includes('timeoutMs = 4000'));
+check('buildHome populates synchronously from CuratedCatalog in phase 1', app.includes('Phase 1: Instant synchronous population from CuratedCatalog') && app.includes('Phase 2: Non-blocking background enrichment'));
+check('openCardPortal resolves ID and media type robustly', app.includes("m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null)"));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
