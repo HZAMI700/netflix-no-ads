@@ -52,6 +52,9 @@ const DEFAULT_HISTORY = {
     progress: 0.52,
     finished: false,
     poster: 'https://images.metahub.space/poster/medium/tt4574334/img',
+    background: 'https://images.metahub.space/background/medium/tt4574334/img',
+    genres: ['Drama', 'Fantasy', 'Horror', 'Sci-Fi'],
+    year: '2016',
     season: 4,
     episode: 4
   },
@@ -61,6 +64,9 @@ const DEFAULT_HISTORY = {
     progress: 0.74,
     finished: false,
     poster: 'https://images.metahub.space/poster/medium/tt1375666/img',
+    background: 'https://images.metahub.space/background/medium/tt1375666/img',
+    genres: ['Action', 'Adventure', 'Sci-Fi'],
+    year: '2010',
     imdb: 'tt1375666'
   },
   'tt1877830': {
@@ -69,6 +75,9 @@ const DEFAULT_HISTORY = {
     progress: 0.38,
     finished: false,
     poster: 'https://images.metahub.space/poster/medium/tt1877830/img',
+    background: 'https://images.metahub.space/background/medium/tt1877830/img',
+    genres: ['Action', 'Crime', 'Drama'],
+    year: '2022',
     imdb: 'tt1877830'
   },
   'tt0903747': {
@@ -77,6 +86,9 @@ const DEFAULT_HISTORY = {
     progress: 1.0,
     finished: true,
     poster: 'https://images.metahub.space/poster/medium/tt0903747/img',
+    background: 'https://images.metahub.space/background/medium/tt0903747/img',
+    genres: ['Crime', 'Drama', 'Thriller'],
+    year: '2008',
     season: 5,
     episode: 16
   },
@@ -86,6 +98,9 @@ const DEFAULT_HISTORY = {
     progress: 1.0,
     finished: true,
     poster: 'https://images.metahub.space/poster/medium/tt0816692/img',
+    background: 'https://images.metahub.space/background/medium/tt0816692/img',
+    genres: ['Adventure', 'Drama', 'Sci-Fi'],
+    year: '2014',
     imdb: 'tt0816692'
   },
   'tt0468569': {
@@ -94,6 +109,9 @@ const DEFAULT_HISTORY = {
     progress: 1.0,
     finished: true,
     poster: 'https://images.metahub.space/poster/medium/tt0468569/img',
+    background: 'https://images.metahub.space/background/medium/tt0468569/img',
+    genres: ['Action', 'Crime', 'Drama'],
+    year: '2008',
     imdb: 'tt0468569'
   }
 };
@@ -371,14 +389,38 @@ async function getJSON(url) {
   if (!r.ok) throw new Error('Fetch failed');
   return r.json();
 }
-function createPosterFallback(title, genre = 'Drama', year = '2024', rating = '8.2', type = 'movie') {
+function createPosterFallback(title, genre = 'Drama', year = '2024', rating = '8.2', type = 'movie', isLandscape = false) {
   if (typeof CuratedCatalog !== 'undefined' && typeof CuratedCatalog.generateCinematicCover === 'function') {
-    return CuratedCatalog.generateCinematicCover(title || 'Feature Film', genre || 'Cinema', year || '2024', rating || '8.2', type || 'movie');
+    return CuratedCatalog.generateCinematicCover(title || 'Feature Film', genre || 'Cinema', year || '2024', rating || '8.2', type || 'movie', isLandscape);
   }
   const cleanTitle = String(title || 'Featured Film').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const cleanGenre = String(genre || (type === 'series' ? 'TV SERIES' : 'CINEMA')).toUpperCase();
   const cleanYear = String(year || '2024');
   const cleanRating = String(rating || '8.2');
+
+  if (isLandscape) {
+    const svgL = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 281" width="500" height="281">',
+        '<defs>',
+          '<linearGradient id="bgGL" x1="0%" y1="0%" x2="100%" y2="100%">',
+            '<stop offset="0%" stop-color="#1b0003"/>',
+            '<stop offset="50%" stop-color="#2a0a10"/>',
+            '<stop offset="100%" stop-color="#0a0a0c"/>',
+          '</linearGradient>',
+        '</defs>',
+        '<rect width="100%" height="100%" fill="url(#bgGL)"/>',
+        '<rect x="0" y="0" width="500" height="4" fill="#E50914"/>',
+        '<text x="28" y="44" fill="#E50914" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="900" font-size="28">N</text>',
+        '<text x="56" y="38" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="11" font-weight="900" letter-spacing="2" opacity="0.9">' + (type === 'series' ? 'SERIES' : 'FILM') + '</text>',
+        '<rect x="28" y="156" width="76" height="20" rx="4" fill="rgba(255,255,255,0.14)"/>',
+        '<text x="66" y="170" fill="#ffb800" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="700" font-size="10" text-anchor="middle">' + cleanGenre.slice(0, 10) + '</text>',
+        '<text x="28" y="210" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="900" font-size="24">' + cleanTitle.slice(0, 32) + '</text>',
+        '<text x="28" y="246" fill="#46d369" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-weight="700" font-size="13">★ ' + cleanRating + '  ' + cleanYear + '</text>',
+      '</svg>'
+    ].join('');
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgL);
+  }
+
   const svg = [
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 450" width="300" height="450">',
       '<defs>',
@@ -405,26 +447,19 @@ if (typeof window !== 'undefined') {
   window.createPosterFallback = createPosterFallback;
 }
 
-const poster = m => {
-  if (!m) return createPosterFallback('Feature');
-  if (m.poster && !m.poster.includes('images.metahub.space/poster/medium/tt3') && !m.poster.includes('images.metahub.space/poster/medium/tt7')) {
-    return m.poster;
-  }
-  if (m.background && !m.background.includes('images.metahub.space/background/medium/tt3') && !m.background.includes('images.metahub.space/background/medium/tt7')) {
-    return m.background;
-  }
-  return createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie');
+const poster = (m, isLandscape = false) => {
+  if (!m) return createPosterFallback('Feature', 'Cinema', '2024', '8.2', 'movie', isLandscape);
+  if (isLandscape && m.background) return m.background;
+  if (m.poster) return m.poster;
+  if (m.background) return m.background;
+  return createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie', isLandscape);
 };
 
 const backdrop = m => {
-  if (!m) return createPosterFallback('Feature');
-  if (m.background && !m.background.includes('images.metahub.space/background/medium/tt3') && !m.background.includes('images.metahub.space/background/medium/tt7')) {
-    return m.background;
-  }
-  if (m.poster && !m.poster.includes('images.metahub.space/poster/medium/tt3') && !m.poster.includes('images.metahub.space/poster/medium/tt7')) {
-    return m.poster;
-  }
-  return createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie');
+  if (!m) return createPosterFallback('Feature', 'Cinema', '2024', '8.2', 'movie', true);
+  if (m.background) return m.background;
+  if (m.poster) return m.poster;
+  return createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie', true);
 };
 function matchScore(m) {
   const r = parseFloat(m.imdbRating);
@@ -961,7 +996,8 @@ function buildCard(m, badge, rank) {
   const type = m.type || (m.id && m.id.startsWith('tt') ? 'movie' : 'movie');
   const el = document.createElement('div');
   el.className = 'card';
-  if (m._progress || m._finished) el.classList.add('landscape');
+  const isLandscape = !!(m._progress != null || m._finished);
+  if (isLandscape) el.classList.add('landscape');
 
   const isContinue = (m._progress != null && !m._finished);
   const isFinished = !!m._finished;
@@ -990,13 +1026,23 @@ function buildCard(m, badge, rank) {
     ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
     : '';
 
+  const titleText = escapeHtml(m.name || m.title || '');
+  const titleOverlay = isLandscape
+    ? `<div class="card-title-fallback">${titleText}</div>`
+    : '';
+
+  const cardImgSrc = isLandscape
+    ? (m.background || backdrop(m) || m.poster || poster(m, true))
+    : (m.poster || poster(m, false));
+
   el.innerHTML = `
     <div class="card-inner">
       ${badgeMarkup}
       ${top10Html}
       ${finishToggleBtn}
       ${removeBtn}
-      <img loading="lazy" src="${poster(m)}" alt="${escapeHtml(m.name || m.title || '')}">
+      <img loading="lazy" src="${cardImgSrc}" alt="${titleText}">
+      ${titleOverlay}
       ${prog}
     </div>
   `;
@@ -1005,7 +1051,12 @@ function buildCard(m, badge, rank) {
   if (cardImg) {
     cardImg.onerror = function() {
       this.onerror = null;
-      this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type);
+      el.classList.add('show-title-overlay');
+      if (isLandscape && m.poster && this.src !== m.poster) {
+        this.src = m.poster;
+        return;
+      }
+      this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type, isLandscape);
     };
   }
 
@@ -3141,15 +3192,23 @@ function recordWatchStart(o) {
   const currentProg = existing.progress != null ? existing.progress : 0.12;
   const safeProg = (currentProg > 0.05 && currentProg < 0.95) ? currentProg : 0.12;
 
+  const cleanId = String(o.id || o.imdb || o.tmdbId || '').replace(/^tmdb:/, '');
+  const curMedia = (typeof CuratedCatalog !== 'undefined')
+    ? (CuratedCatalog.getCuratedById(cleanId) || CuratedCatalog.getCuratedById(o.imdb) || CuratedCatalog.getCuratedById(o.tmdbId) || (o.title ? CuratedCatalog.searchCurated(o.title)[0] : null))
+    : null;
+  const resolvedPoster = o.poster || existing.poster || curMedia?.poster || '';
+  const resolvedBg = o.background || existing.background || curMedia?.background || resolvedPoster || '';
+
   history[key] = {
     ...existing,
     progress: safeProg,
     finished: false,
-    type: o.type || existing.type || 'movie',
-    title: o.title || existing.title || 'Title',
-    poster: o.poster || existing.poster || '',
-    tmdbId: o.tmdbId || existing.tmdbId,
-    imdb: o.imdb || existing.imdb || (typeof key === 'string' && key.startsWith('tt') ? key : null),
+    type: o.type || existing.type || (curMedia?.type || 'movie'),
+    title: o.title || existing.title || curMedia?.name || 'Title',
+    poster: resolvedPoster,
+    background: resolvedBg,
+    tmdbId: o.tmdbId || existing.tmdbId || curMedia?.moviedb_id,
+    imdb: o.imdb || existing.imdb || (typeof key === 'string' && key.startsWith('tt') ? key : curMedia?.imdb_id || null),
     season: Math.max(1, +(o.season || existing.season || 1)),
     episode: Math.max(1, +(o.episode || existing.episode || 1)),
     lastWatched: Date.now(),
@@ -3501,20 +3560,50 @@ function readProgressStore() {
 function historyItems() {
   return Object.entries(history)
     .sort(([, a], [, b]) => (b.lastWatched || 0) - (a.lastWatched || 0))
-    .map(([id, h]) => ({
-      id,
-      type: h.type || 'movie',
-      name: h.title,
-      poster: h.poster,
-      background: h.poster,
-      _progress: h.progress,
-      _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
-      _embed: !!h._embed,
-      tmdbId: h.tmdbId,
-      imdb: h.imdb || (id.startsWith('tt') ? id : null),
-      season: h.season,
-      episode: h.episode
-    }));
+    .map(([id, h]) => {
+      let resolvedPoster = h.poster || '';
+      let resolvedBg = h.background || '';
+      let resolvedTitle = h.title || h.name || 'Title';
+      let resolvedType = h.type || 'movie';
+      let resolvedGenres = h.genres || [];
+      let resolvedYear = h.year || '';
+
+      if (typeof CuratedCatalog !== 'undefined') {
+        const cleanId = String(id).replace(/^tmdb:/, '');
+        const cur = (CuratedCatalog.getCuratedById && (CuratedCatalog.getCuratedById(id) || CuratedCatalog.getCuratedById(cleanId) || CuratedCatalog.getCuratedById(h.imdb) || CuratedCatalog.getCuratedById(h.tmdbId)))
+          || (CuratedCatalog.searchCurated && resolvedTitle !== 'Title' ? CuratedCatalog.searchCurated(resolvedTitle)[0] : null);
+
+        if (cur) {
+          if (!resolvedPoster) resolvedPoster = cur.poster || '';
+          if (!resolvedBg) resolvedBg = cur.background || cur.poster || '';
+          if (resolvedTitle === 'Title' && cur.name) resolvedTitle = cur.name;
+          if (cur.type) resolvedType = cur.type;
+          if (!resolvedGenres.length && cur.genres) resolvedGenres = cur.genres;
+          if (!resolvedYear && cur.year) resolvedYear = cur.year;
+        }
+      }
+
+      if (!resolvedBg && resolvedPoster) resolvedBg = resolvedPoster;
+      if (!resolvedPoster && resolvedBg) resolvedPoster = resolvedBg;
+
+      return {
+        id,
+        type: resolvedType,
+        name: resolvedTitle,
+        title: resolvedTitle,
+        poster: resolvedPoster,
+        background: resolvedBg,
+        genres: resolvedGenres,
+        year: resolvedYear,
+        _progress: h.progress,
+        _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
+        _embed: !!h._embed,
+        tmdbId: h.tmdbId,
+        imdb: h.imdb || (id.startsWith('tt') ? id : null),
+        season: h.season,
+        episode: h.episode
+      };
+    });
 }
 
 function continueItems() {
@@ -3561,16 +3650,29 @@ function syncEmbedProgress() {
     const p = Math.min(.98, watched / dur);
     const isFinished = p >= 0.9;
     const key = `tmdb:${entry.id}`;
-    const existing = history[key] || {};
+    const cleanId = String(entry.id).replace(/^tmdb:/, '');
+
+    const existingKey = Object.keys(history).find(k => k === key || k === cleanId || k === `tmdb:${cleanId}` || history[k].tmdbId === entry.id || (entry.imdb && history[k].imdb === entry.imdb));
+    const existing = existingKey ? history[existingKey] : {};
+
+    const curMedia = (typeof CuratedCatalog !== 'undefined')
+      ? (CuratedCatalog.getCuratedById(cleanId) || CuratedCatalog.getCuratedById(entry.imdb) || (entry.title ? CuratedCatalog.searchCurated(entry.title)[0] : null))
+      : null;
+
+    const posterUrl = entry.poster || (entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '') || existing.poster || curMedia?.poster || '';
+    const bgUrl = entry.background || existing.background || curMedia?.background || posterUrl || '';
+    const resolvedTitle = entry.title || existing.title || curMedia?.name || 'Title';
+
     history[key] = {
       ...existing,
       progress: p,
       finished: isFinished,
-      type: entry.type === 'tv' ? 'series' : 'movie',
-      title: entry.title || existing.title || 'Title',
-      poster: entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : (existing.poster || ''),
+      type: (entry.type === 'tv' || curMedia?.type === 'series') ? 'series' : 'movie',
+      title: resolvedTitle,
+      poster: posterUrl,
+      background: bgUrl,
       tmdbId: entry.id,
-      imdb: entry.imdb || existing.imdb || null,
+      imdb: entry.imdb || existing.imdb || curMedia?.imdb_id || null,
       season: Math.max(1, +(entry.last_season_watched || existing.season || 1)),
       episode: Math.max(1, +(entry.last_episode_watched || existing.episode || 1)),
       lastWatched: Date.now(),
@@ -3940,6 +4042,9 @@ window.addEventListener('message', (event) => {
           last_season_watched: pInfo?.season || currentEmbed?.season || 1,
           last_episode_watched: pInfo?.episode || currentEmbed?.episode || 1,
           imdb: pInfo?.imdb || currentEmbed?.imdb,
+          poster: currentEmbed?.poster || '',
+          background: currentEmbed?.background || currentEmbed?.poster || '',
+          poster_path: pInfo?.poster_path || currentEmbed?.poster_path || '',
           progress: { watched: curTime, duration: dur || 0 }
         };
         try { localStorage.setItem('vidsrcProgress', JSON.stringify(cur)); } catch {}

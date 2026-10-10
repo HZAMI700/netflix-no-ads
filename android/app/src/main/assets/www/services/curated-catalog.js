@@ -464,7 +464,7 @@ const CORE_CURATED_MEDIA = RAW_CURATED_MEDIA.map(m => {
 /**
  * Universal SVG cover generator for instant, non-failing, Netflix-aesthetic posters
  */
-function generateCinematicCover(title, genre, year, rating, type) {
+function generateCinematicCover(title, genre, year, rating, type, isLandscape = false) {
   const g = String(genre || 'Action').trim();
   const y = String(year || '2024');
   const r = String(rating || '8.2');
@@ -491,6 +491,43 @@ function generateCinematicCover(title, genre, year, rating, type) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+
+  if (isLandscape) {
+    const pillWidth = Math.max(64, g.length * 8 + 18);
+    const pillCenter = 28 + pillWidth / 2;
+    const displayTitle = safeTitle.length > 34 ? safeTitle.slice(0, 32) + '…' : safeTitle;
+    const svgL = [
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 281" width="500" height="281">',
+        '<defs>',
+          '<linearGradient id="bgL" x1="0" y1="0" x2="1" y2="1">',
+            '<stop offset="0%" stop-color="' + g2 + '"/>',
+            '<stop offset="55%" stop-color="' + g1 + '"/>',
+            '<stop offset="100%" stop-color="#0a0a0a"/>',
+          '</linearGradient>',
+          '<linearGradient id="cardGradL" x1="0" y1="0.1" x2="0" y2="1">',
+            '<stop offset="0%" stop-color="transparent"/>',
+            '<stop offset="100%" stop-color="rgba(0,0,0,0.95)"/>',
+          '</linearGradient>',
+          '<radialGradient id="glowL" cx="75%" cy="35%" r="60%">',
+            '<stop offset="0%" stop-color="' + accent + '" stop-opacity="0.38"/>',
+            '<stop offset="100%" stop-color="transparent"/>',
+          '</radialGradient>',
+        '</defs>',
+        '<rect width="100%" height="100%" fill="url(#bgL)"/>',
+        '<circle cx="370" cy="90" r="170" fill="url(#glowL)"/>',
+        '<rect width="100%" height="100%" fill="url(#cardGradL)"/>',
+        '<path d="M 28 20 L 42 20 L 32 38 L 42 38 L 42 42 L 26 42 L 36 24 L 26 24 Z" fill="#E50914"/>',
+        '<text x="50" y="34" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="11" font-weight="900" letter-spacing="2" opacity="0.9">' + (isSeries ? 'SERIES' : 'FILM') + '</text>',
+        '<rect x="28" y="152" width="' + pillWidth + '" height="22" rx="11" fill="rgba(255,255,255,0.14)"/>',
+        '<text x="' + pillCenter + '" y="167" fill="' + accent + '" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="0.5">' + g.toUpperCase() + '</text>',
+        '<text x="28" y="210" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="' + (displayTitle.length > 22 ? 21 : 26) + '" font-weight="900" letter-spacing="-0.5">' + displayTitle + '</text>',
+        '<text x="28" y="246" fill="#a3a3a3" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="13" font-weight="600">' + y + '</text>',
+        '<text x="82" y="246" fill="#ffb800" font-family="-apple-system,BlinkMacSystemFont,Roboto,sans-serif" font-size="13" font-weight="800">★ ' + r + '</text>',
+        '<rect x="0" y="277" width="500" height="4" fill="' + accent + '" opacity="0.9"/>',
+      '</svg>'
+    ].join('');
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgL);
+  }
 
   const words = safeTitle.split(' ');
   let l1 = '', l2 = '';

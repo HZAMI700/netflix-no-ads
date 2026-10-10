@@ -228,6 +228,13 @@ check('episode card highlights target episode with resume pill', app.includes('e
 check('episode card motion animation styled in styles.css', cssContent.includes('epFocusMotion') && cssContent.includes('.ep-card.ep-target-focus.ep-motion-active'));
 check('detailBackdrop has smooth scroll behavior', cssContent.includes('#detailBackdrop') && cssContent.includes('scroll-behavior: smooth;'));
 
+/* --- continue watching landscape poster & fallback coverage guards --- */
+const sampleLandscape = CC.generateCinematicCover('Breaking Bad', 'Crime', 2008, '9.5', 'series', true);
+check('generateCinematicCover landscape returns 16:9 svg', typeof sampleLandscape === 'string' && decodeURIComponent(sampleLandscape).includes('viewBox="0 0 500 281"'));
+check('card title fallback styled in styles.css', cssContent.includes('.card-title-fallback'));
+check('buildCard includes landscape card title fallback', app.includes('card-title-fallback'));
+check('historyItems resolves missing poster and background from CuratedCatalog', app.includes('CuratedCatalog.getCuratedById') && app.includes('resolvedBg'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 
