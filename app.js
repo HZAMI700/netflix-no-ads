@@ -161,11 +161,22 @@ const pages = {
   mylist: $('mylistPage'),
   browse: $('browsePage'),
   profiles: $('profilesPage'),
-  settings: $('settingsPage')
+  settings: $('settingsPage'),
+  detail: $('detailBackdrop')
 };
+
+let currentRoute = { page: 'home', id: null, type: null };
+let lastPage = 'home';
+let isHandlingHashRoute = false;
 
 function show(name) {
   closeCardPortal();
+  if (name !== 'detail') {
+    lastPage = name;
+    if (currentRoute.page === 'detail') {
+      currentRoute = { page: name, id: null, type: null };
+    }
+  }
   Object.entries(pages).forEach(([k, el]) => {
     if (!el) return;
     el.classList.toggle('show', k === name || (name === 'home' && k === 'home'));
@@ -184,10 +195,27 @@ document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click',
   e.preventDefault();
   closeAllNavDropdowns();
   const n = a.dataset.nav;
+  closeDetail(false);
   if (n === 'movies') openBrowse('movies');
   else if (n === 'series') openBrowse('series');
   else if (n === 'new') openBrowse('new');
-  else show(n === 'home' ? 'home' : n);
+  else {
+    show(n === 'home' ? 'home' : n);
+    const targetHash = n === 'home' ? '#/' : `#/${n}`;
+    if (!isHandlingHashRoute && window.location.hash !== targetHash) {
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ page: n }, '', targetHash);
+      } else {
+        window.location.hash = targetHash;
+      }
+    }
+    if (n === 'home') {
+      document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+    } else {
+      const pageTitles = { search: 'Search', mylist: 'My List', profiles: 'Profiles', settings: 'Settings' };
+      document.title = `${pageTitles[n] || n} — Streamnaro`;
+    }
+  }
 
   if (n === 'mylist') renderMyList();
   if (n === 'profiles') renderProfiles();
@@ -1264,12 +1292,30 @@ function formatEpisodeRuntime(v, m) {
 async function openDetail(id, type, autoplay, continueTarget) {
   closeCardPortal();
   type = (type === 'series' || type === 'tv') ? 'series' : 'movie';
+
+  if (currentRoute.page !== 'detail') {
+    lastPage = currentRoute.page || 'home';
+  }
+  currentRoute = { page: 'detail', id, type };
+
+  const targetHash = `#/${type}/${encodeURIComponent(id)}`;
+  if (!isHandlingHashRoute && window.location.hash !== targetHash) {
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ page: 'detail', id, type }, '', targetHash);
+    } else {
+      window.location.hash = targetHash;
+    }
+  }
+
+  show('detail');
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  document.body.style.overflow = '';
+
   const backdropEl = $('detailBackdrop');
   if (backdropEl) {
     backdropEl.scrollTop = 0;
     backdropEl.classList.add('show');
   }
-  document.body.style.overflow = 'hidden';
 
   if ($('dTitle')) $('dTitle').textContent = 'Loading…';
   if ($('dDesc')) $('dDesc').textContent = '';
@@ -1325,6 +1371,38 @@ async function openDetail(id, type, autoplay, continueTarget) {
     if ($('dTitle')) $('dTitle').textContent = m.name;
     if ($('dMeta')) $('dMeta').innerHTML = metaRowHTML(m);
     if ($('dDesc')) $('dDesc').textContent = m.description || '';
+
+    // Configure dedicated page Breadcrumb & Kicker
+    if ($('crumbHome')) {
+      $('crumbHome').onclick = (e) => {
+        e.preventDefault();
+        goBackToPage('home');
+      };
+    }
+    if ($('crumbType')) {
+      const isSeries = type === 'series';
+      $('crumbType').textContent = isSeries ? 'TV Shows' : 'Movies';
+      $('crumbType').onclick = (e) => {
+        e.preventDefault();
+        openBrowse(isSeries ? 'series' : 'movies');
+      };
+    }
+    if ($('crumbTitle')) {
+      $('crumbTitle').textContent = m.name;
+    }
+    if ($('dKickerType')) {
+      $('dKickerType').textContent = type === 'series' ? 'S E R I E S' : 'M O V I E';
+    }
+
+    const titleYear = m.year || m.releaseInfo || '';
+    document.title = `${m.name}${titleYear ? ` (${titleYear})` : ''} — Streamnaro`;
+
+    const handleDetailBack = (e) => {
+      if (e) e.preventDefault();
+      goBackFromDetail();
+    };
+    if ($('dBackBtn')) $('dBackBtn').onclick = handleDetailBack;
+    if ($('dClose')) $('dClose').onclick = handleDetailBack;
 
     if ($('dRight')) {
       $('dRight').innerHTML = `
@@ -1579,20 +1657,56 @@ function toggleLike(m) {
 }
 
 const dClose = $('dClose');
-if (dClose) dClose.onclick = closeDetail;
+if (dClose) dClose.onclick = () => goBackFromDetail();
 
-const detailBackdrop = $('detailBackdrop');
-if (detailBackdrop) {
-  detailBackdrop.addEventListener('click', e => {
-    if (e.target.id === 'detailBackdrop') closeDetail();
-  });
+const dBackBtn = $('dBackBtn');
+if (dBackBtn) dBackBtn.onclick = () => goBackFromDetail();
+
+function goBackFromDetail() {
+  if (window.history && window.history.length > 1 && currentRoute.page === 'detail') {
+    window.history.back();
+  } else {
+    goBackToPage(lastPage || 'home');
+  }
 }
 
-function closeDetail() {
+function goBackToPage(pageName) {
+  closeDetail(false);
+  if (pageName === 'movies' || pageName === 'series' || pageName === 'new') {
+    openBrowse(pageName);
+  } else {
+    show(pageName || 'home');
+  }
+  if (pageName === 'home') {
+    if (window.location.hash) {
+      if (window.history && window.history.pushState) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search);
+      } else {
+        window.location.hash = '';
+      }
+    }
+    document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+  }
+}
+
+function closeDetail(syncUrl = true) {
   const bd = $('detailBackdrop');
   if (bd) bd.classList.remove('show');
   closeDownloadModal();
   document.body.style.overflow = '';
+  if (currentRoute.page === 'detail') {
+    currentRoute = { page: lastPage || 'home', id: null, type: null };
+  }
+  if (syncUrl && (window.location.hash.startsWith('#/movie/') || window.location.hash.startsWith('#/series/'))) {
+    if (window.history && window.history.pushState) {
+      window.history.pushState(null, '', window.location.pathname + window.location.search);
+    } else {
+      window.location.hash = '';
+    }
+  }
+  if (lastPage === 'home') {
+    document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+  }
 }
 
 /* ---------- MY LIST ---------- */
@@ -1656,10 +1770,21 @@ let currentBrowseKind = 'movies';
 
 async function openBrowse(kind) {
   currentBrowseKind = kind;
+  closeDetail(false);
   show('browse');
 
   const titles = { movies: 'Movies', series: 'TV Shows', new: 'New & Popular' };
   if ($('browseTitle')) $('browseTitle').textContent = titles[kind] || 'Browse';
+  document.title = `${titles[kind] || 'Browse'} — Streamnaro`;
+
+  const targetHash = `#/browse/${kind}`;
+  if (!isHandlingHashRoute && window.location.hash !== targetHash) {
+    if (window.history && window.history.pushState) {
+      window.history.pushState({ page: 'browse', kind }, '', targetHash);
+    } else {
+      window.location.hash = targetHash;
+    }
+  }
 
   const filterWrap = $('genreFilterWrap');
   if (filterWrap) filterWrap.style.display = kind === 'new' ? 'none' : 'flex';
@@ -3051,6 +3176,12 @@ function closePlayer() {
   if ($('pBottom')) $('pBottom').style.display = 'none';
   if ($('torrentStats')) $('torrentStats').style.display = 'none';
   currentEmbed = null;
+
+  if (currentRoute.page === 'detail' && currentDetail?.meta) {
+    show('detail');
+  } else {
+    show(lastPage || 'home');
+  }
 }
 
 /* ---------- STREAMING EMBEDS ---------- */
@@ -3067,7 +3198,6 @@ function showPlayerError(msg) {
 function openPlayerShell(title, subTitle) {
   closeCardPortal();
   _allowNavigation = false;
-  closeDetail();
   hidePlayerError();
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
   const pv = $('playerView');
@@ -4154,4 +4284,60 @@ const letterEl = $('avatarLetter');
 if (letterEl) {
   letterEl.textContent = activeProf.id;
   letterEl.style.background = activeProf.color;
+}
+
+/* ---------- ROUTE & DEEP LINK HANDLER ---------- */
+function handleRouteFromHash() {
+  const rawHash = (window.location.hash || '').trim();
+  const hash = rawHash.replace(/^#\/?/, '');
+  if (!hash || hash === 'home' || hash === '/') {
+    if (currentRoute.page === 'detail') {
+      closeDetail(false);
+      show('home');
+      document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+    }
+    return;
+  }
+  const parts = hash.split('/').map(decodeURIComponent);
+  const routeType = parts[0];
+  const routeId = parts.slice(1).join('/');
+
+  if ((routeType === 'movie' || routeType === 'series') && routeId) {
+    if (!currentDetail || currentDetail.meta?.id !== routeId || currentRoute.page !== 'detail') {
+      isHandlingHashRoute = true;
+      openDetail(routeId, routeType, false).finally(() => {
+        isHandlingHashRoute = false;
+      });
+    }
+  } else if (routeType === 'movies' || (routeType === 'browse' && routeId === 'movies')) {
+    openBrowse('movies');
+  } else if (routeType === 'series' || (routeType === 'browse' && routeId === 'series')) {
+    openBrowse('series');
+  } else if (routeType === 'new' || (routeType === 'browse' && routeId === 'new')) {
+    openBrowse('new');
+  } else if (routeType === 'search') {
+    show('search');
+    document.title = 'Search — Streamnaro';
+  } else if (routeType === 'mylist') {
+    show('mylist');
+    renderMyList();
+    document.title = 'My List — Streamnaro';
+  } else if (routeType === 'settings') {
+    show('settings');
+    renderAddons();
+    document.title = 'Settings — Streamnaro';
+  }
+}
+
+window.addEventListener('popstate', () => {
+  handleRouteFromHash();
+});
+window.addEventListener('hashchange', () => {
+  handleRouteFromHash();
+});
+
+if (window.location.hash) {
+  setTimeout(() => {
+    handleRouteFromHash();
+  }, 100);
 }

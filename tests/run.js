@@ -235,6 +235,14 @@ check('card title fallback styled in styles.css', cssContent.includes('.card-tit
 check('buildCard includes landscape card title fallback', app.includes('card-title-fallback'));
 check('historyItems resolves missing poster and background from CuratedCatalog', app.includes('CuratedCatalog.getCuratedById') && app.includes('resolvedBg'));
 
+/* --- dedicated movie and series page navigation guards --- */
+check('dBackBtn and breadcrumb present in index.html', html.includes('id="dBackBtn"') && html.includes('id="dBreadcrumb"'));
+check('detailBackdrop styled as dedicated full page view', cssContent.includes('#detailBackdrop') && cssContent.includes('min-height: 100vh;') && cssContent.includes('background: var(--nf-bg, #141414);'));
+check('detailModal has transparent background and full width', cssContent.includes('#detailModal') && cssContent.includes('background: transparent;') && cssContent.includes('width: 100%;'));
+check('openDetail synchronizes dedicated title route hash', app.includes('`#/${type}/${encodeURIComponent(id)}`'));
+check('goBackFromDetail defined in app.js', app.includes('function goBackFromDetail('));
+check('handleRouteFromHash supports deep linking for movies and series', app.includes('function handleRouteFromHash(') && app.includes("routeType === 'movie' || routeType === 'series'"));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 

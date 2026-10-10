@@ -1288,7 +1288,7 @@ body.is-scrolling #cardPortal {
 }
 
 /* ==========================================================================
-   DETAIL MODAL
+   DETAIL TITLE PAGE (Dedicated Full Page for Movies & TV Series)
    ========================================================================== */
 .backdrop {
   position: fixed;
@@ -1312,25 +1312,39 @@ body.is-scrolling #cardPortal {
   to { opacity: 1; }
 }
 
-#detailModal {
-  background: var(--nf-surface);
-  width: min(920px, 95vw);
-  border-radius: 10px;
-  overflow: hidden;
+#detailBackdrop {
+  display: none;
   position: relative;
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.95);
-  animation: modalPopIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  inset: auto;
+  width: 100%;
+  min-height: 100vh;
+  background: var(--nf-bg, #141414);
+  padding: 0 0 100px 0;
+  margin: 0;
+  z-index: 20;
+  overflow-y: visible;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  scroll-behavior: smooth;
+  opacity: 1;
 }
-@keyframes modalPopIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.93) translateY(16px);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+#detailBackdrop.show {
+  display: block;
+  animation: pageIn 0.35s var(--ease);
+}
+
+#detailModal {
+  background: transparent;
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  position: relative;
+  animation: none;
 }
 @keyframes pop {
   from { transform: scale(0.93) translateY(14px); opacity: 0; }
@@ -1339,24 +1353,105 @@ body.is-scrolling #cardPortal {
 
 .detail-hero {
   position: relative;
-  aspect-ratio: 16 / 9;
-  background: #000000;
+  width: 100%;
+  height: clamp(440px, 62vh, 740px);
+  aspect-ratio: auto;
+  background: #050505;
+  overflow: hidden;
 }
 .detail-hero img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 20%;
+  filter: brightness(0.92);
+  transition: opacity 0.4s ease;
 }
 .detail-hero-grad {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 40%, rgba(24,24,24,0.6) 70%, #181818 100%);
+  background: linear-gradient(180deg, rgba(20,20,20,0.85) 0%, rgba(20,20,20,0.15) 25%, rgba(20,20,20,0.65) 70%, #141414 100%);
+  pointer-events: none;
+}
+
+.detail-top-bar {
+  position: absolute;
+  top: calc(var(--nav-h) + 18px);
+  left: var(--pad);
+  right: var(--pad);
+  max-width: 1400px;
+  margin: 0 auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.detail-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 20, 20, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.detail-back-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: translateX(-3px);
+}
+.detail-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #a3a3a3;
+  background: rgba(20, 20, 20, 0.65);
+  padding: 6px 14px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.detail-breadcrumb a {
+  color: #dddddd;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+.detail-breadcrumb a:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+.detail-breadcrumb .crumb-sep {
+  color: #555555;
+  font-size: 12px;
+}
+.detail-breadcrumb .crumb-current {
+  color: #ffffff;
+  font-weight: 600;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-close-btn {
+  position: static;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
 }
 
 .x-btn {
-  position: absolute;
-  top: 18px;
-  right: 18px;
   width: 38px;
   height: 38px;
   border-radius: 50%;
@@ -1377,17 +1472,27 @@ body.is-scrolling #cardPortal {
 
 .detail-hero-content {
   position: absolute;
-  left: 36px;
-  bottom: 24px;
-  right: 36px;
-  z-index: 4;
+  left: var(--pad);
+  bottom: 42px;
+  right: var(--pad);
+  max-width: 1400px;
+  margin: 0 auto;
+  z-index: 5;
+}
+.detail-hero-kicker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 .detail-hero-content h1 {
-  font-size: clamp(26px, 3.5vw, 44px);
+  font-size: clamp(34px, 5.5vw, 68px);
   font-weight: 900;
-  text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9);
-  margin-bottom: 12px;
-  line-height: 1.1;
+  font-family: 'Bebas Neue', Impact, 'Arial Black', sans-serif;
+  letter-spacing: 0.5px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
+  margin-bottom: 18px;
+  line-height: 1.05;
 }
 
 .m-actions {
@@ -1405,9 +1510,11 @@ body.is-scrolling #cardPortal {
 
 .detail-body {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 36px;
-  padding: 24px 40px 48px;
+  grid-template-columns: minmax(0, 2.3fr) minmax(290px, 1fr);
+  gap: 52px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 36px var(--pad) 80px;
 }
 .detail-left {
   min-width: 0;
@@ -3283,30 +3390,36 @@ footer {
     gap: 8px;
   }
 
-  /* Detail modal */
+  /* Detail title page */
+  #detailBackdrop {
+    padding: 0 0 60px 0;
+  }
   #detailModal {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100%;
+    max-width: 100%;
     border-radius: 0;
-    min-height: 100vh;
+    min-height: auto;
     margin: 0;
   }
-  .backdrop {
-    padding: 0;
-    align-items: flex-start;
-  }
   .detail-hero {
-    aspect-ratio: 16 / 10;
-    min-height: 220px;
+    height: clamp(340px, 50vh, 460px);
+    aspect-ratio: auto;
+    min-height: auto;
   }
   .detail-hero-content {
-    left: 14px;
-    right: 14px;
-    bottom: 14px;
+    left: var(--pad);
+    right: var(--pad);
+    bottom: 20px;
   }
   .detail-hero-content h1 {
-    font-size: clamp(20px, 5.5vw, 28px);
-    margin-bottom: 8px;
+    font-size: clamp(24px, 7vw, 38px);
+    margin-bottom: 12px;
+  }
+  .detail-top-bar {
+    top: calc(var(--nav-h) + 10px);
+  }
+  .detail-breadcrumb {
+    display: none;
   }
   .m-actions {
     gap: 8px;
@@ -3321,8 +3434,9 @@ footer {
     height: 36px;
   }
   .detail-body {
-    padding: 16px 14px 36px;
-    gap: 18px;
+    padding: 18px var(--pad) 40px;
+    gap: 24px;
+    grid-template-columns: 1fr;
   }
   .detail-body p.desc {
     font-size: 13px;
