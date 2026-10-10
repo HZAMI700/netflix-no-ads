@@ -169,7 +169,7 @@ let currentRoute = { page: 'home', id: null, type: null };
 let lastPage = 'home';
 let isHandlingHashRoute = false;
 
-function show(name) {
+function show(name, subNav) {
   closeCardPortal();
   if (name !== 'detail') {
     lastPage = name;
@@ -187,7 +187,8 @@ function show(name) {
   } else {
     if ($('homePage')) $('homePage').style.display = 'none';
   }
-  document.querySelectorAll('.nav-links a').forEach(a => a.classList.toggle('active', a.dataset.nav === name));
+  const activeNav = subNav || name;
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -412,10 +413,18 @@ const isCleanSafe = (m) => {
 };
 
 /* ---------- FETCH HELPERS ---------- */
-async function getJSON(url) {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('Fetch failed');
-  return r.json();
+async function getJSON(url, timeoutMs = 4000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error('Fetch failed');
+    return await r.json();
+  } catch (err) {
+    clearTimeout(timer);
+    throw err;
+  }
 }
 function createPosterFallback(title, genre = 'Drama', year = '2024', rating = '8.2', type = 'movie', isLandscape = false) {
   if (typeof CuratedCatalog !== 'undefined' && typeof CuratedCatalog.generateCinematicCover === 'function') {
@@ -620,7 +629,7 @@ function wireRowControls(sec) {
   const onMouseMove = (e) => {
     const diff = e.pageX - startX;
     dragDist = Math.abs(diff);
-    if (dragDist > 5) {
+    if (dragDist > 18) {
       isRowDragging = true;
       closeCardPortal();
       t.scrollLeft = scrollStart - diff;
@@ -630,8 +639,8 @@ function wireRowControls(sec) {
   const onMouseUp = () => {
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
-    if (dragDist > 5) {
-      setTimeout(() => { isRowDragging = false; }, 100);
+    if (dragDist > 18) {
+      setTimeout(() => { isRowDragging = false; }, 80);
     } else {
       isRowDragging = false;
     }
@@ -639,6 +648,7 @@ function wireRowControls(sec) {
 
   t.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    isRowDragging = false;
     startX = e.pageX;
     scrollStart = t.scrollLeft;
     dragDist = 0;
@@ -728,6 +738,7 @@ async function buildHome() {
 /* ---------- NETFLIX CARD HOVER PORTAL ---------- */
 function onCardMouseEnter(card, meta, badge, rank) {
   if (isScrolling || isRowDragging) return;
+  if (typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0))) return;
   clearTimeout(cardLeaveTimer);
   clearTimeout(cardHoverTimer);
 
@@ -1141,7 +1152,12 @@ function buildCard(m, badge, rank) {
       renderContinueRow();
     }
 
-    const id = m.id, tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
+    const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
+    let tp = (m.type === 'series' || m.type === 'tv') ? 'series' : (m.type || type);
+    if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const cur = CuratedCatalog.getCuratedById(id);
+      if (cur && cur.type) tp = cur.type;
+    }
 
     if (m._embed || isContinue) {
       if (tp === 'series') {
@@ -1289,6 +1305,319 @@ function formatEpisodeRuntime(v, m) {
 }
 
 /* ---------- DETAIL MODAL ---------- */
+async function renderDetailRecommendations(m, type) {
+  const simGrid = $('simGrid');
+  if (!simGrid) return;
+  simGrid.innerHTML = '';
+
+  let recs = [];
+  if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA) {
+    const list = type === 'series' ? CuratedCatalog.CURATED_SERIES : CuratedCatalog.CURATED_MOVIES;
+    recs = (list || []).filter(x => x.id !== m.id && (x.genres || []).some(g => (m.genres || []).includes(g))).slice(0, 6);
+  }
+
+  const renderSimItems = (items) => {
+    simGrid.innerHTML = '';
+    items.slice(0, 6).forEach(s => {
+      const d = document.createElement('div');
+      d.className = 'sim';
+      d.innerHTML = `
+        <img src="${backdrop(s)}" alt="${escapeHtml(s.name || s.title || '')}">
+        <div class="sim-info">
+          <div class="sim-title">${escapeHtml(s.name || s.title || '')}</div>
+          <div class="sim-meta">
+            <span class="match">${matchScore(s)}% Match</span>
+            <span class="age-badge">${ageRating(s)}</span>
+          </div>
+        </div>
+      `;
+      const simImg = d.querySelector('img');
+      if (simImg) {
+        simImg.onerror = function() {
+          this.onerror = null;
+          this.src = createPosterFallback(s.name || s.title, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type);
+        };
+      }
+      d.onclick = () => openDetail(s.id, s.type || type, false);
+      simGrid.appendChild(d);
+    });
+  };
+
+  if (recs.length) renderSimItems(recs);
+
+  // Background enrichment from Cinemeta
+  try {
+    const cinTop = await fetchCatalog(type + '/top');
+    const cinFiltered = (cinTop || []).filter(isCleanSafe).filter(x => x.id !== m.id && (x.genres || []).some(g => (m.genres || []).includes(g)));
+    if (cinFiltered.length) {
+      renderSimItems(dedupeMetas([...cinFiltered, ...recs]));
+    }
+  } catch (e) {}
+}
+
+async function enrichDetailFromCinemeta(id, type, m) {
+  if (type !== 'series') return;
+  try {
+    const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`, 3500);
+    if (!j || !j.meta) return;
+    const cinVids = (j.meta.videos || []).filter(v => Number(v.season) > 0 && Number(v.episode) > 0);
+    if (cinVids.length > (m.videos || []).length) {
+      m.videos = cinVids;
+      if (currentDetail && currentDetail.meta && currentDetail.meta.id === m.id) {
+        const curSeason = $('seasonSel') ? +$('seasonSel').value : 1;
+        renderDetailUI(m, type, false, { focusSeason: curSeason, focusEpisode: currentDetail.ep?.e || 1 });
+      }
+    }
+  } catch (err) {
+    // Graceful fallback: CuratedCatalog episodes remain active
+  }
+}
+
+function renderDetailUI(m, type, autoplay, continueTarget) {
+  if (!m || !isCleanSafe(m)) {
+    if ($('dTitle')) $('dTitle').textContent = 'Content Unavailable';
+    if ($('dDesc')) $('dDesc').textContent = 'This title is not available or has been filtered for family safety.';
+    return;
+  }
+  m.type = type;
+  if (type === 'series' && !m.moviedb_id) {
+    const cur = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb_id) : null;
+    if (cur && cur.moviedb_id) m.moviedb_id = cur.moviedb_id;
+  }
+  currentDetail = { meta: m, type, streams: [], ep: { s: 1, e: 1 } };
+
+  const id = m.id || m.imdb_id || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : '');
+  const hist = history[id] || history[String(id).replace(/^tmdb:/, '')] || (m && history[m.id]);
+  const reqSeason = continueTarget ? Number(continueTarget.focusSeason || continueTarget.season) : NaN;
+  const reqEpisode = continueTarget ? Number(continueTarget.focusEpisode || continueTarget.episode) : NaN;
+  let targetSeason = Number.isInteger(reqSeason) && reqSeason > 0 ? reqSeason : 1;
+  let targetEpisode = Number.isInteger(reqEpisode) && reqEpisode > 0 ? reqEpisode : 1;
+  const shouldHighlight = !!(continueTarget && (continueTarget.highlight || continueTarget.focusEpisode || continueTarget.focusSeason));
+
+  if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
+  if ($('dTitle')) $('dTitle').textContent = m.name || m.title;
+  if ($('dMeta')) $('dMeta').innerHTML = metaRowHTML(m);
+  if ($('dDesc')) $('dDesc').textContent = m.description || '';
+
+  // Configure dedicated page Breadcrumb & Kicker
+  if ($('crumbHome')) {
+    $('crumbHome').onclick = (e) => {
+      e.preventDefault();
+      goBackToPage('home');
+    };
+  }
+  if ($('crumbType')) {
+    const isSeries = type === 'series';
+    $('crumbType').textContent = isSeries ? 'TV Shows' : 'Movies';
+    $('crumbType').onclick = (e) => {
+      e.preventDefault();
+      openBrowse(isSeries ? 'series' : 'movies');
+    };
+  }
+  if ($('crumbTitle')) {
+    $('crumbTitle').textContent = m.name || m.title;
+  }
+  if ($('dKickerType')) {
+    $('dKickerType').textContent = type === 'series' ? 'S E R I E S' : 'M O V I E';
+  }
+
+  const titleYear = m.year || m.releaseInfo || '';
+  document.title = `${m.name || m.title}${titleYear ? ` (${titleYear})` : ''} — Streamnaro`;
+
+  const handleDetailBack = (e) => {
+    if (e) e.preventDefault();
+    goBackFromDetail();
+  };
+  if ($('dBackBtn')) $('dBackBtn').onclick = handleDetailBack;
+  if ($('dClose')) $('dClose').onclick = handleDetailBack;
+
+  if ($('dRight')) {
+    $('dRight').innerHTML = `
+      <div><b>Cast:</b> ${(m.cast || []).slice(0, 6).join(', ') || '—'}</div>
+      <div style="margin-top:12px"><b>Genres:</b> ${(m.genres || []).join(', ')}</div>
+      <div style="margin-top:12px"><b>This title is:</b> ${(m.genres || []).join(', ')}</div>
+    `;
+  }
+
+  if ($('dAbout')) {
+    $('dAbout').innerHTML = `
+      <h4 style="font-size:17px;font-weight:700;margin-bottom:12px">About ${escapeHtml(m.name || m.title || '')}</h4>
+      <div><span>Director: </span>${escapeHtml(m.director || '—')}</div>
+      <div><span>Cast: </span>${escapeHtml((m.cast || []).join(', ') || '—')}</div>
+      <div><span>Genres: </span>${escapeHtml((m.genres || []).join(', '))}</div>
+      <div><span>Maturity Rating: </span>${ageRating(m)}</div>
+    `;
+  }
+
+  // Series episodes (Strictly filter out Season 0 / specials)
+  let rawVids = m.videos || [];
+  let vids = rawVids.filter(v => {
+    const s = Number(v.season);
+    const ep = Number(v.episode);
+    return Number.isInteger(s) && s > 0 && Number.isInteger(ep) && ep > 0;
+  });
+
+  if (type === 'series') {
+    const canonicalVids = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos)
+      ? CuratedCatalog.getSeriesVideos(m)
+      : [];
+    if (!vids.length) {
+      vids = canonicalVids;
+    } else if (canonicalVids && canonicalVids.length > 0) {
+      const existingEpKeys = new Set(vids.map(v => `${v.season}:${v.episode}`));
+      canonicalVids.forEach(cv => {
+        if (!existingEpKeys.has(`${cv.season}:${cv.episode}`)) {
+          vids.push(cv);
+          existingEpKeys.add(`${cv.season}:${cv.episode}`);
+        }
+      });
+    }
+  }
+
+  // Deduplicate and sort
+  const seenEpKeys = new Set();
+  vids = vids.filter(v => {
+    const key = `${v.season}:${v.episode}`;
+    if (seenEpKeys.has(key)) return false;
+    seenEpKeys.add(key);
+    return true;
+  }).sort((a, b) => {
+    const sDiff = Number(a.season) - Number(b.season);
+    if (sDiff !== 0) return sDiff;
+    return Number(a.episode) - Number(b.episode);
+  });
+
+  if (type === 'series' && vids.length) {
+    if ($('epWrap')) $('epWrap').style.display = '';
+    const seasons = [...new Set(vids.map(v => Number(v.season)))].filter(s => s > 0).sort((a, b) => a - b);
+    if (!seasons.length) seasons.push(1);
+
+    if (!seasons.includes(targetSeason)) {
+      targetSeason = seasons.includes(1) ? 1 : seasons[0];
+    }
+    currentDetail.ep = { s: targetSeason, e: targetEpisode };
+
+    if ($('seasonSel')) {
+      $('seasonSel').innerHTML = seasons.map(s => `<option value="${s}">Season ${s}</option>`).join('');
+
+      let hasScrolledFocus = false;
+      const renderEps = () => {
+        const s = Math.max(1, +$('seasonSel').value || targetSeason);
+        currentDetail.ep.s = s;
+        const list = $('epList');
+        if (!list) return;
+        list.innerHTML = '';
+
+        const seasonVids = vids.filter(v => Number(v.season) === s).sort((a, b) => Number(a.episode) - Number(b.episode));
+        if (seasonVids.length && seasonVids[0].episode) {
+          currentDetail.ep.e = Math.max(1, Number(seasonVids[0].episode));
+        }
+
+        let matchedTargetCard = null;
+
+        seasonVids.forEach(v => {
+          const epNum = Math.max(1, Number(v.episode) || 1);
+          const isTargetEpisode = shouldHighlight && (s === targetSeason && epNum === targetEpisode);
+          const d = document.createElement('div');
+          d.className = 'ep-card' + (isTargetEpisode ? ' ep-target-focus' : '');
+          if (isTargetEpisode) {
+            d.id = 'epCardFocusTarget';
+            currentDetail.ep.e = epNum;
+            matchedTargetCard = d;
+          }
+          d.innerHTML = `
+            <div class="ep-num">${epNum}</div>
+            <div class="ep-thumb">
+              <img src="${v.thumbnail || m.background || m.poster}" alt="Episode thumbnail">
+              <div class="ep-play">
+                <div class="ep-play-circle">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+                </div>
+              </div>
+            </div>
+            <div class="ep-details">
+              <div class="ep-title-row">
+                <b>${epNum}. ${v.title || v.name || 'Episode ' + epNum}</b>
+                <div class="ep-title-meta">
+                  ${isTargetEpisode ? `<span class="ep-resume-pill"><span class="ep-resume-pulse-dot"></span>Resume S${s}:E${epNum}</span>` : ''}
+                  <span class="ep-duration">${formatEpisodeRuntime(v, m)}</span>
+                </div>
+              </div>
+              <div class="ep-desc">${(v.overview || 'No description available.').slice(0, 150)}</div>
+            </div>
+          `;
+          const epImg = d.querySelector('.ep-thumb img');
+          if (epImg) {
+            epImg.onerror = function() {
+              this.onerror = null;
+              this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'series');
+            };
+          }
+          d.onclick = () => {
+            currentDetail.ep = { s, e: epNum };
+            playEpisode(s, epNum);
+          };
+
+          const dl = document.createElement('button');
+          dl.className = 'cbtn ep-dl-btn';
+          dl.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+          dl.title = `Download S${s}:E${epNum}`;
+          dl.onclick = (e) => {
+            e.stopPropagation();
+            downloadEpisode(currentDetail.meta.name || currentDetail.meta.title, s, epNum);
+          };
+          d.appendChild(dl);
+          list.appendChild(d);
+        });
+
+        if (shouldHighlight && !hasScrolledFocus) {
+          hasScrolledFocus = true;
+          setTimeout(() => {
+            const target = matchedTargetCard || $('epWrap');
+            if (target && target.isConnected) {
+              target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              if (matchedTargetCard) {
+                matchedTargetCard.classList.add('ep-motion-active');
+              }
+            }
+          }, 300);
+        }
+      };
+      $('seasonSel').onchange = renderEps;
+      $('seasonSel').value = String(targetSeason);
+      renderEps();
+    }
+  } else {
+    if ($('epWrap')) $('epWrap').style.display = 'none';
+  }
+
+  // Wire Action Buttons immediately (0ms, no network blocking!)
+  updateModalListButton(id);
+  updateModalLikeButton(id);
+  if ($('dList')) $('dList').onclick = () => toggleList(m);
+  if ($('dLike')) $('dLike').onclick = () => toggleLike(m);
+  if ($('dDl')) $('dDl').onclick = () => downloadCurrent();
+
+  const canWatch = type === 'movie'
+    ? !!MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id || m.imdb, tmdbId: m.moviedb_id })
+    : !!(m.moviedb_id || m.id || m.imdb_id);
+
+  if ($('dPlay')) {
+    $('dPlay').disabled = !canWatch;
+    if (shouldHighlight && type === 'series') {
+      $('dPlay').title = `Resume Season ${targetSeason}, Episode ${targetEpisode}`;
+    } else {
+      $('dPlay').title = canWatch ? 'Watch now' : 'Streaming unavailable for this title';
+    }
+    $('dPlay').onclick = () => playStream();
+  }
+
+  if (autoplay && canWatch) playStream();
+
+  // Recommendations populated asynchronously
+  renderDetailRecommendations(m, type);
+}
+
 async function openDetail(id, type, autoplay, continueTarget) {
   closeCardPortal();
   type = (type === 'series' || type === 'tv') ? 'series' : 'movie';
@@ -1317,305 +1646,40 @@ async function openDetail(id, type, autoplay, continueTarget) {
     backdropEl.classList.add('show');
   }
 
+  // 1. Resolve from CuratedCatalog immediately (0ms)
+  let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
+  if (!m && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) {
+    const hits = CuratedCatalog.searchCurated(String(id).replace(/^(tmdb:|tt)/, ''));
+    if (hits && hits.length) m = hits[0];
+  }
+
+  if (m) {
+    renderDetailUI(m, type, autoplay, continueTarget);
+    enrichDetailFromCinemeta(id, type, m);
+    return;
+  }
+
+  // 2. CuratedCatalog missed -> fetch Cinemeta with 4s timeout
   if ($('dTitle')) $('dTitle').textContent = 'Loading…';
   if ($('dDesc')) $('dDesc').textContent = '';
 
   try {
-    let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
-    if (type === 'series') {
-      try {
-        const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
-        if (j && j.meta) {
-          const cinVids = (j.meta.videos || []).filter(v => Number(v.season) > 0 && Number(v.episode) > 0);
-          if (m) {
-            m = {
-              ...j.meta,
-              ...m,
-              videos: (cinVids.length >= (m.videos || []).length && cinVids.length > 0) ? cinVids : (m.videos || cinVids)
-            };
-          } else {
-            m = { ...j.meta, videos: cinVids };
-          }
-        }
-      } catch (err) {
-        console.warn('Cinemeta series metadata fetch fallback:', err);
-      }
-    } else if (!m) {
-      try {
-        const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`);
-        if (j && j.meta) m = j.meta;
-      } catch (err) {
-        console.warn('Cinemeta movie metadata fetch fallback:', err);
-      }
-    }
-    if (!m || !isCleanSafe(m)) {
-      if ($('dTitle')) $('dTitle').textContent = 'Content Unavailable';
-      if ($('dDesc')) $('dDesc').textContent = 'This title is not available or has been filtered for family safety.';
+    const j = await getJSON(`${CINEMETA}/meta/${type}/${id}.json`, 4000);
+    if (j && j.meta) {
+      m = j.meta;
+      renderDetailUI(m, type, autoplay, continueTarget);
       return;
     }
-    m.type = type;
-    if (type === 'series' && !m.moviedb_id) {
-      const cur = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
-      if (cur && cur.moviedb_id) m.moviedb_id = cur.moviedb_id;
-    }
-    currentDetail = { meta: m, type, streams: [], ep: { s: 1, e: 1 } };
+  } catch (err) {
+    console.warn('Cinemeta metadata fetch failed:', err);
+  }
 
-    const hist = history[id] || history[String(id).replace(/^tmdb:/, '')] || (m && history[m.id]);
-    const reqSeason = continueTarget ? Number(continueTarget.focusSeason || continueTarget.season) : NaN;
-    const reqEpisode = continueTarget ? Number(continueTarget.focusEpisode || continueTarget.episode) : NaN;
-    let targetSeason = Number.isInteger(reqSeason) && reqSeason > 0 ? reqSeason : 1;
-    let targetEpisode = Number.isInteger(reqEpisode) && reqEpisode > 0 ? reqEpisode : 1;
-    const shouldHighlight = !!(continueTarget && (continueTarget.highlight || continueTarget.focusEpisode || continueTarget.focusSeason));
-
-    if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
-    if ($('dTitle')) $('dTitle').textContent = m.name;
-    if ($('dMeta')) $('dMeta').innerHTML = metaRowHTML(m);
-    if ($('dDesc')) $('dDesc').textContent = m.description || '';
-
-    // Configure dedicated page Breadcrumb & Kicker
-    if ($('crumbHome')) {
-      $('crumbHome').onclick = (e) => {
-        e.preventDefault();
-        goBackToPage('home');
-      };
-    }
-    if ($('crumbType')) {
-      const isSeries = type === 'series';
-      $('crumbType').textContent = isSeries ? 'TV Shows' : 'Movies';
-      $('crumbType').onclick = (e) => {
-        e.preventDefault();
-        openBrowse(isSeries ? 'series' : 'movies');
-      };
-    }
-    if ($('crumbTitle')) {
-      $('crumbTitle').textContent = m.name;
-    }
-    if ($('dKickerType')) {
-      $('dKickerType').textContent = type === 'series' ? 'S E R I E S' : 'M O V I E';
-    }
-
-    const titleYear = m.year || m.releaseInfo || '';
-    document.title = `${m.name}${titleYear ? ` (${titleYear})` : ''} — Streamnaro`;
-
-    const handleDetailBack = (e) => {
-      if (e) e.preventDefault();
-      goBackFromDetail();
-    };
-    if ($('dBackBtn')) $('dBackBtn').onclick = handleDetailBack;
-    if ($('dClose')) $('dClose').onclick = handleDetailBack;
-
-    if ($('dRight')) {
-      $('dRight').innerHTML = `
-        <div><b>Cast:</b> ${(m.cast || []).slice(0, 6).join(', ') || '—'}</div>
-        <div style="margin-top:12px"><b>Genres:</b> ${(m.genres || []).join(', ')}</div>
-        <div style="margin-top:12px"><b>This title is:</b> ${(m.genres || []).join(', ')}</div>
-      `;
-    }
-
-    if ($('dAbout')) {
-      $('dAbout').innerHTML = `
-        <h4 style="font-size:17px;font-weight:700;margin-bottom:12px">About ${m.name}</h4>
-        <div><span>Director: </span>${m.director || '—'}</div>
-        <div><span>Cast: </span>${(m.cast || []).join(', ') || '—'}</div>
-        <div><span>Genres: </span>${(m.genres || []).join(', ')}</div>
-        <div><span>Maturity Rating: </span>${ageRating(m)}</div>
-      `;
-    }
-
-    // Series episodes (Strictly filter out Season 0 / specials)
-    let rawVids = m.videos || [];
-    let vids = rawVids.filter(v => {
-      const s = Number(v.season);
-      const ep = Number(v.episode);
-      return Number.isInteger(s) && s > 0 && Number.isInteger(ep) && ep > 0;
-    });
-
-    if (type === 'series') {
-      const canonicalVids = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getSeriesVideos)
-        ? CuratedCatalog.getSeriesVideos(m)
-        : [];
-      if (!vids.length) {
-        vids = canonicalVids;
-      } else if (canonicalVids && canonicalVids.length > 0) {
-        // Ensure that any missing seasons/episodes are augmented from canonical
-        const existingEpKeys = new Set(vids.map(v => `${v.season}:${v.episode}`));
-        canonicalVids.forEach(cv => {
-          if (!existingEpKeys.has(`${cv.season}:${cv.episode}`)) {
-            vids.push(cv);
-            existingEpKeys.add(`${cv.season}:${cv.episode}`);
-          }
-        });
-      }
-    }
-
-    // Deduplicate and sort
-    const seenEpKeys = new Set();
-    vids = vids.filter(v => {
-      const key = `${v.season}:${v.episode}`;
-      if (seenEpKeys.has(key)) return false;
-      seenEpKeys.add(key);
-      return true;
-    }).sort((a, b) => {
-      const sDiff = Number(a.season) - Number(b.season);
-      if (sDiff !== 0) return sDiff;
-      return Number(a.episode) - Number(b.episode);
-    });
-
-    if (type === 'series' && vids.length) {
-      if ($('epWrap')) $('epWrap').style.display = '';
-      const seasons = [...new Set(vids.map(v => Number(v.season)))].filter(s => s > 0).sort((a, b) => a - b);
-      if (!seasons.length) seasons.push(1);
-
-      if (!seasons.includes(targetSeason)) {
-        targetSeason = seasons.includes(1) ? 1 : seasons[0];
-      }
-      currentDetail.ep = { s: targetSeason, e: targetEpisode };
-
-      if ($('seasonSel')) {
-        $('seasonSel').innerHTML = seasons.map(s => `<option value="${s}">Season ${s}</option>`).join('');
-
-        let hasScrolledFocus = false;
-        const renderEps = () => {
-          const s = Math.max(1, +$('seasonSel').value || targetSeason);
-          currentDetail.ep.s = s;
-          const list = $('epList');
-          if (!list) return;
-          list.innerHTML = '';
-
-          const seasonVids = vids.filter(v => Number(v.season) === s).sort((a, b) => Number(a.episode) - Number(b.episode));
-          if (seasonVids.length && seasonVids[0].episode) {
-            currentDetail.ep.e = Math.max(1, Number(seasonVids[0].episode));
-          }
-
-          let matchedTargetCard = null;
-
-          seasonVids.forEach(v => {
-            const epNum = Math.max(1, Number(v.episode) || 1);
-            const isTargetEpisode = shouldHighlight && (s === targetSeason && epNum === targetEpisode);
-            const d = document.createElement('div');
-            d.className = 'ep-card' + (isTargetEpisode ? ' ep-target-focus' : '');
-            if (isTargetEpisode) {
-              d.id = 'epCardFocusTarget';
-              currentDetail.ep.e = epNum;
-              matchedTargetCard = d;
-            }
-            d.innerHTML = `
-              <div class="ep-num">${epNum}</div>
-              <div class="ep-thumb">
-                <img src="${v.thumbnail || m.background || m.poster}" alt="Episode thumbnail">
-                <div class="ep-play">
-                  <div class="ep-play-circle">
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-                  </div>
-                </div>
-              </div>
-              <div class="ep-details">
-                <div class="ep-title-row">
-                  <b>${epNum}. ${v.title || v.name || 'Episode ' + epNum}</b>
-                  <div class="ep-title-meta">
-                    ${isTargetEpisode ? `<span class="ep-resume-pill"><span class="ep-resume-pulse-dot"></span>Resume S${s}:E${epNum}</span>` : ''}
-                    <span class="ep-duration">${formatEpisodeRuntime(v, m)}</span>
-                  </div>
-                </div>
-                <div class="ep-desc">${(v.overview || 'No description available.').slice(0, 150)}</div>
-              </div>
-            `;
-            const epImg = d.querySelector('.ep-thumb img');
-            if (epImg) {
-              epImg.onerror = function() {
-                this.onerror = null;
-                this.src = createPosterFallback(m.name, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'series');
-              };
-            }
-            d.onclick = () => {
-              currentDetail.ep = { s, e: epNum };
-              playEpisode(s, epNum);
-            };
-
-            const dl = document.createElement('button');
-            dl.className = 'cbtn ep-dl-btn';
-            dl.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-            dl.title = `Download S${s}:E${epNum}`;
-            dl.onclick = (e) => {
-              e.stopPropagation();
-              downloadEpisode(currentDetail.meta.name, s, epNum);
-            };
-            d.appendChild(dl);
-            list.appendChild(d);
-          });
-
-          if (shouldHighlight && !hasScrolledFocus) {
-            hasScrolledFocus = true;
-            setTimeout(() => {
-              const target = matchedTargetCard || $('epWrap');
-              if (target && target.isConnected) {
-                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                if (matchedTargetCard) {
-                  matchedTargetCard.classList.add('ep-motion-active');
-                }
-              }
-            }, 300);
-          }
-        };
-        $('seasonSel').onchange = renderEps;
-        $('seasonSel').value = String(targetSeason);
-        renderEps();
-      }
-    } else {
-      if ($('epWrap')) $('epWrap').style.display = 'none';
-    }
-
-    // Similar recommendations
-    if ($('simGrid')) {
-      $('simGrid').innerHTML = '';
-      (await fetchCatalog(type + '/top')).filter(isCleanSafe).filter(x => x.id !== id && (x.genres || []).some(g => (m.genres || []).includes(g))).slice(0, 6).forEach(s => {
-        const d = document.createElement('div');
-        d.className = 'sim';
-        d.innerHTML = `
-          <img src="${backdrop(s)}" alt="${s.name}">
-          <div class="sim-info">
-            <div class="sim-title">${s.name}</div>
-            <div class="sim-meta">
-              <span class="match">${matchScore(s)}% Match</span>
-              <span class="age-badge">${ageRating(s)}</span>
-            </div>
-          </div>
-        `;
-        const simImg = d.querySelector('img');
-        if (simImg) {
-          simImg.onerror = function() {
-            this.onerror = null;
-            this.src = createPosterFallback(s.name, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type);
-          };
-        }
-        d.onclick = () => openDetail(s.id, s.type || type, false);
-        $('simGrid').appendChild(d);
-      });
-    }
-
-    updateModalListButton(id);
-    updateModalLikeButton(id);
-    if ($('dList')) $('dList').onclick = () => toggleList(m);
-    if ($('dLike')) $('dLike').onclick = () => toggleLike(m);
-    if ($('dDl')) $('dDl').onclick = () => downloadCurrent();
-
-    const canWatch = type === 'movie'
-      ? !!MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id })
-      : !!m.moviedb_id;
-
-    if ($('dPlay')) {
-      $('dPlay').disabled = !canWatch;
-      if (shouldHighlight && type === 'series') {
-        $('dPlay').title = `Resume Season ${targetSeason}, Episode ${targetEpisode}`;
-      } else {
-        $('dPlay').title = canWatch ? 'Watch now' : 'Streaming unavailable for this title';
-      }
-      $('dPlay').onclick = () => playStream();
-    }
-
-    if (autoplay && canWatch) playStream();
-  } catch {
-    if ($('dTitle')) $('dTitle').textContent = 'Failed to load title information';
+  if (!m || !isCleanSafe(m)) {
+    if ($('dTitle')) $('dTitle').textContent = 'Content Unavailable';
+    if ($('dDesc')) $('dDesc').textContent = 'This title is not available or has been filtered for family safety.';
+    if ($('crumbTitle')) $('crumbTitle').textContent = 'Unavailable';
+    if ($('dBackdrop')) $('dBackdrop').src = '';
+    return;
   }
 }
 
@@ -1771,7 +1835,7 @@ let currentBrowseKind = 'movies';
 async function openBrowse(kind) {
   currentBrowseKind = kind;
   closeDetail(false);
-  show('browse');
+  show('browse', kind);
 
   const titles = { movies: 'Movies', series: 'TV Shows', new: 'New & Popular' };
   if ($('browseTitle')) $('browseTitle').textContent = titles[kind] || 'Browse';
@@ -1852,24 +1916,19 @@ async function loadCategoryRows(kind) {
   rowsWrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
 
   const seenBrowseIds = new Set();
-  for (const r of categoryRows) {
+
+  // Phase 1: Instant population from CuratedCatalog (0ms synchronous display)
+  categoryRows.forEach(r => {
     const sec = $('row-' + r.id);
-    if (!sec) continue;
+    if (!sec) return;
     const track = sec.querySelector('.row-track');
-    const urls = Array.isArray(r.url) ? r.url : [r.url];
     let pool = [];
-    for (const u of urls) {
-      pool = pool.concat(await fetchCatalog(u));
-    }
     if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
-      pool = pool.concat(CuratedCatalog.getCuratedForCategory(r.id));
+      pool = CuratedCatalog.getCuratedForCategory(r.id) || [];
     }
     pool = dedupeMetas(pool).filter(isCleanSafe);
-    if (!pool.length) continue;
+    if (!pool.length) return;
 
-    // Cross-row browse deduplication:
-    // Real curated titles remain available in their genuine genre categories,
-    // while procedural items are strictly deduplicated so synthetic titles never repeat.
     const curatedReal = pool.filter(m => !m._isProcedural);
     const proceduralPool = pool.filter(m => m._isProcedural && !seenBrowseIds.has(m.id));
     const freshPool = [...curatedReal, ...proceduralPool];
@@ -1882,7 +1941,37 @@ async function loadCategoryRows(kind) {
     track.innerHTML = '';
     items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
     track.dispatchEvent(new Event('scroll'));
-  }
+  });
+
+  // Phase 2: Non-blocking background enrichment with Cinemeta (parallel, bounded timeout)
+  categoryRows.forEach(async r => {
+    try {
+      const urls = Array.isArray(r.url) ? r.url : [r.url];
+      const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
+      const cinemetaMetas = fetched.flat().filter(isCleanSafe);
+      if (!cinemetaMetas.length) return;
+
+      const sec = $('row-' + r.id);
+      if (!sec) return;
+      const track = sec.querySelector('.row-track');
+      if (!track) return;
+
+      let curated = [];
+      if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
+        curated = CuratedCatalog.getCuratedForCategory(r.id) || [];
+      }
+      let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
+      if (!combined.length) return;
+
+      const items = combined.slice(0, 100);
+      sec.style.display = '';
+      track.innerHTML = '';
+      items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+      track.dispatchEvent(new Event('scroll'));
+    } catch (e) {
+      // Background enrichment error ignored - curated items remain visible
+    }
+  });
 }
 
 let currentBrowseResults = [];
@@ -1912,23 +2001,38 @@ async function filterBrowseByGenre(genre) {
   }
 
   rowsWrap.innerHTML = '';
-  gridWrap.innerHTML = skels(12);
+  gridWrap.innerHTML = '';
 
   const type = currentBrowseKind === 'series' ? 'series' : 'movie';
-  const [p1, p2, p3] = await Promise.all([
-    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`),
-    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`),
-    fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=200`)
-  ]);
   const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA)
     ? CuratedCatalog.CURATED_MEDIA.filter(m => m.type === type && (m.genres || []).includes(genre))
     : [];
-  const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
 
-  gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
-  currentBrowseResults = items;
-  currentBrowseOffset = 0;
-  renderBrowseChunk();
+  if (curatedMatches.length) {
+    currentBrowseResults = curatedMatches;
+    currentBrowseOffset = 0;
+    renderBrowseChunk();
+  } else {
+    gridWrap.innerHTML = skels(12);
+  }
+
+  // Non-blocking enrichment from Cinemeta
+  try {
+    const [p1, p2, p3] = await Promise.all([
+      fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}`),
+      fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`),
+      fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=200`)
+    ]);
+    const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
+    gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
+    currentBrowseResults = items;
+    currentBrowseOffset = 0;
+    renderBrowseChunk();
+  } catch (e) {
+    if (!curatedMatches.length) {
+      gridWrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
+    }
+  }
 }
 
 /* ---------- PROFILES ---------- */

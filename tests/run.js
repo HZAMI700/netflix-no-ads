@@ -243,6 +243,17 @@ check('openDetail synchronizes dedicated title route hash', app.includes('`#/${t
 check('goBackFromDetail defined in app.js', app.includes('function goBackFromDetail('));
 check('handleRouteFromHash supports deep linking for movies and series', app.includes('function handleRouteFromHash(') && app.includes("routeType === 'movie' || routeType === 'series'"));
 
+/* --- instant browse rows & robust multi-id resolution guards --- */
+check('getCuratedById resolves IMDb ID', !!CC.getCuratedById('tt0944947'));
+check('getCuratedById resolves numeric TMDB ID', !!CC.getCuratedById('1399'));
+check('getCuratedById resolves tmdb prefix ID', !!CC.getCuratedById('tmdb:1399'));
+check('getCuratedById resolves composite Stremio episode ID', !!CC.getCuratedById('tt0944947:1:1'));
+check('getCuratedById resolves composite TMDB episode ID', !!CC.getCuratedById('tmdb:1399:1:1'));
+check('loadCategoryRows populates synchronously from CuratedCatalog in phase 1', app.includes('CuratedCatalog.getCuratedForCategory(r.id)') && app.includes('Phase 1: Instant population from CuratedCatalog'));
+check('openDetail renders UI instantly with CuratedCatalog match before enrichment', app.includes('renderDetailUI(m, type, autoplay, continueTarget)') && app.includes('enrichDetailFromCinemeta(id, type, m)'));
+check('wireRowControls has calibrated drag threshold >= 18px', app.includes('dragDist > 18'));
+check('getJSON includes AbortController timeout to prevent infinite stalls', app.includes('AbortController') && app.includes('timeoutMs = 4000'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 

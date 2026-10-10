@@ -880,14 +880,80 @@ const EXPANDED_SERIES = buildExpandedSeries(60000);
 
 // Unified 80,109+ Curated Media Catalog
 const CURATED_MEDIA = [...CORE_CURATED_MEDIA, ...EXPANDED_MOVIES, ...EXPANDED_SERIES];
-const CURATED_MAP = new Map(CURATED_MEDIA.map(m => [m.id, m]));
+const CURATED_MAP = new Map();
+const CURATED_TITLE_MAP = new Map();
+
+for (let i = 0; i < CURATED_MEDIA.length; i++) {
+  const m = CURATED_MEDIA[i];
+  if (!m) continue;
+  if (m.id) {
+    const sId = String(m.id).trim();
+    CURATED_MAP.set(sId, m);
+    CURATED_MAP.set(sId.toLowerCase(), m);
+  }
+  if (m.imdb_id) {
+    const sImdb = String(m.imdb_id).trim();
+    CURATED_MAP.set(sImdb, m);
+    CURATED_MAP.set(sImdb.toLowerCase(), m);
+  }
+  if (m.imdb) {
+    const sImdb = String(m.imdb).trim();
+    CURATED_MAP.set(sImdb, m);
+    CURATED_MAP.set(sImdb.toLowerCase(), m);
+  }
+  if (m.moviedb_id) {
+    const sMdb = String(m.moviedb_id).trim();
+    CURATED_MAP.set(sMdb, m);
+    CURATED_MAP.set(`tmdb:${sMdb}`, m);
+    CURATED_MAP.set(`tmdb:${sMdb}`.toLowerCase(), m);
+  }
+  if (m.name) {
+    const n = m.name.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
+  }
+  if (m.title) {
+    const t = m.title.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
+  }
+}
+
 const CURATED_MOVIES = CURATED_MEDIA.filter(m => m.type === 'movie');
 const CURATED_SERIES = CURATED_MEDIA.filter(m => m.type === 'series');
 
 function getCuratedById(id) {
   if (!id) return null;
-  const cleanId = String(id).split(':')[0].trim();
-  return CURATED_MAP.get(cleanId) || null;
+  const raw = String(id).trim();
+  if (CURATED_MAP.has(raw)) return CURATED_MAP.get(raw);
+
+  const lower = raw.toLowerCase();
+  if (CURATED_MAP.has(lower)) return CURATED_MAP.get(lower);
+
+  // If ID has tmdb prefix: e.g. "tmdb:1399" or "tmdb:1399:1:1"
+  if (lower.startsWith('tmdb:')) {
+    const parts = lower.split(':');
+    const tmdbNum = parts[1];
+    if (tmdbNum) {
+      if (CURATED_MAP.has(tmdbNum)) return CURATED_MAP.get(tmdbNum);
+      if (CURATED_MAP.has(`tmdb:${tmdbNum}`)) return CURATED_MAP.get(`tmdb:${tmdbNum}`);
+    }
+  }
+
+  // If ID has stremio / imdb episode composite: "tt0944947:1:1"
+  if (lower.startsWith('tt')) {
+    const imdbBase = lower.split(':')[0];
+    if (CURATED_MAP.has(imdbBase)) return CURATED_MAP.get(imdbBase);
+  }
+
+  // Generic prefix stripping (e.g. "series:tt123", "movie:tt123")
+  const baseId = raw.split(':')[0];
+  if (CURATED_MAP.has(baseId)) return CURATED_MAP.get(baseId);
+
+  // Fallback: title lookup if id matches a title
+  if (CURATED_TITLE_MAP.has(lower)) {
+    return CURATED_TITLE_MAP.get(lower);
+  }
+
+  return null;
 }
 
 function searchCurated(query, limit = 200) {
