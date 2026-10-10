@@ -1096,7 +1096,9 @@ function buildCard(m, badge, rank) {
 
   const finishToggleBtn = isContinue
     ? `<span class="finish-check" title="Mark as Finished">✓</span>`
-    : '';
+    : (isFinished
+      ? `<span class="finish-check unfinish" title="Mark as Watching Again"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></span>`
+      : '');
 
   const top10Html = rank && rank <= 10
     ? `<div class="top10-badge"><span style="font-size:7px;letter-spacing:0.02em">TOP</span><span>${rank}</span></div>`
@@ -1167,34 +1169,56 @@ function buildCard(m, badge, rank) {
     if (fc) {
       e.preventDefault();
       e.stopPropagation();
-      if (!history[m.id]) {
-        history[m.id] = {
-          title: m.name || m.title,
-          type: m.type || type,
-          progress: 1.0,
-          finished: true,
-          poster: poster(m),
-          imdb: m.imdb || (typeof m.id === 'string' && m.id.startsWith('tt') ? m.id : null),
-          tmdbId: m.tmdbId,
-          lastWatched: Date.now()
-        };
-      } else {
-        history[m.id].finished = true;
-        history[m.id].progress = 1.0;
-        history[m.id].lastWatched = Date.now();
-      }
-      store.set('nf_history', history);
-      renderContinueRow();
-      toast(`Marked "${m.name || m.title}" as finished`);
-      return;
-    }
+      const strId = String(m.id || '');
+      const cleanId = strId.replace(/^tmdb:/, '');
+      let targetKey = Object.keys(history).find(k => (
+        k === strId || k === `tmdb:${cleanId}` || k === cleanId ||
+        (history[k] && (String(history[k].id) === strId || String(history[k].tmdbId) === cleanId || history[k].imdb === strId))
+      )) || (m.type === 'series' ? (m.tmdbId ? `tmdb:${m.tmdbId}` : (m.id || m.imdb)) : (m.imdb || m.id));
 
-    if (m._finished && history[m.id]) {
-      history[m.id].finished = false;
-      history[m.id].progress = 0.08;
-      history[m.id].lastWatched = Date.now();
-      store.set('nf_history', history);
-      renderContinueRow();
+      if (isFinished) {
+        if (history[targetKey]) {
+          history[targetKey].finished = false;
+          history[targetKey].progress = 0.1;
+          history[targetKey].lastWatched = Date.now();
+        } else {
+          history[targetKey] = {
+            title: m.name || m.title,
+            type: m.type || type,
+            progress: 0.1,
+            finished: false,
+            poster: poster(m),
+            imdb: m.imdb || (strId.startsWith('tt') ? strId : null),
+            tmdbId: m.tmdbId,
+            lastWatched: Date.now()
+          };
+        }
+        store.set('nf_history', history);
+        renderContinueRow();
+        toast(`Moved "${m.name || m.title}" back to Continue Watching`);
+        return;
+      } else {
+        if (history[targetKey]) {
+          history[targetKey].finished = true;
+          history[targetKey].progress = 1.0;
+          history[targetKey].lastWatched = Date.now();
+        } else {
+          history[targetKey] = {
+            title: m.name || m.title,
+            type: m.type || type,
+            progress: 1.0,
+            finished: true,
+            poster: poster(m),
+            imdb: m.imdb || (strId.startsWith('tt') ? strId : null),
+            tmdbId: m.tmdbId,
+            lastWatched: Date.now()
+          };
+        }
+        store.set('nf_history', history);
+        renderContinueRow();
+        toast(`Marked "${m.name || m.title}" as finished`);
+        return;
+      }
     }
 
     const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
@@ -1205,7 +1229,7 @@ function buildCard(m, badge, rank) {
       if (cur && cur.type) tp = cur.type;
     }
 
-    if (m._embed || isContinue) {
+    if (isContinue) {
       if (tp === 'series') {
         const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
         const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
@@ -3888,6 +3912,11 @@ function historyItems() {
       if (!resolvedBg && resolvedPoster) resolvedBg = resolvedPoster;
       if (!resolvedPoster && resolvedBg) resolvedPoster = resolvedBg;
 
+      const isSeries = (resolvedType === 'series' || h.type === 'series' || h.type === 'tv');
+      const isFinished = isSeries
+        ? !!h.finished
+        : !!(h.finished || (h.progress != null && h.progress >= 0.9));
+
       return {
         id,
         type: resolvedType,
@@ -3898,7 +3927,7 @@ function historyItems() {
         genres: resolvedGenres,
         year: resolvedYear,
         _progress: h.progress,
-        _finished: !!(h.finished || (h.progress != null && h.progress >= 0.9)),
+        _finished: isFinished,
         _embed: !!h._embed,
         tmdbId: h.tmdbId,
         imdb: h.imdb || (id.startsWith('tt') ? id : null),
@@ -3950,7 +3979,6 @@ function syncEmbedProgress() {
     const dur = entry.progress?.duration || 0, watched = entry.progress?.watched || 0;
     if (!dur || watched < 5) return;
     const p = Math.min(.98, watched / dur);
-    const isFinished = p >= 0.9;
     const key = `tmdb:${entry.id}`;
     const cleanId = String(entry.id).replace(/^tmdb:/, '');
 
@@ -3961,15 +3989,18 @@ function syncEmbedProgress() {
       ? (CuratedCatalog.getCuratedById(cleanId) || CuratedCatalog.getCuratedById(entry.imdb) || (entry.title ? CuratedCatalog.searchCurated(entry.title)[0] : null))
       : null;
 
+    const isSeries = (entry.type === 'tv' || curMedia?.type === 'series' || existing.type === 'series');
+    const isFinished = !isSeries && (p >= 0.9);
+
     const posterUrl = entry.poster || (entry.poster_path ? `https://image.tmdb.org/t/p/w500${entry.poster_path}` : '') || existing.poster || curMedia?.poster || '';
     const bgUrl = entry.background || existing.background || curMedia?.background || posterUrl || '';
     const resolvedTitle = entry.title || existing.title || curMedia?.name || 'Title';
 
     history[key] = {
       ...existing,
-      progress: p,
-      finished: isFinished,
-      type: (entry.type === 'tv' || curMedia?.type === 'series') ? 'series' : 'movie',
+      progress: isFinished ? 1.0 : p,
+      finished: isSeries ? !!existing.finished : isFinished,
+      type: isSeries ? 'series' : 'movie',
       title: resolvedTitle,
       poster: posterUrl,
       background: bgUrl,
@@ -3988,6 +4019,74 @@ function syncEmbedProgress() {
   }
 }
 
+function getNextEpisodeCoords(item, curS, curEp) {
+  let s = Math.max(1, Number(curS || 1));
+  let ep = Math.max(1, Number(curEp || 1)) + 1;
+
+  if (item && item.videos && item.videos.length > 0) {
+    const hasCurEp = item.videos.some(v => Number(v.season) === s && Number(v.episode) === ep);
+    if (!hasCurEp) {
+      const hasNextSeasonEp1 = item.videos.some(v => Number(v.season) === s + 1 && Number(v.episode) === 1);
+      if (hasNextSeasonEp1) {
+        return { season: s + 1, episode: 1, isFinale: false };
+      }
+      return { season: s, episode: Number(curEp || 1), isFinale: true };
+    }
+    return { season: s, episode: ep, isFinale: false };
+  }
+
+  const cleanId = String(item?.id || item?.imdb || '').split(':')[0].trim();
+  const canon = (typeof CuratedCatalog !== 'undefined') ? CuratedCatalog.CANONICAL_SERIES_METRICS?.[cleanId] : null;
+  const maxSeasons = canon ? canon.seasonsCount : (Number(item?.seasonsCount) || 3);
+  const maxEps = canon ? canon.epsPerSeason : (Number(item?.epsPerSeason) || 10);
+
+  if (ep > maxEps) {
+    if (s < maxSeasons) {
+      return { season: s + 1, episode: 1, isFinale: false };
+    }
+    return { season: s, episode: Number(curEp || 1), isFinale: true };
+  }
+  return { season: s, episode: ep, isFinale: false };
+}
+
+function advanceSeriesInHistory(e) {
+  if (!e) return null;
+  const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
+  const cleanId = String(e.id || e.imdb || tmdbId || '').replace(/^tmdb:/, '');
+  const curMedia = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(cleanId || e.imdb || tmdbId) : null;
+  const key = e.tmdbId ? `tmdb:${e.tmdbId}` : (e.id || e.imdb || `series:${e.title}`);
+
+  const curS = Math.max(1, Number(e.season || 1));
+  const curEp = Math.max(1, Number(e.episode || 1));
+  const nextInfo = getNextEpisodeCoords(curMedia || e, curS, curEp);
+
+  const existingKey = Object.keys(history).find(k => k === key || k === cleanId || k === `tmdb:${cleanId}` || history[k].tmdbId === e.tmdbId || (e.imdb && history[k].imdb === e.imdb));
+  const existing = existingKey ? history[existingKey] : {};
+
+  if (nextInfo.isFinale) {
+    history[key] = {
+      ...existing,
+      season: nextInfo.season,
+      episode: nextInfo.episode,
+      progress: 1.0,
+      finished: true,
+      lastWatched: Date.now()
+    };
+  } else {
+    history[key] = {
+      ...existing,
+      season: nextInfo.season,
+      episode: nextInfo.episode,
+      progress: 0.0,
+      finished: false,
+      lastWatched: Date.now()
+    };
+  }
+  store.set('nf_history', history);
+  renderContinueRow();
+  return nextInfo;
+}
+
 function nextEpisode() {
   if ($('nextEp')) $('nextEp').style.display = 'none';
   const e = currentEmbed;
@@ -3995,22 +4094,18 @@ function nextEpisode() {
     const tmdbId = e.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(e.id || e.imdb)?.moviedb_id : null);
     const imdb = e.imdb;
     if (!tmdbId && !imdb) { toast('Streaming unavailable for next episode.'); return; }
-    let s = Math.max(1, Number(e.season || 1));
-    let ep = Math.max(1, Number(e.episode || 1)) + 1;
+    const cleanId = String(e.id || imdb || tmdbId || '').replace(/^tmdb:/, '');
+    const curMedia = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(cleanId || imdb || tmdbId) : null;
 
-    // Check if current season ended in curated catalog and roll over to next season
-    if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
-      const item = CuratedCatalog.getCuratedById(e.id || imdb || tmdbId);
-      if (item && item.videos && item.videos.length > 0) {
-        const hasCurEp = item.videos.some(v => Number(v.season) === s && Number(v.episode) === ep);
-        if (!hasCurEp) {
-          const hasNextSeasonEp1 = item.videos.some(v => Number(v.season) === s + 1 && Number(v.episode) === 1);
-          if (hasNextSeasonEp1) {
-            s = s + 1;
-            ep = 1;
-          }
-        }
-      }
+    const curS = Math.max(1, Number(e.season || 1));
+    const curEp = Math.max(1, Number(e.episode || 1));
+    const nextInfo = getNextEpisodeCoords(curMedia || e, curS, curEp);
+    const s = nextInfo.season;
+    const ep = nextInfo.episode;
+
+    if (nextInfo.isFinale && s === curS && ep === curEp) {
+      toast('Series completed! Finished watching all episodes.');
+      return;
     }
 
     toast(`Loading Season ${s} Episode ${ep}…`);
@@ -4323,12 +4418,18 @@ window.addEventListener('message', (event) => {
     if (d.player_status === 'completed' || d.event === 'ended' || d.event === 'completed' || msg.event === 'ended' || msg.type === 'ended') {
       const e = currentEmbed;
       if (e) {
-        const key = e.type === 'series' ? (e.tmdbId ? `tmdb:${e.tmdbId}` : e.id) : (e.imdb || e.id);
-        recordWatchFinish(key);
-      }
-      if (e?.type === 'series') {
-        toast('Autoplaying next episode…');
-        setTimeout(nextEpisode, 500);
+        if (e.type === 'series') {
+          const nextInfo = advanceSeriesInHistory(e);
+          if (nextInfo && !nextInfo.isFinale) {
+            toast('Autoplaying next episode…');
+            setTimeout(nextEpisode, 500);
+          } else {
+            toast('Series completed!');
+          }
+        } else {
+          const key = e.imdb || e.id || (e.tmdbId ? `tmdb:${e.tmdbId}` : null);
+          recordWatchFinish(key);
+        }
       }
     } else if (d.player_status === 'playing' || d.event === 'timeupdate') {
       const pInfo = d.player_info;

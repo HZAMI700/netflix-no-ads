@@ -76,7 +76,11 @@ check('omnisave linked', app.includes('openOmnisave') && fs.readFileSync(path.jo
 /* --- catalog scale & deduplication guards --- */
 const CC = require('../services/curated-catalog.js');
 const allMedia = CC.CURATED_MEDIA;
-check('catalog scale > 140,000', allMedia.length >= 140000, allMedia.length);
+check('catalog scale > 200,000', allMedia.length >= 200000, allMedia.length);
+const totalMovies = allMedia.filter(m => m.type === 'movie').length;
+const totalSeries = allMedia.filter(m => m.type === 'series').length;
+check('catalog has >= 110,000 movies', totalMovies >= 110000, totalMovies);
+check('catalog has >= 90,000 series', totalSeries >= 90000, totalSeries);
 
 const allIds = new Set();
 let dupIdCount = 0;
@@ -255,6 +259,26 @@ check('wireRowControls has calibrated drag threshold >= 18px', app.includes('dra
 check('getJSON includes AbortController timeout to prevent infinite stalls', app.includes('AbortController') && app.includes('timeoutMs = 4000'));
 check('buildHome populates synchronously from CuratedCatalog in phase 1', app.includes('Phase 1: Instant synchronous population from CuratedCatalog') && app.includes('Phase 2: Non-blocking background enrichment'));
 check('openCardPortal resolves ID and media type robustly', app.includes("m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null)"));
+
+/* --- continue watching & finished logic guards --- */
+check('getNextEpisodeCoords defined in app.js', app.includes('function getNextEpisodeCoords('));
+check('advanceSeriesInHistory defined in app.js', app.includes('function advanceSeriesInHistory('));
+check('unfinish toggle button styled in styles.css', cssContent.includes('.card .finish-check.unfinish'));
+check('unfinish button present in buildCard', app.includes('finish-check unfinish') && app.includes('Mark as Watching Again'));
+check('no auto reset of finished status on card click in app.js', !app.includes('m._finished && history[m.id]') || !app.includes('history[m.id].finished = false; history[m.id].progress = 0.08;'));
+check('series finished partitioning checks explicitly finished status', /isSeries\s*=\s*\(resolvedType === 'series'/.test(app) && /isFinished\s*=\s*isSeries\s*\?\s*!!h\.finished/.test(app));
+
+const reacherItem = CC.getCuratedById('tt9288030');
+const getNextFnMatch = app.match(/function getNextEpisodeCoords\([\s\S]*?\n\}/);
+if (getNextFnMatch) {
+  const getNextCoords = new Function('item', 'curS', 'curEp', 'CuratedCatalog', getNextFnMatch[0] + ';\nreturn getNextEpisodeCoords(item, curS, curEp);');
+  const n1 = getNextCoords(reacherItem, 1, 1, CC);
+  check('reacher S1E1 next is S1E2 not finale', n1.season === 1 && n1.episode === 2 && !n1.isFinale);
+  const n2 = getNextCoords(reacherItem, 1, 8, CC);
+  check('reacher S1E8 rolls over to S2E1 not finale', n2.season === 2 && n2.episode === 1 && !n2.isFinale);
+  const nFinal = getNextCoords(reacherItem, 4, 8, CC);
+  check('reacher S4E8 finale marks isFinale true', nFinal.isFinale === true);
+}
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

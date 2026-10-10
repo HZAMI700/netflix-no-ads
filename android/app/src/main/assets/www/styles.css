@@ -1032,6 +1032,14 @@ img {
   background: rgba(70, 211, 105, 0.35);
   color: #ffffff;
 }
+.card .finish-check.unfinish {
+  border-color: rgba(229, 9, 20, 0.85);
+  color: #E50914;
+}
+.card .finish-check.unfinish:hover {
+  background: rgba(229, 9, 20, 0.35);
+  color: #ffffff;
+}
 
 /* Row navigation arrows */
 .row-arrow {
