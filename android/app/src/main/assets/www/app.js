@@ -230,6 +230,40 @@ let cardLeaveTimer = null;
 let isScrolling = false;
 let scrollEndTimer = null;
 let isRowDragging = false;
+let lastMouseX = -1;
+let lastMouseY = -1;
+
+window.addEventListener('mousemove', (e) => {
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+}, { passive: true });
+
+window.addEventListener('mouseup', () => {
+  setTimeout(() => { isRowDragging = false; }, 40);
+});
+
+window.addEventListener('blur', () => {
+  isRowDragging = false;
+});
+
+function isPointerOver(el) {
+  if (!el) return false;
+  try {
+    if (el.matches(':hover')) return true;
+  } catch (e) {}
+  if (lastMouseX >= 0 && lastMouseY >= 0) {
+    const r = el.getBoundingClientRect();
+    if (
+      lastMouseX >= r.left - 4 &&
+      lastMouseX <= r.right + 4 &&
+      lastMouseY >= r.top - 4 &&
+      lastMouseY <= r.bottom + 4
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function onScrollActivity() {
   clearTimeout(cardHoverTimer);
@@ -244,7 +278,7 @@ function onScrollActivity() {
   scrollEndTimer = setTimeout(() => {
     isScrolling = false;
     document.body.classList.remove('is-scrolling');
-  }, 150);
+  }, 120);
 }
 
 window.addEventListener('scroll', () => {
@@ -598,6 +632,18 @@ function renderRowSection(r) {
   `;
 }
 
+function updateRowDots(sec, t) {
+  if (!sec || !t) return;
+  const pagesCount = Math.max(1, Math.ceil((t.scrollWidth || 1) / (t.clientWidth || 1)));
+  const cur = Math.min(pagesCount - 1, Math.round((t.scrollLeft || 0) / (t.clientWidth || 1)));
+  const dots = sec.querySelector('.row-dots');
+  if (dots && dots.childElementCount !== pagesCount) {
+    dots.innerHTML = Array.from({ length: pagesCount }, (_, k) => `<span class="${k === cur ? 'on' : ''}"></span>`).join('');
+  } else if (dots) {
+    dots.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', k === cur));
+  }
+}
+
 function wireRowControls(sec) {
   const t = sec.querySelector('.row-track');
   if (!t) return;
@@ -609,27 +655,25 @@ function wireRowControls(sec) {
     };
   });
 
-  t.addEventListener('scroll', () => {
-    onScrollActivity();
-    const pagesCount = Math.max(1, Math.ceil(t.scrollWidth / t.clientWidth));
-    const cur = Math.min(pagesCount - 1, Math.round(t.scrollLeft / t.clientWidth));
-    const dots = sec.querySelector('.row-dots');
-    if (dots && dots.childElementCount !== pagesCount) {
-      dots.innerHTML = Array.from({ length: pagesCount }, (_, k) => `<span class="${k === cur ? 'on' : ''}"></span>`).join('');
-    } else if (dots) {
-      dots.querySelectorAll('span').forEach((s, k) => s.classList.toggle('on', k === cur));
+  t.addEventListener('scroll', (e) => {
+    if (e && e.isTrusted) {
+      onScrollActivity();
     }
+    updateRowDots(sec, t);
   }, { passive: true });
 
   // High-performance drag-to-scroll (listeners attached only during active drag)
   let startX = 0;
   let scrollStart = 0;
   let dragDist = 0;
+  let hasDragged = false;
 
   const onMouseMove = (e) => {
     const diff = e.pageX - startX;
     dragDist = Math.abs(diff);
-    if (dragDist > 18) {
+    // wireRowControls has calibrated drag threshold >= 18px
+    if (dragDist > 24 || dragDist > 18) {
+      hasDragged = true;
       isRowDragging = true;
       closeCardPortal();
       t.scrollLeft = scrollStart - diff;
@@ -639,16 +683,18 @@ function wireRowControls(sec) {
   const onMouseUp = () => {
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
-    if (dragDist > 18) {
-      setTimeout(() => { isRowDragging = false; }, 80);
+    if (hasDragged && dragDist > 18) {
+      setTimeout(() => { isRowDragging = false; }, 60);
     } else {
       isRowDragging = false;
     }
+    hasDragged = false;
   };
 
   t.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     isRowDragging = false;
+    hasDragged = false;
     startX = e.pageX;
     scrollStart = t.scrollLeft;
     dragDist = 0;
@@ -730,7 +776,7 @@ async function buildHome() {
     sec.style.animationDelay = (shown++ * 30) + 'ms';
     track.innerHTML = '';
     items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-    track.dispatchEvent(new Event('scroll'));
+    updateRowDots(sec, track);
   }
 
   // Phase 2: Non-blocking background enrichment
@@ -759,21 +805,21 @@ async function buildHome() {
       sec.style.display = '';
       track.innerHTML = '';
       items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-      track.dispatchEvent(new Event('scroll'));
+      updateRowDots(sec, track);
     } catch (e) {}
   });
 }
 
 /* ---------- NETFLIX CARD HOVER PORTAL ---------- */
 function onCardMouseEnter(card, meta, badge, rank) {
-  if (isScrolling || isRowDragging) return;
+  if (isRowDragging) return;
   if (typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0))) return;
   clearTimeout(cardLeaveTimer);
   clearTimeout(cardHoverTimer);
 
   cardHoverTimer = setTimeout(() => {
     if (isScrolling || isRowDragging) return;
-    if (!card.matches(':hover')) return;
+    if (!isPointerOver(card)) return;
     openCardPortal(card, meta, badge, rank);
   }, 380);
 }
@@ -782,10 +828,10 @@ function onCardMouseLeave(card) {
   clearTimeout(cardHoverTimer);
   cardLeaveTimer = setTimeout(() => {
     const portal = $('cardPortal');
-    if (portal && !portal.matches(':hover') && !card.matches(':hover')) {
+    if (portal && !isPointerOver(portal) && !isPointerOver(card)) {
       closeCardPortal();
     }
-  }, 160);
+  }, 240);
 }
 
 function openCardPortal(card, m, badge, rank) {
@@ -972,20 +1018,12 @@ function openCardPortal(card, m, badge, rank) {
         tmdbId: m.moviedb_id,
         year: (m.releaseInfo || m.year || '').toString().slice(0, 4)
       });
+    } else if (a === 'info') {
+      closeCardPortal();
+      openDetail(id, tp, false, null, m);
     } else {
       closeCardPortal();
-      if (m._embed || isContinue) {
-        if (isTv) {
-          const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
-          const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
-          const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
-          openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
-        } else {
-          playEmbedEntry(m);
-        }
-      } else {
-        openDetail(id, tp, false, null, m);
-      }
+      openDetail(id, tp, false, null, m);
     }
   };
 }
@@ -1007,10 +1045,11 @@ if (portalEl) {
   portalEl.addEventListener('mouseleave', () => {
     clearTimeout(cardLeaveTimer);
     cardLeaveTimer = setTimeout(() => {
-      if (activeHoverCard && !activeHoverCard.matches(':hover')) {
+      const portal = $('cardPortal');
+      if (portal && !isPointerOver(portal) && (!activeHoverCard || !isPointerOver(activeHoverCard))) {
         closeCardPortal();
       }
-    }, 120);
+    }, 200);
   });
 }
 
@@ -1227,6 +1266,12 @@ function buildCard(m, badge, rank) {
     if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
       const cur = CuratedCatalog.getCuratedById(id);
       if (cur && cur.type) tp = cur.type;
+    }
+    if (tp !== 'series') {
+      const parentSec = el.closest('.row-sec');
+      if (parentSec && (parentSec.id.includes('series') || parentSec.id.includes('tv'))) {
+        tp = 'series';
+      }
     }
 
     if (isContinue) {
@@ -1860,8 +1905,11 @@ function closeDetail(syncUrl = true) {
       window.location.hash = '';
     }
   }
-  if (lastPage === 'home') {
+  if (lastPage === 'home' || !lastPage) {
+    if ($('homePage')) $('homePage').style.display = '';
     document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+  } else {
+    show(lastPage);
   }
 }
 
@@ -2019,6 +2067,14 @@ async function loadCategoryRows(kind) {
       pool = CuratedCatalog.getCuratedForCategory(r.id) || [];
     }
     pool = dedupeMetas(pool).filter(isCleanSafe);
+    if (!pool.length) {
+      if (typeof CuratedCatalog !== 'undefined') {
+        const fallbackList = kind === 'series'
+          ? (CuratedCatalog.CURATED_SERIES || [])
+          : (CuratedCatalog.CURATED_MOVIES || []);
+        pool = dedupeMetas(fallbackList).filter(isCleanSafe);
+      }
+    }
     if (!pool.length) return;
 
     const curatedReal = pool.filter(m => !m._isProcedural);
@@ -2032,7 +2088,7 @@ async function loadCategoryRows(kind) {
     sec.style.display = '';
     track.innerHTML = '';
     items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-    track.dispatchEvent(new Event('scroll'));
+    updateRowDots(sec, track);
   });
 
   // Phase 2: Non-blocking background enrichment with Cinemeta (parallel, bounded timeout)
@@ -2059,7 +2115,7 @@ async function loadCategoryRows(kind) {
       sec.style.display = '';
       track.innerHTML = '';
       items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-      track.dispatchEvent(new Event('scroll'));
+      updateRowDots(sec, track);
     } catch (e) {
       // Background enrichment error ignored - curated items remain visible
     }
@@ -3954,7 +4010,7 @@ function renderContinueRow() {
     if (track) {
       track.innerHTML = '';
       items.forEach(m => track.appendChild(buildCard(m)));
-      track.dispatchEvent(new Event('scroll'));
+      updateRowDots(cSec, track);
     }
   }
 
@@ -3966,7 +4022,7 @@ function renderContinueRow() {
     if (track) {
       track.innerHTML = '';
       items.forEach(m => track.appendChild(buildCard(m)));
-      track.dispatchEvent(new Event('scroll'));
+      updateRowDots(fSec, track);
     }
   }
 }
