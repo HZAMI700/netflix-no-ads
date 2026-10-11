@@ -170,6 +170,8 @@ let lastPage = 'home';
 let isHandlingHashRoute = false;
 
 function show(name, subNav) {
+  clearTimeout(cardHoverTimer);
+  clearTimeout(cardLeaveTimer);
   closeCardPortal();
   if (name !== 'detail') {
     lastPage = name;
@@ -189,7 +191,7 @@ function show(name, subNav) {
   }
   const activeNav = subNav || name;
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo(0, 0);
 }
 
 document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', e => {
@@ -655,6 +657,21 @@ function wireRowControls(sec) {
     };
   });
 
+  const titleWrap = sec.querySelector('.row-title-wrap');
+  if (titleWrap) {
+    titleWrap.onclick = () => {
+      closeCardPortal();
+      const secId = sec.id || '';
+      if (secId.includes('series') || secId.includes('tv')) {
+        openBrowse('series');
+      } else if (secId.includes('new')) {
+        openBrowse('new');
+      } else {
+        openBrowse('movies');
+      }
+    };
+  }
+
   t.addEventListener('scroll', (e) => {
     if (e && e.isTrusted) {
       onScrollActivity();
@@ -664,15 +681,17 @@ function wireRowControls(sec) {
 
   // High-performance drag-to-scroll (listeners attached only during active drag)
   let startX = 0;
+  let startY = 0;
   let scrollStart = 0;
   let dragDist = 0;
   let hasDragged = false;
 
   const onMouseMove = (e) => {
     const diff = e.pageX - startX;
+    const diffY = e.pageY - startY;
     dragDist = Math.abs(diff);
     // wireRowControls has calibrated drag threshold >= 18px
-    if (dragDist > 24 || dragDist > 18) {
+    if ((dragDist > 24 || dragDist > 18) && Math.abs(diff) > Math.abs(diffY)) {
       hasDragged = true;
       isRowDragging = true;
       closeCardPortal();
@@ -683,8 +702,12 @@ function wireRowControls(sec) {
   const onMouseUp = () => {
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
-    if (hasDragged && dragDist > 18) {
-      setTimeout(() => { isRowDragging = false; }, 60);
+    if (hasDragged && (dragDist > 24 || dragDist > 18)) {
+      t.addEventListener('click', (e) => {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      }, { capture: true, once: true });
+      setTimeout(() => { isRowDragging = false; }, 30);
     } else {
       isRowDragging = false;
     }
@@ -696,6 +719,7 @@ function wireRowControls(sec) {
     isRowDragging = false;
     hasDragged = false;
     startX = e.pageX;
+    startY = e.pageY;
     scrollStart = t.scrollLeft;
     dragDist = 0;
     window.addEventListener('mousemove', onMouseMove);
@@ -765,8 +789,12 @@ async function buildHome() {
       const freshPool = [...curatedReal, ...proceduralPool];
       const max = r.limit || 60;
       items = (freshPool.length >= 10 ? freshPool : pool).slice(0, max);
+      const isSeriesRow = r.id.includes('series') || r.id === 'drama' || r.id === 'sci_series';
+      const isMovieRow = r.id.includes('mov') || r.id === 'action' || r.id === 'scifi' || r.id === 'thriller' || r.id === 'comedy' || r.id === 'horror' || r.id === 'family' || r.id === 'fantasy';
       items.forEach(m => {
         if (m && m.id) seenHomeIds.add(m.id);
+        if (m && isSeriesRow && (!m.type || m.type === 'movie')) m.type = 'series';
+        else if (m && isMovieRow && !m.type) m.type = 'movie';
       });
     }
 
@@ -943,6 +971,8 @@ function openCardPortal(card, m, badge, rank) {
   portal.classList.add('open');
 
   portal.onclick = (e) => {
+    clearTimeout(cardHoverTimer);
+    clearTimeout(cardLeaveTimer);
     const a = e.target.closest('[data-pa]')?.dataset.pa;
     const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.name || m.title;
     const fallbackType = (m.id && String(m.id).startsWith('tt') ? 'movie' : 'movie');
@@ -950,6 +980,12 @@ function openCardPortal(card, m, badge, rank) {
     if (!m.type && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
       const cur = CuratedCatalog.getCuratedById(id);
       if (cur && cur.type) tp = cur.type;
+    }
+    if (tp !== 'series' && activeHoverCard) {
+      const parentSec = activeHoverCard.closest('.row-sec');
+      if (parentSec && (parentSec.id.includes('series') || parentSec.id.includes('tv') || parentSec.id.includes('b_series'))) {
+        tp = 'series';
+      }
     }
     const isContinue = (m._progress != null && !m._finished);
     const isTv = (tp === 'series');
@@ -1029,6 +1065,8 @@ function openCardPortal(card, m, badge, rank) {
 }
 
 function closeCardPortal() {
+  clearTimeout(cardHoverTimer);
+  clearTimeout(cardLeaveTimer);
   const portal = $('cardPortal');
   if (!portal) return;
   portal.classList.remove('open');
@@ -1190,6 +1228,9 @@ function buildCard(m, badge, rank) {
   el.addEventListener('mouseleave', () => onCardMouseLeave(el));
 
   el.onclick = e => {
+    clearTimeout(cardHoverTimer);
+    clearTimeout(cardLeaveTimer);
+    closeCardPortal();
     if (isRowDragging) return;
 
     const rx = e.target.closest('.remove-x');
@@ -1269,8 +1310,10 @@ function buildCard(m, badge, rank) {
     }
     if (tp !== 'series') {
       const parentSec = el.closest('.row-sec');
-      if (parentSec && (parentSec.id.includes('series') || parentSec.id.includes('tv'))) {
+      if (parentSec && (parentSec.id.includes('series') || parentSec.id.includes('tv') || parentSec.id.includes('b_series'))) {
         tp = 'series';
+      } else if (parentSec && (parentSec.id.includes('movie') || parentSec.id.includes('b_mov'))) {
+        tp = 'movie';
       }
     }
 
@@ -1773,6 +1816,8 @@ async function openDetail(id, type, autoplay, continueTarget) {
   }
 
   if (m) {
+    if (m.type === 'series' || m.type === 'tv') type = 'series';
+    else if (m.type === 'movie') type = 'movie';
     renderDetailUI(m, type, autoplay, continueTarget);
     enrichDetailFromCinemeta(id, type, m);
     return;
@@ -2083,6 +2128,8 @@ async function loadCategoryRows(kind) {
     const items = (freshPool.length >= 10 ? freshPool : pool).slice(0, 100);
     items.forEach(m => {
       if (m && m.id) seenBrowseIds.add(m.id);
+      if (m && kind === 'series') m.type = 'series';
+      else if (m && kind === 'movies') m.type = 'movie';
     });
 
     sec.style.display = '';
