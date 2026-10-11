@@ -17,7 +17,13 @@ if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
   navigator.sendBeacon = function(url, data) {
     try {
       const u = new URL(url, window.location.href);
-      if (u.hostname !== window.location.hostname && u.hostname !== 'localhost' && u.hostname !== '127.0.0.1') {
+      const isAllowed = u.hostname === window.location.hostname ||
+        u.hostname === 'localhost' ||
+        u.hostname === '127.0.0.1' ||
+        u.hostname.endsWith('google-analytics.com') ||
+        u.hostname.endsWith('googletagmanager.com') ||
+        u.hostname.endsWith('analytics.google.com');
+      if (!isAllowed) {
         return false;
       }
     } catch {}
