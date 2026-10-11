@@ -987,24 +987,142 @@ function getCuratedById(id) {
   return null;
 }
 
+function normalizeSearchText(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/[ة]/g, 'ه')
+    .replace(/[ى]/g, 'ي')
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[''´`]/g, '')
+    .replace(/[-_.:,!?&/\\|()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshteinDistance(s1, s2) {
+  if (s1 === s2) return 0;
+  if (!s1.length) return s2.length;
+  if (!s2.length) return s1.length;
+  if (Math.abs(s1.length - s2.length) > 2) return 99;
+  const m = s1.length, n = s2.length;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    const c1 = s1.charCodeAt(i - 1);
+    for (let j = 1; j <= n; j++) {
+      const cost = c1 === s2.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    const temp = prev; prev = curr; curr = temp;
+  }
+  return prev[n];
+}
+
 function searchCurated(query, limit = 200) {
   if (!query || typeof query !== 'string') return [];
-  const q = query.toLowerCase().trim();
-  if (!q) return [];
-  const realMatches = [];
-  const procMatches = [];
-  for (let i = 0; i < CURATED_MEDIA.length; i++) {
-    const m = CURATED_MEDIA[i];
-    const nameMatch = m.name && m.name.toLowerCase().includes(q);
-    const genreMatch = m.genres && m.genres.some(g => g.toLowerCase().includes(q));
-    const descMatch = m.description && m.description.toLowerCase().includes(q);
-    if (nameMatch || genreMatch || descMatch) {
-      if (!m._isProcedural) realMatches.push(m);
-      else procMatches.push(m);
-      if (limit && realMatches.length + procMatches.length >= limit * 2) break;
+  const nq = normalizeSearchText(query);
+  if (!nq) return [];
+  const qTokens = nq.split(' ').filter(Boolean);
+
+  const realMedia = CORE_CURATED_MEDIA;
+  const scoredReal = [];
+
+  for (let i = 0; i < realMedia.length; i++) {
+    const m = realMedia[i];
+    const normTitle = normalizeSearchText(m.name || m.title || '');
+    if (!normTitle) continue;
+    let score = 0;
+
+    if (normTitle === nq) {
+      score += 40000;
+    } else if (normTitle.startsWith(nq + ' ')) {
+      score += 25000;
+    } else if (normTitle.startsWith(nq)) {
+      score += 20000;
+    } else if (normTitle.includes(' ' + nq + ' ') || normTitle.endsWith(' ' + nq)) {
+      score += 15000;
+    } else if (normTitle.includes(nq)) {
+      score += 10000;
+    }
+
+    const tTokens = normTitle.split(' ').filter(Boolean);
+    let matchedTokens = 0;
+    for (const qt of qTokens) {
+      let best = 0;
+      for (const tt of tTokens) {
+        if (tt === qt) {
+          best = Math.max(best, 4500);
+        } else if (tt.startsWith(qt) && qt.length >= 2) {
+          best = Math.max(best, 2800);
+        } else if (qt.length >= 4) {
+          const d = levenshteinDistance(qt, tt);
+          if (qt.length >= 6 && d <= 2) best = Math.max(best, 2200);
+          else if (d <= 1) best = Math.max(best, 2200);
+        }
+      }
+      if (best > 0) {
+        score += best;
+        matchedTokens++;
+      }
+    }
+    if (matchedTokens === qTokens.length && qTokens.length > 1) {
+      score += 7000;
+    }
+
+    if (m.cast && Array.isArray(m.cast)) {
+      for (const c of m.cast) {
+        if (normalizeSearchText(c).includes(nq)) { score += 4000; break; }
+      }
+    }
+    if (m.director && normalizeSearchText(m.director).includes(nq)) score += 4000;
+
+    if (m.genres && Array.isArray(m.genres)) {
+      for (const g of m.genres) {
+        const ng = normalizeSearchText(g);
+        if (ng === nq) { score += 3500; break; }
+        if (ng.includes(nq)) { score += 1800; break; }
+      }
+    }
+
+    if (m.year && String(m.year) === nq) score += 2000;
+
+    if (score > 0) {
+      score += 6000; // Real curated bonus
+      score += (parseFloat(m.imdbRating) || 0) * 120;
+      scoredReal.push({ m, score });
+    } else if (m.description && normalizeSearchText(m.description).includes(nq)) {
+      const descScore = 1500 + ((parseFloat(m.imdbRating) || 0) * 50);
+      scoredReal.push({ m, score: descScore });
     }
   }
-  return [...realMatches, ...procMatches].slice(0, limit);
+
+  scoredReal.sort((a, b) => b.score - a.score);
+  const realResults = scoredReal.map(x => x.m);
+
+  // Procedural items: fast scan for remaining slots
+  const procResults = [];
+  const qLower = query.toLowerCase().trim();
+  const maxProcNeeded = Math.max(0, limit - realResults.length);
+  if (maxProcNeeded > 0) {
+    for (let i = 0; i < CURATED_MEDIA.length; i++) {
+      const m = CURATED_MEDIA[i];
+      if (!m._isProcedural) continue;
+      const nameMatch = m.name && m.name.toLowerCase().includes(qLower);
+      const genreMatch = m.genres && m.genres.some(g => g.toLowerCase().includes(qLower));
+      if (nameMatch || genreMatch) {
+        procResults.push(m);
+        if (procResults.length >= maxProcNeeded * 1.5) break;
+      }
+    }
+  }
+
+  return [...realResults, ...procResults].slice(0, limit);
 }
 
 function getCuratedMovies(offset = 0, limit = 48) {

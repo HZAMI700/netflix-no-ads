@@ -420,8 +420,22 @@ async function doSearch(q) {
   if ($('searchTitle')) $('searchTitle').textContent = `Results for "${q}"`;
   if ($('searchBox')) $('searchBox').value = q;
   if ($('searchInput')) $('searchInput').value = q;
-  $('searchResults').innerHTML = skels(6);
 
+  // Phase 1: Instant smart results from CuratedCatalog (0ms latency!)
+  const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated)
+    ? CuratedCatalog.searchCurated(q, 150)
+    : [];
+
+  if (curatedMatches.length > 0) {
+    currentSearchResults = curatedMatches.filter(isCleanSafe);
+    currentSearchOffset = 0;
+    $('searchResults').innerHTML = '';
+    renderSearchChunk();
+  } else {
+    $('searchResults').innerHTML = skels(6);
+  }
+
+  // Phase 2: Asynchronous background enrichment from Cinemeta
   try {
     const [m1, m2, s1, s2] = await Promise.all([
       fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
@@ -429,22 +443,28 @@ async function doSearch(q) {
       fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
       fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
     ]);
-    const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) ? CuratedCatalog.searchCurated(q, 300) : [];
-    const all = dedupeMetas([
-      ...curatedMatches,
+    const remoteMetas = [
       ...(m1.metas || []),
       ...(m2.metas || []),
       ...(s1.metas || []),
       ...(s2.metas || [])
-    ]).filter(isCleanSafe);
-    $('searchResults').innerHTML = all.length
-      ? ''
-      : `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${escapeHtml(q)}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
-    currentSearchResults = all;
-    currentSearchOffset = 0;
-    renderSearchChunk();
-  } catch {
-    $('searchResults').innerHTML = '<p style="color:#888;grid-column:1/-1;text-align:center">Search failed. Please check your internet connection.</p>';
+    ];
+    if (remoteMetas.length > 0) {
+      const all = dedupeMetas([
+        ...curatedMatches,
+        ...remoteMetas
+      ]).filter(isCleanSafe);
+      currentSearchResults = all;
+      currentSearchOffset = 0;
+      $('searchResults').innerHTML = '';
+      renderSearchChunk();
+    }
+  } catch (err) {
+    // If remote fails, instant curated results are already displayed
+  }
+
+  if (!currentSearchResults || !currentSearchResults.length) {
+    $('searchResults').innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${escapeHtml(q)}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
   }
 }
 
@@ -998,18 +1018,18 @@ function openCardPortal(card, m, badge, rank) {
 
     if (a === 'play') {
       closeCardPortal();
-      if (m._embed || isContinue) {
-        if (isFinished) m._progress = 0;
-        if (isTv) {
+      if (isFinished) m._progress = 0;
+      if (isTv) {
+        if (isContinue) {
           const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
           const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
           const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
           openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
         } else {
-          playEmbedEntry(m);
+          openDetail(id, 'series', false, null, m);
         }
       } else {
-        openDetail(id, tp, true, null, m);
+        playEmbedEntry(m);
       }
     } else if (a === 'list') {
       toggleList(m);
@@ -1065,7 +1085,18 @@ function openCardPortal(card, m, badge, rank) {
       openDetail(id, tp, false, null, m);
     } else {
       closeCardPortal();
-      openDetail(id, tp, false, null, m);
+      if (isTv) {
+        if (isContinue) {
+          const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
+          const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
+          const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
+          openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
+        } else {
+          openDetail(id, 'series', false, null, m);
+        }
+      } else {
+        playEmbedEntry(m);
+      }
     }
   };
 }
@@ -1323,19 +1354,20 @@ function buildCard(m, badge, rank) {
       }
     }
 
-    if (isContinue) {
-      if (tp === 'series') {
+    if (tp === 'series') {
+      if (isContinue) {
         const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
         const targetSeason = Math.max(1, Number(m.season || hist?.season || 1));
         const targetEpisode = Math.max(1, Number(m.episode || hist?.episode || 1));
         openDetail(id, 'series', false, { focusSeason: targetSeason, focusEpisode: targetEpisode, highlight: true });
         return;
       }
-      playEmbedEntry(m);
+      openDetail(id, 'series', false, null, m);
       return;
     }
 
-    openDetail(id, tp, false, null, m);
+    // Movie: start directly!
+    playEmbedEntry(m);
   };
 
   return el;
@@ -1801,15 +1833,12 @@ async function openDetail(id, type, autoplay, continueTarget) {
     }
   }
 
-  show('detail');
-  window.scrollTo({ top: 0, behavior: 'instant' });
-  document.body.style.overflow = '';
-
   const backdropEl = $('detailBackdrop');
   if (backdropEl) {
     backdropEl.scrollTop = 0;
     backdropEl.classList.add('show');
   }
+  document.body.style.overflow = 'hidden';
 
   // 1. Resolve from CuratedCatalog or preloadedMeta immediately (0ms)
   let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
@@ -1914,11 +1943,20 @@ if (dClose) dClose.onclick = () => goBackFromDetail();
 const dBackBtn = $('dBackBtn');
 if (dBackBtn) dBackBtn.onclick = () => goBackFromDetail();
 
+const detailBackdropEl = $('detailBackdrop');
+if (detailBackdropEl) {
+  detailBackdropEl.addEventListener('click', (e) => {
+    if (e.target.id === 'detailBackdrop') {
+      goBackFromDetail();
+    }
+  });
+}
+
 function goBackFromDetail() {
   if (window.history && window.history.length > 1 && currentRoute.page === 'detail') {
     window.history.back();
   } else {
-    goBackToPage(lastPage || 'home');
+    closeDetail(true);
   }
 }
 
@@ -1960,7 +1998,10 @@ function closeDetail(syncUrl = true) {
     if ($('homePage')) $('homePage').style.display = '';
     document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
   } else {
-    show(lastPage);
+    const pageEl = pages[lastPage];
+    if (pageEl && !pageEl.classList.contains('show')) {
+      show(lastPage);
+    }
   }
 }
 
@@ -4606,11 +4647,11 @@ function armLiveSearch(input, box) {
   input.addEventListener('input', () => {
     clearTimeout(liveT);
     const q = input.value.trim();
-    if (q.length < 3) return;
+    if (q.length < 2) return;
     liveT = setTimeout(() => {
       if (box) box.value = q;
-      if (pages.search.classList.contains('show') || input === box) doSearch(q);
-    }, 500);
+      doSearch(q);
+    }, 350);
   });
 }
 
