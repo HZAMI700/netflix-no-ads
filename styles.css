@@ -2351,6 +2351,28 @@ body.is-scrolling #cardPortal {
   color: #ffffff;
 }
 
+/* Netflix-style First-Time Profile Gateway */
+#profilesPage {
+  min-height: calc(100vh - var(--nav-h));
+}
+#profilesPage.show {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 40px var(--pad);
+}
+body.profile-gate-active #topnav {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body.profile-gate-active .nav-links,
+body.profile-gate-active .nav-right {
+  display: none !important;
+}
+body.profile-gate-active footer {
+  display: none !important;
+}
+
 /* ==========================================================================
    SETTINGS & STREAM TOOLS
    ========================================================================== */

@@ -33,7 +33,11 @@ if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
 
 function escapeHtml(str) {
   if (str == null) return '';
-  return String(str)
+  const s = String(str);
+  if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+    return DOMPurify.sanitize(s, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  }
+  return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -41,100 +45,29 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// Anti-Prototype Pollution Safe JSON Parser
+function safeJsonParse(str, fallback) {
+  try {
+    return JSON.parse(str, (key, value) => {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return undefined;
+      return value;
+    });
+  } catch {
+    return fallback;
+  }
+}
+
 const CINEMETA = 'https://v3-cinemeta.strem.io';
 
 const $ = id => document.getElementById(id);
 const store = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
-  set(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? safeJsonParse(v, d) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
 
 let myList = store.get('nf_mylist', []);
 
-const DEFAULT_HISTORY = {
-  'tt4574334': {
-    title: 'Stranger Things',
-    type: 'series',
-    progress: 0.52,
-    finished: false,
-    poster: 'https://images.metahub.space/poster/medium/tt4574334/img',
-    background: 'https://images.metahub.space/background/medium/tt4574334/img',
-    genres: ['Drama', 'Fantasy', 'Horror', 'Sci-Fi'],
-    year: '2016',
-    season: 4,
-    episode: 4
-  },
-  'tt1375666': {
-    title: 'Inception',
-    type: 'movie',
-    progress: 0.74,
-    finished: false,
-    poster: 'https://images.metahub.space/poster/medium/tt1375666/img',
-    background: 'https://images.metahub.space/background/medium/tt1375666/img',
-    genres: ['Action', 'Adventure', 'Sci-Fi'],
-    year: '2010',
-    imdb: 'tt1375666'
-  },
-  'tt1877830': {
-    title: 'The Batman',
-    type: 'movie',
-    progress: 0.38,
-    finished: false,
-    poster: 'https://images.metahub.space/poster/medium/tt1877830/img',
-    background: 'https://images.metahub.space/background/medium/tt1877830/img',
-    genres: ['Action', 'Crime', 'Drama'],
-    year: '2022',
-    imdb: 'tt1877830'
-  },
-  'tt0903747': {
-    title: 'Breaking Bad',
-    type: 'series',
-    progress: 1.0,
-    finished: true,
-    poster: 'https://images.metahub.space/poster/medium/tt0903747/img',
-    background: 'https://images.metahub.space/background/medium/tt0903747/img',
-    genres: ['Crime', 'Drama', 'Thriller'],
-    year: '2008',
-    season: 5,
-    episode: 16
-  },
-  'tt0816692': {
-    title: 'Interstellar',
-    type: 'movie',
-    progress: 1.0,
-    finished: true,
-    poster: 'https://images.metahub.space/poster/medium/tt0816692/img',
-    background: 'https://images.metahub.space/background/medium/tt0816692/img',
-    genres: ['Adventure', 'Drama', 'Sci-Fi'],
-    year: '2014',
-    imdb: 'tt0816692'
-  },
-  'tt0468569': {
-    title: 'The Dark Knight',
-    type: 'movie',
-    progress: 1.0,
-    finished: true,
-    poster: 'https://images.metahub.space/poster/medium/tt0468569/img',
-    background: 'https://images.metahub.space/background/medium/tt0468569/img',
-    genres: ['Action', 'Crime', 'Drama'],
-    year: '2008',
-    imdb: 'tt0468569'
-  }
-};
-
-let history = store.get('nf_history', null);
-if (!history || Object.keys(history).length === 0) {
-  history = { ...DEFAULT_HISTORY };
-  store.set('nf_history', history);
-} else {
-  const hasFinished = Object.values(history).some(h => h && (h.finished || (h.progress != null && h.progress >= 0.9)));
-  if (!hasFinished) {
-    Object.entries(DEFAULT_HISTORY).forEach(([k, v]) => {
-      if (v.finished && !history[k]) history[k] = { ...v };
-    });
-    store.set('nf_history', history);
-  }
-}
+let history = store.get('nf_history', {});
 
 let likes = store.get('nf_likes', {});
 let dislikes = store.get('nf_dislikes', {});
@@ -582,10 +515,20 @@ function metaRowHTML(m) {
 }
 
 function dedupeMetas(arr) {
-  const seen = new Set();
+  const seenIds = new Set();
+  const seenTitles = new Set();
   return (arr || []).filter(m => {
-    if (!m || !m.id || seen.has(m.id)) return false;
-    seen.add(m.id);
+    if (!m) return false;
+    if (m.id && seenIds.has(m.id)) return false;
+    if (m.imdb_id && seenIds.has(m.imdb_id)) return false;
+    if (m.imdb && seenIds.has(m.imdb)) return false;
+    const titleKey = (m.name || m.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (titleKey && seenTitles.has(titleKey)) return false;
+
+    if (m.id) seenIds.add(m.id);
+    if (m.imdb_id) seenIds.add(m.imdb_id);
+    if (m.imdb) seenIds.add(m.imdb);
+    if (titleKey) seenTitles.add(titleKey);
     return true;
   });
 }
@@ -753,6 +696,34 @@ function wireRowControls(sec) {
   });
 }
 
+/* ---------- DEDUPLICATION & TITLE NORMALIZATION HELPERS ---------- */
+function normalizeCardKey(m) {
+  if (!m) return '';
+  const title = (m.name || m.title || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return title;
+}
+
+function isCardUnseen(m, seenIds, seenTitles) {
+  if (!m) return false;
+  if (m.id && seenIds.has(m.id)) return false;
+  if (m.imdb_id && seenIds.has(m.imdb_id)) return false;
+  if (m.imdb && seenIds.has(m.imdb)) return false;
+  if (m.moviedb_id && seenIds.has(String(m.moviedb_id))) return false;
+  const key = normalizeCardKey(m);
+  if (key && seenTitles.has(key)) return false;
+  return true;
+}
+
+function recordCardSeen(m, seenIds, seenTitles) {
+  if (!m) return;
+  if (m.id) seenIds.add(m.id);
+  if (m.imdb_id) seenIds.add(m.imdb_id);
+  if (m.imdb) seenIds.add(m.imdb);
+  if (m.moviedb_id) seenIds.add(String(m.moviedb_id));
+  const key = normalizeCardKey(m);
+  if (key) seenTitles.add(key);
+}
+
 async function buildHome() {
   const wrap = $('rows');
   if (!wrap) return;
@@ -778,10 +749,11 @@ async function buildHome() {
     }
   }
 
-  // Track titles shown across rows on the home screen to prevent duplication
+  // Track titles and IDs shown across rows on the home screen to prevent duplication
   const seenHomeIds = new Set();
-  if (heroItems && heroItems.length && heroItems[0] && heroItems[0].id) {
-    seenHomeIds.add(heroItems[0].id);
+  const seenHomeTitles = new Set();
+  if (heroItems && heroItems.length && heroItems[0]) {
+    recordCardSeen(heroItems[0], seenHomeIds, seenHomeTitles);
   }
 
   // Phase 1: Instant synchronous population from CuratedCatalog (0ms)
@@ -794,10 +766,13 @@ async function buildHome() {
 
     if (r.dynamic === 'continue' || r.dynamic === 'history') {
       items = continueItems();
+      items.forEach(m => recordCardSeen(m, seenHomeIds, seenHomeTitles));
     } else if (r.dynamic === 'finished') {
       items = finishedItems();
+      items.forEach(m => recordCardSeen(m, seenHomeIds, seenHomeTitles));
     } else if (r.dynamic === 'mylist') {
       items = myList;
+      items.forEach(m => recordCardSeen(m, seenHomeIds, seenHomeTitles));
     } else {
       let pool = [];
       if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
@@ -810,15 +785,37 @@ async function buildHome() {
         pool = pool.slice().sort((a, b) => parseInt(b.releaseInfo || 0) - parseInt(a.releaseInfo || 0));
       }
 
-      const curatedReal = pool.filter(m => !m._isProcedural);
-      const proceduralPool = pool.filter(m => m._isProcedural && !seenHomeIds.has(m.id));
-      const freshPool = [...curatedReal, ...proceduralPool];
+      // Filter out any title or ID already shown in another row
+      const rowSeenIds = new Set();
+      const rowSeenTitles = new Set();
+      let freshPool = [];
+      for (const m of pool) {
+        if (isCardUnseen(m, seenHomeIds, seenHomeTitles) && isCardUnseen(m, rowSeenIds, rowSeenTitles)) {
+          freshPool.push(m);
+          recordCardSeen(m, rowSeenIds, rowSeenTitles);
+        }
+      }
+
+      if (freshPool.length < 25 && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA) {
+        const isSeriesRow = r.id.includes('series') || r.id === 'drama' || r.id === 'sci_series';
+        const source = isSeriesRow ? (CuratedCatalog.CURATED_SERIES || []) : (CuratedCatalog.CURATED_MOVIES || CuratedCatalog.CURATED_MEDIA);
+        for (let i = 0; i < source.length && freshPool.length < 40; i++) {
+          const cand = source[i];
+          if (isCleanSafe(cand) && isCardUnseen(cand, seenHomeIds, seenHomeTitles) && isCardUnseen(cand, rowSeenIds, rowSeenTitles)) {
+            if (!r.genre || (cand.genres || []).includes(r.genre)) {
+              freshPool.push(cand);
+              recordCardSeen(cand, rowSeenIds, rowSeenTitles);
+            }
+          }
+        }
+      }
+
       const max = r.limit || 60;
-      items = (freshPool.length >= 10 ? freshPool : pool).slice(0, max);
+      items = dedupeMetas(freshPool).slice(0, max);
       const isSeriesRow = r.id.includes('series') || r.id === 'drama' || r.id === 'sci_series';
       const isMovieRow = r.id.includes('mov') || r.id === 'action' || r.id === 'scifi' || r.id === 'thriller' || r.id === 'comedy' || r.id === 'horror' || r.id === 'family' || r.id === 'fantasy';
       items.forEach(m => {
-        if (m && m.id) seenHomeIds.add(m.id);
+        recordCardSeen(m, seenHomeIds, seenHomeTitles);
         if (m && isSeriesRow && (!m.type || m.type === 'movie')) m.type = 'series';
         else if (m && isMovieRow && !m.type) m.type = 'movie';
       });
@@ -834,34 +831,45 @@ async function buildHome() {
   }
 
   // Phase 2: Non-blocking background enrichment
-  HOME_ROWS.forEach(async r => {
-    if (r.dynamic || !r.url) return;
-    try {
-      const urls = Array.isArray(r.url) ? r.url : [r.url];
-      const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
-      const cinemetaMetas = fetched.flat().filter(isCleanSafe);
-      if (!cinemetaMetas.length) return;
+  (async () => {
+    for (const r of HOME_ROWS) {
+      if (r.dynamic || !r.url) continue;
+      try {
+        const urls = Array.isArray(r.url) ? r.url : [r.url];
+        const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
+        const cinemetaMetas = fetched.flat().filter(isCleanSafe);
+        if (!cinemetaMetas.length) continue;
 
-      const sec = $('row-' + r.id);
-      if (!sec) return;
-      const track = sec.querySelector('.row-track');
-      if (!track) return;
+        const sec = $('row-' + r.id);
+        if (!sec) continue;
+        const track = sec.querySelector('.row-track');
+        if (!track) continue;
 
-      let curated = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory)
-        ? CuratedCatalog.getCuratedForCategory(r.id) || []
-        : [];
-      let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
-      if (r.genre) combined = combined.filter(m => (m.genres || []).includes(r.genre));
-      const max = r.limit || 60;
-      const items = combined.slice(0, max);
-      if (!items.length) return;
+        let curated = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory)
+          ? CuratedCatalog.getCuratedForCategory(r.id) || []
+          : [];
+        let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
+        if (r.genre) combined = combined.filter(m => (m.genres || []).includes(r.genre));
+        
+        const unseenCombined = [];
+        for (const m of combined) {
+          if (isCardUnseen(m, seenHomeIds, seenHomeTitles)) {
+            unseenCombined.push(m);
+            recordCardSeen(m, seenHomeIds, seenHomeTitles);
+          }
+        }
+        if (!unseenCombined.length) continue;
 
-      sec.style.display = '';
-      track.innerHTML = '';
-      items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-      updateRowDots(sec, track);
-    } catch (e) {}
-  });
+        const max = r.limit || 60;
+        const items = dedupeMetas(unseenCombined).slice(0, max);
+
+        sec.style.display = '';
+        track.innerHTML = '';
+        items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+        updateRowDots(sec, track);
+      } catch (e) {}
+    }
+  })();
 }
 
 /* ---------- NETFLIX CARD HOVER PORTAL ---------- */
@@ -2148,6 +2156,7 @@ async function loadCategoryRows(kind) {
   rowsWrap.querySelectorAll('.row-sec').forEach(sec => wireRowControls(sec));
 
   const seenBrowseIds = new Set();
+  const seenBrowseTitles = new Set();
 
   // Phase 1: Instant population from CuratedCatalog (0ms synchronous display)
   categoryRows.forEach(r => {
@@ -2169,12 +2178,32 @@ async function loadCategoryRows(kind) {
     }
     if (!pool.length) return;
 
-    const curatedReal = pool.filter(m => !m._isProcedural);
-    const proceduralPool = pool.filter(m => m._isProcedural && !seenBrowseIds.has(m.id));
-    const freshPool = [...curatedReal, ...proceduralPool];
-    const items = (freshPool.length >= 10 ? freshPool : pool).slice(0, 100);
+    // Filter out any title or ID already shown in earlier rows!
+    const rowSeenIds = new Set();
+    const rowSeenTitles = new Set();
+    let freshItems = [];
+    for (const m of pool) {
+      if (isCardUnseen(m, seenBrowseIds, seenBrowseTitles) && isCardUnseen(m, rowSeenIds, rowSeenTitles)) {
+        freshItems.push(m);
+        recordCardSeen(m, rowSeenIds, rowSeenTitles);
+      }
+    }
+
+    // If freshItems is fewer than 40, pull more unseen items from CuratedCatalog for this kind
+    if (freshItems.length < 40 && typeof CuratedCatalog !== 'undefined') {
+      const source = kind === 'series' ? (CuratedCatalog.CURATED_SERIES || []) : (CuratedCatalog.CURATED_MOVIES || []);
+      for (let i = 0; i < source.length && freshItems.length < 50; i++) {
+        const cand = source[i];
+        if (isCleanSafe(cand) && isCardUnseen(cand, seenBrowseIds, seenBrowseTitles) && isCardUnseen(cand, rowSeenIds, rowSeenTitles)) {
+          freshItems.push(cand);
+          recordCardSeen(cand, rowSeenIds, rowSeenTitles);
+        }
+      }
+    }
+
+    const items = dedupeMetas(freshItems).slice(0, 100);
     items.forEach(m => {
-      if (m && m.id) seenBrowseIds.add(m.id);
+      recordCardSeen(m, seenBrowseIds, seenBrowseTitles);
       if (m && kind === 'series') m.type = 'series';
       else if (m && kind === 'movies') m.type = 'movie';
     });
@@ -2186,34 +2215,50 @@ async function loadCategoryRows(kind) {
   });
 
   // Phase 2: Non-blocking background enrichment with Cinemeta (parallel, bounded timeout)
-  categoryRows.forEach(async r => {
-    try {
-      const urls = Array.isArray(r.url) ? r.url : [r.url];
-      const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
-      const cinemetaMetas = fetched.flat().filter(isCleanSafe);
-      if (!cinemetaMetas.length) return;
+  (async () => {
+    for (const r of categoryRows) {
+      try {
+        const urls = Array.isArray(r.url) ? r.url : [r.url];
+        const fetched = await Promise.all(urls.map(u => fetchCatalog(u)));
+        const cinemetaMetas = fetched.flat().filter(isCleanSafe);
+        if (!cinemetaMetas.length) continue;
 
-      const sec = $('row-' + r.id);
-      if (!sec) return;
-      const track = sec.querySelector('.row-track');
-      if (!track) return;
+        const sec = $('row-' + r.id);
+        if (!sec) continue;
+        const track = sec.querySelector('.row-track');
+        if (!track) continue;
 
-      let curated = [];
-      if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
-        curated = CuratedCatalog.getCuratedForCategory(r.id) || [];
+        let curated = [];
+        if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
+          curated = CuratedCatalog.getCuratedForCategory(r.id) || [];
+        }
+        let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
+        if (!combined.length) continue;
+
+        const unseenCombined = [];
+        for (const m of combined) {
+          if (isCardUnseen(m, seenBrowseIds, seenBrowseTitles)) {
+            unseenCombined.push(m);
+            recordCardSeen(m, seenBrowseIds, seenBrowseTitles);
+          }
+        }
+        if (!unseenCombined.length) continue;
+
+        const items = dedupeMetas(unseenCombined).slice(0, 100);
+        items.forEach(m => {
+          if (m && kind === 'series') m.type = 'series';
+          else if (m && kind === 'movies') m.type = 'movie';
+        });
+
+        sec.style.display = '';
+        track.innerHTML = '';
+        items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+        updateRowDots(sec, track);
+      } catch (e) {
+        // Background enrichment error ignored - curated items remain visible
       }
-      let combined = dedupeMetas([...cinemetaMetas, ...curated]).filter(isCleanSafe);
-      if (!combined.length) return;
-
-      const items = combined.slice(0, 100);
-      sec.style.display = '';
-      track.innerHTML = '';
-      items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-      updateRowDots(sec, track);
-    } catch (e) {
-      // Background enrichment error ignored - curated items remain visible
     }
-  });
+  })();
 }
 
 let currentBrowseResults = [];
@@ -2319,14 +2364,19 @@ function renderProfileSwitcherDropdown() {
 }
 
 function selectProfile(p) {
+  store.set('nf_profile_selected', true);
   store.set('nf_profile', p.id);
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.remove('profile-gate-active');
+  }
   const letter = $('avatarLetter');
   if (letter) {
     letter.textContent = p.id;
     letter.style.background = p.color;
   }
   show('home');
-  toast(`Switched to ${p.name}`);
+  buildHome();
+  toast(`Welcome, ${p.name}!`);
   renderProfileSwitcherDropdown();
 }
 
@@ -4691,8 +4741,18 @@ document.addEventListener('keydown', e => {
   if (changed) store.set('nf_history', history);
 })();
 
-// Initialize app directly to home screen
-show('home');
+// Initialize app: check if first-time visitor needs profile selection gate
+const isProfileSelected = !!store.get('nf_profile_selected', false);
+const hasSpecificRoute = window.location.hash && window.location.hash !== '#/' && window.location.hash !== '#/home';
+
+if (!isProfileSelected && !hasSpecificRoute) {
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.add('profile-gate-active');
+  }
+  show('profiles');
+} else {
+  show('home');
+}
 buildHome();
 renderProfiles();
 renderProfileSwitcherDropdown();
