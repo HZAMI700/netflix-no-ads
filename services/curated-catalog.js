@@ -171,7 +171,8 @@ const CANONICAL_SERIES_METRICS = {
   'tt0475784': { seasonsCount: 4, epsPerSeason: 9, baseRuntime: 60 },    // Westworld
   'tt6763664': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 60 },   // The Haunting of Hill House
   'tt10574558': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 65 },   // Midnight Mass
-  'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 }    // Hannibal
+  'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 },   // Hannibal
+  'tt1196946': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 43 }    // The Mentalist
 };
 
 const RAW_CURATED_MEDIA = [
@@ -430,7 +431,8 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt0475784', name: 'Westworld', type: 'series', year: 2016, imdbRating: '8.5', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 63247, seasonsCount: 4, epsPerSeason: 9, description: 'At the intersection of the near future and the reimagined past, waiting a world in which every human appetite can be indulged without consequence.' },
   { id: 'tt6763664', name: 'The Haunting of Hill House', type: 'series', year: 2018, imdbRating: '8.6', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 72844, seasonsCount: 1, epsPerSeason: 10, description: 'Flashing between past and present, a fractured family confronts haunting memories of their old home and the terrifying events that drove them from it.' },
   { id: 'tt10574558', name: 'Midnight Mass', type: 'series', year: 2021, imdbRating: '7.7', genres: ['Drama', 'Fantasy', 'Horror', 'Mystery'], moviedb_id: 93812, seasonsCount: 1, epsPerSeason: 7, description: 'An isolated island community experiences miraculous events - and frightening omens - after the arrival of a charismatic, mysterious young priest.' },
-  { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' }
+  { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' },
+  { id: 'tt1196946', name: 'The Mentalist', type: 'series', year: 2008, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Mystery'], moviedb_id: 5920, seasonsCount: 7, epsPerSeason: 22, description: 'Patrick Jane, a former celebrity psychic medium, uses his razor-sharp observational skills and psychological trickery as an independent consultant for the California Bureau of Investigation to hunt down serial killer Red John and solve complex homicides.' }
 ];
 
 // Core Curated Media enriched with posters/backdrops
@@ -1029,6 +1031,7 @@ function searchCurated(query, limit = 200) {
   const nq = normalizeSearchText(query);
   if (!nq) return [];
   const qTokens = nq.split(' ').filter(Boolean);
+  const rootNq = nq.replace(/^(the|a|an)\s+/i, '');
 
   const realMedia = CORE_CURATED_MEDIA;
   const scoredReal = [];
@@ -1038,17 +1041,28 @@ function searchCurated(query, limit = 200) {
     const normTitle = normalizeSearchText(m.name || m.title || '');
     if (!normTitle) continue;
     let score = 0;
+    const rootTitle = normTitle.replace(/^(the|a|an)\s+/i, '');
 
     if (normTitle === nq) {
-      score += 40000;
-    } else if (normTitle.startsWith(nq + ' ')) {
-      score += 25000;
+      score += 60000;
+    } else if (rootTitle === rootNq && rootNq.length > 0) {
+      score += 55000;
+    } else if (normTitle.startsWith(nq + ' ') || normTitle.startsWith(nq + ':')) {
+      score += 35000;
+    } else if (rootTitle.startsWith(rootNq + ' ') || rootTitle.startsWith(rootNq + ':')) {
+      score += 32000;
     } else if (normTitle.startsWith(nq)) {
-      score += 20000;
+      score += 26000;
+    } else if (rootTitle.startsWith(rootNq)) {
+      score += 24000;
     } else if (normTitle.includes(' ' + nq + ' ') || normTitle.endsWith(' ' + nq)) {
-      score += 15000;
+      score += 20000;
+    } else if (rootTitle.includes(' ' + rootNq + ' ') || rootTitle.endsWith(' ' + rootNq)) {
+      score += 18000;
     } else if (normTitle.includes(nq)) {
-      score += 10000;
+      score += 14000;
+    } else if (rootTitle.includes(rootNq)) {
+      score += 12000;
     }
 
     const tTokens = normTitle.split(' ').filter(Boolean);

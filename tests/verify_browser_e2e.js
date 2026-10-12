@@ -146,6 +146,15 @@ async function runE2E() {
   console.log('profilesPage visible:', profilesVisible);
   const avatarCount = await evaluate(`document.querySelectorAll('#avatars .pav').length`);
   console.log('Avatar count:', avatarCount);
+  const avatarImages = await evaluate(`
+    Array.from(document.querySelectorAll('#avatars .pav .box img')).map(img => ({
+      src: img.getAttribute('src'),
+      loaded: img.complete && img.naturalWidth > 0
+    }))
+  `);
+  console.log('Avatar images loaded:', avatarImages);
+  const allAvatarsLoaded = avatarImages.length === 4 && avatarImages.every(a => a.loaded);
+  console.log('All 4 profile avatar images loaded successfully:', allAvatarsLoaded);
   await takeScreenshot('shot_first_visit_profiles.png');
 
   // 2. Select Profile 'You'
@@ -155,6 +164,13 @@ async function runE2E() {
 
   const profileGateGone = await evaluate(`!document.body.classList.contains('profile-gate-active')`);
   console.log('profile-gate-active removed:', profileGateGone);
+  const navAvatarImg = await evaluate(`
+    (() => {
+      const img = document.querySelector('#avatarLetter img');
+      return img ? img.getAttribute('src') : null;
+    })()
+  `);
+  console.log('Active navbar avatar image:', navAvatarImg);
   const homeVisible = await evaluate(`
     const h = document.getElementById('homePage');
     h && getComputedStyle(h).display !== 'none'
@@ -265,23 +281,183 @@ async function runE2E() {
   `);
   console.log('DOMPurify working in browser:', domPurifyWorking);
 
+  // 8. Verify Search Dropdown & Keyboard Navigation in Browser
+  console.log('\n--- 8. Checking Live Search Dropdown ---');
+  await evaluate(`
+    show('home');
+    const wrap = document.getElementById('searchWrap');
+    wrap.classList.add('open');
+    const input = document.getElementById('searchInput');
+    input.value = 'Breaking';
+    updateSearchDropdown('Breaking');
+  `);
+  await new Promise(r => setTimeout(r, 600));
+
+  const dropdownCheck = await evaluate(`
+    const dd = document.getElementById('searchDropdown');
+    const isShown = dd && dd.classList.contains('show');
+    const items = dd ? dd.querySelectorAll('.search-dropdown-item') : [];
+    const firstTitle = items.length ? items[0].querySelector('.search-item-title')?.textContent : '';
+    const hasBadges = items.length ? !!items[0].querySelector('.search-badge') : false;
+    const hasThumb = items.length ? !!items[0].querySelector('img') : false;
+    ({ isShown, count: items.length, firstTitle, hasBadges, hasThumb })
+  `);
+  console.log('Search dropdown shown:', dropdownCheck.isShown);
+  console.log('Search dropdown item count:', dropdownCheck.count);
+  console.log('Search dropdown first title:', dropdownCheck.firstTitle);
+  console.log('Search dropdown has badge:', dropdownCheck.hasBadges);
+  console.log('Search dropdown has thumbnail:', dropdownCheck.hasThumb);
+  await takeScreenshot('shot_search_dropdown.png');
+
+  // 9. Verify Poster Resolution & Resilient Fallbacks in Browser
+  console.log('\n--- 9. Checking Poster Resolution & Fallback System ---');
+  const posterCheck = await evaluate(`
+    const cardImgs = Array.from(document.querySelectorAll('.card img'));
+    const totalCards = cardImgs.length;
+    const withValidSrc = cardImgs.filter(img => img.src && (img.src.startsWith('http') || img.src.startsWith('data:image/svg'))).length;
+    const testFallback = poster({ name: 'Unavailable Film Test', type: 'movie' });
+    const fallbackValid = testFallback && (testFallback.startsWith('data:image/svg+xml') || testFallback.startsWith('http'));
+    ({ totalCards, withValidSrc, fallbackValid })
+  `);
+  console.log('Total card posters checked:', posterCheck.totalCards);
+  console.log('Posters with valid URL or SVG fallback:', posterCheck.withValidSrc);
+  console.log('Fallback poster generation working:', posterCheck.fallbackValid);
+  await takeScreenshot('shot_poster_resolution.png');
+
+  // 10. Verify Infinite Scrolling Architecture in Browser
+  console.log('\n--- 10. Checking Infinite Scrolling System ---');
+  await evaluate(`
+    closeSearchDropdown();
+    openBrowse('movies');
+  `);
+  await new Promise(r => setTimeout(r, 800));
+
+  const infiniteCheck = await evaluate(`
+    const browseGrid = document.getElementById('browseGrid');
+    const sentinel = document.getElementById('browseSentinel');
+    const initialGridCount = browseGrid ? browseGrid.querySelectorAll('.card').length : 0;
+    renderBrowseChunk();
+    const afterChunkCount = browseGrid ? browseGrid.querySelectorAll('.card').length : 0;
+    ({ hasSentinel: !!sentinel, initialGridCount, afterChunkCount })
+  `);
+  console.log('Browse sentinel exists:', infiniteCheck.hasSentinel);
+  console.log('Browse grid initial cards:', infiniteCheck.initialGridCount);
+  console.log('Browse grid after chunk expansion:', infiniteCheck.afterChunkCount);
+  // 11. Verify "Mentalist" Search, Ranking & Detail Navigation in Browser
+  console.log('\n--- 11. Checking Live Browser Search & Navigation for "Mentalist" ---');
+  await evaluate(`(() => {
+    closeDetail();
+    show('home');
+    const wrap = document.getElementById('searchWrap');
+    wrap.classList.add('open');
+    const input = document.getElementById('searchInput');
+    input.value = 'Mentalist';
+    updateSearchDropdown('Mentalist');
+  })()`);
+  await new Promise(r => setTimeout(r, 600));
+
+  const mentalistSearchCheck = await evaluate(`(() => {
+    const dd = document.getElementById('searchDropdown');
+    const items = dd ? Array.from(dd.querySelectorAll('.search-dropdown-item')) : [];
+    const firstTitle = items.length ? items[0].querySelector('.search-item-title')?.textContent : '';
+    const firstBadge = items.length ? items[0].querySelector('.search-badge')?.textContent : '';
+    const count = items.length;
+    return { count, firstTitle, firstBadge };
+  })()`);
+  console.log('Search "Mentalist" results count:', mentalistSearchCheck.count);
+  console.log('Search "Mentalist" top title:', mentalistSearchCheck.firstTitle);
+  console.log('Search "Mentalist" top badge:', mentalistSearchCheck.firstBadge);
+
+  // Click the top item (desktop click navigation)
+  await evaluate(`(() => {
+    const firstItem = document.querySelector('#searchDropdown .search-dropdown-item');
+    if (firstItem) firstItem.click();
+  })()`);
+  await new Promise(r => setTimeout(r, 600));
+
+  const mentalistDetailCheck = await evaluate(`(() => {
+    const bd = document.getElementById('detailBackdrop');
+    const isOpen = bd && bd.classList.contains('show');
+    const title = document.getElementById('dTitle')?.textContent;
+    const seasonSel = document.getElementById('seasonSel');
+    const seasonCount = seasonSel ? seasonSel.options.length : 0;
+    const epCount = document.querySelectorAll('#epList .ep-card').length;
+    return { isOpen, title, seasonCount, epCount };
+  })()`);
+  console.log('Detail modal open:', mentalistDetailCheck.isOpen);
+  console.log('Detail modal title:', mentalistDetailCheck.title);
+  console.log('Detail modal seasons count:', mentalistDetailCheck.seasonCount);
+  console.log('Detail modal episodes count:', mentalistDetailCheck.epCount);
+  await takeScreenshot('shot_mentalist_detail.png');
+
+  // Close detail and check known movie "Inception"
+  await evaluate(`(() => {
+    closeDetail();
+    const wrap = document.getElementById('searchWrap');
+    wrap.classList.add('open');
+    const input = document.getElementById('searchInput');
+    input.value = 'Inception';
+    updateSearchDropdown('Inception');
+  })()`);
+  await new Promise(r => setTimeout(r, 600));
+
+  const inceptionSearchCheck = await evaluate(`(() => {
+    const dd = document.getElementById('searchDropdown');
+    const items = dd ? Array.from(dd.querySelectorAll('.search-dropdown-item')) : [];
+    const firstTitle = items.length ? items[0].querySelector('.search-item-title')?.textContent : '';
+    const firstBadge = items.length ? items[0].querySelector('.search-badge')?.textContent : '';
+    return { firstTitle, firstBadge };
+  })()`);
+  console.log('Search "Inception" top title:', inceptionSearchCheck.firstTitle);
+  console.log('Search "Inception" top badge:', inceptionSearchCheck.firstBadge);
+
+  await evaluate(`(() => {
+    const firstItem = document.querySelector('#searchDropdown .search-dropdown-item');
+    if (firstItem) firstItem.click();
+  })()`);
+  await new Promise(r => setTimeout(r, 600));
+
+  const inceptionDetailCheck = await evaluate(`(() => {
+    const bd = document.getElementById('detailBackdrop');
+    const isOpen = bd && bd.classList.contains('show');
+    const title = document.getElementById('dTitle')?.textContent;
+    const hasPlayBtn = !!document.getElementById('dPlay');
+    return { isOpen, title, hasPlayBtn };
+  })()`);
+  console.log('Inception detail open:', inceptionDetailCheck.isOpen);
+  console.log('Inception detail title:', inceptionDetailCheck.title);
+  console.log('Inception detail play button present:', inceptionDetailCheck.hasPlayBtn);
+  await takeScreenshot('shot_inception_detail.png');
+
   ws.close();
   chromeProcess.kill();
 
   const allPassed = isProfileGateActive &&
                     profilesVisible &&
                     avatarCount === 4 &&
+                    allAvatarsLoaded &&
                     profileGateGone &&
+                    !!navAvatarImg &&
                     homeVisible &&
                     continueHidden &&
                     finishedHidden &&
                     homeDuplicationCheck.duplicatesCount === 0 &&
                     seriesDuplicationCheck.duplicatesCount === 0 &&
                     addonsHidden &&
-                    domPurifyWorking;
+                    domPurifyWorking &&
+                    dropdownCheck.isShown &&
+                    dropdownCheck.count > 0 &&
+                    dropdownCheck.hasBadges &&
+                    posterCheck.fallbackValid &&
+                    infiniteCheck.hasSentinel &&
+                    mentalistSearchCheck.firstTitle === 'The Mentalist' &&
+                    mentalistDetailCheck.isOpen &&
+                    mentalistDetailCheck.seasonCount === 7 &&
+                    inceptionSearchCheck.firstTitle === 'Inception' &&
+                    inceptionDetailCheck.isOpen;
 
   if (allPassed) {
-    console.log('\n>>> ALL 7 BROWSER E2E VERIFICATIONS PASSED 100%! <<<');
+    console.log('\n>>> ALL 11 BROWSER E2E VERIFICATIONS PASSED 100%! <<<');
     process.exit(0);
   } else {
     console.error('\n>>> SOME E2E VERIFICATIONS FAILED! <<<');

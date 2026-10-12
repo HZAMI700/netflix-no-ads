@@ -78,10 +78,10 @@ let currentEmbed = null;
 let currentPlayerServer = store.get('nf_player_server', 'server1');
 
 const PROFILES = [
-  { id: 'Z', name: 'You', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
-  { id: 'K', name: 'Kids', color: 'linear-gradient(135deg, #1f6feb 0%, #0d419d 100%)' },
-  { id: 'F', name: 'Family', color: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)' },
-  { id: 'G', name: 'Guest', color: 'linear-gradient(135deg, #238636 0%, #175a24 100%)' }
+  { id: 'Z', name: 'You', avatar: 'assets/profiles/profile_red.png', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
+  { id: 'K', name: 'Kids', avatar: 'assets/profiles/profile_blue.png', color: 'linear-gradient(135deg, #1f6feb 0%, #0d419d 100%)' },
+  { id: 'F', name: 'Family', avatar: 'assets/profiles/profile_yellow.jpg', color: 'linear-gradient(135deg, #f59e0b 0%, #b45309 100%)' },
+  { id: 'G', name: 'Guest', avatar: 'assets/profiles/profile_chicken.jpg', color: 'linear-gradient(135deg, #eab308 0%, #ca8a04 100%)' }
 ];
 
 function toast(msg) {
@@ -108,7 +108,9 @@ let currentRoute = { page: 'home', id: null, type: null };
 let lastPage = 'home';
 let isHandlingHashRoute = false;
 
-function show(name, subNav) {
+let savedPageScroll = 0;
+
+function show(name, subNav, preserveScroll = false) {
   clearTimeout(cardHoverTimer);
   clearTimeout(cardLeaveTimer);
   closeCardPortal();
@@ -130,7 +132,9 @@ function show(name, subNav) {
   }
   const activeNav = subNav || name;
   document.querySelectorAll('.nav-links a').forEach(a => a.classList.toggle('active', a.dataset.nav === activeNav));
-  window.scrollTo(0, 0);
+  if (!preserveScroll) {
+    window.scrollTo(0, 0);
+  }
 }
 
 document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click', e => {
@@ -302,24 +306,361 @@ const searchWrap = $('searchWrap');
 const searchInput = $('searchInput');
 const searchClearBtn = $('searchClearBtn');
 
+let dropdownAbortCtrl = null;
+let activeDropdownIndex = -1;
+let currentDropdownResults = [];
+
+function closeSearchDropdown() {
+  const dd = $('searchDropdown');
+  if (dd) {
+    dd.classList.remove('show');
+    dd.innerHTML = '';
+  }
+  activeDropdownIndex = -1;
+  currentDropdownResults = [];
+  if (dropdownAbortCtrl) {
+    try { dropdownAbortCtrl.abort(); } catch {}
+    dropdownAbortCtrl = null;
+  }
+}
+
+function normalizeSearchText(str) {
+  if (!str) return '';
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshteinDistance(s1, s2) {
+  if (s1 === s2) return 0;
+  if (!s1.length) return s2.length;
+  if (!s2.length) return s1.length;
+  if (Math.abs(s1.length - s2.length) > 2) return 99;
+  const m = s1.length, n = s2.length;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    const c1 = s1.charCodeAt(i - 1);
+    for (let j = 1; j <= n; j++) {
+      const cost = c1 === s2.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    const temp = prev; prev = curr; curr = temp;
+  }
+  return prev[n];
+}
+
+function scoreSearchResult(item, query) {
+  if (!item) return -1;
+  const qNorm = normalizeSearchText(query);
+  if (!qNorm) return 0;
+  const title = normalizeSearchText(item.name || item.title || '');
+  if (!title) return -1;
+
+  let score = 0;
+  const rootTitle = title.replace(/^(the|a|an)\s+/i, '');
+  const rootQ = qNorm.replace(/^(the|a|an)\s+/i, '');
+
+  if (title === qNorm || (rootTitle === rootQ && rootQ.length > 0)) {
+    score += 50000;
+  } else if (title.startsWith(qNorm + ' ') || title.startsWith(qNorm + ':') || title.startsWith(qNorm + ' -') ||
+             rootTitle.startsWith(rootQ + ' ') || rootTitle.startsWith(rootQ + ':') || rootTitle.startsWith(rootQ + ' -')) {
+    score += 30000;
+  } else if (title.startsWith(qNorm) || rootTitle.startsWith(rootQ)) {
+    score += 24000;
+  } else if (title.includes(' ' + qNorm + ' ') || title.endsWith(' ' + qNorm) ||
+             rootTitle.includes(' ' + rootQ + ' ') || rootTitle.endsWith(' ' + rootQ)) {
+    score += 18000;
+  } else if (title.includes(qNorm) || rootTitle.includes(rootQ)) {
+    score += 12000;
+  }
+
+  const qTokens = qNorm.split(' ').filter(Boolean);
+  const tTokens = title.split(' ').filter(Boolean);
+  let matchedTokens = 0;
+  for (const qt of qTokens) {
+    let tokenScore = 0;
+    for (const tt of tTokens) {
+      if (tt === qt) {
+        tokenScore = Math.max(tokenScore, 3000);
+      } else if (tt.startsWith(qt) && qt.length >= 2) {
+        tokenScore = Math.max(tokenScore, 1800);
+      } else if (qt.length >= 4) {
+        const d = levenshteinDistance(qt, tt);
+        if (d <= 1 || (qt.length >= 6 && d <= 2)) {
+          tokenScore = Math.max(tokenScore, 1400);
+        }
+      }
+    }
+    if (tokenScore > 0) {
+      score += tokenScore;
+      matchedTokens++;
+    }
+  }
+  if (qTokens.length > 1 && matchedTokens === qTokens.length) {
+    score += 5000;
+  }
+
+  if (item.cast && Array.isArray(item.cast)) {
+    for (const c of item.cast) {
+      if (normalizeSearchText(c).includes(qNorm)) { score += 2000; break; }
+    }
+  }
+  if (item.director && normalizeSearchText(item.director).includes(qNorm)) {
+    score += 2000;
+  }
+
+  if (item.genres && Array.isArray(item.genres)) {
+    for (const g of item.genres) {
+      if (normalizeSearchText(g) === qNorm) { score += 1800; break; }
+    }
+  }
+
+  if (!item._isProcedural) {
+    score += 4000;
+  }
+
+  if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById && item.id && CuratedCatalog.getCuratedById(item.id)) {
+    score += 5000;
+  }
+
+  const rating = parseFloat(item.imdbRating) || 0;
+  score += Math.round(rating * 500);
+
+  if (item.seasonsCount && Number(item.seasonsCount) > 0) {
+    score += Math.min(Number(item.seasonsCount) * 200, 2000);
+  }
+
+  if (item.year && qNorm.includes(String(item.year))) {
+    score += 1000;
+  }
+
+  return score;
+}
+
+function isSearchRelevant(item, query) {
+  if (!item) return false;
+  return scoreSearchResult(item, query) >= 1500;
+}
+
+async function updateSearchDropdown(query) {
+  const dd = $('searchDropdown');
+  if (!dd) return;
+
+  const q = (query || '').trim();
+  if (q.length < 2) {
+    closeSearchDropdown();
+    return;
+  }
+
+  if (dropdownAbortCtrl) {
+    try { dropdownAbortCtrl.abort(); } catch {}
+  }
+  dropdownAbortCtrl = new AbortController();
+  const signal = dropdownAbortCtrl.signal;
+
+  dd.classList.add('show');
+  dd.innerHTML = `
+    <div class="search-dropdown-header">
+      <span>Top Matches for "${escapeHtml(q)}"</span>
+    </div>
+    <div class="search-dropdown-loading">
+      <div class="spinner"></div>
+      <span>Searching catalog…</span>
+    </div>
+  `;
+
+  // Phase 1: Instant local results from CuratedCatalog
+  const localHits = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated)
+    ? CuratedCatalog.searchCurated(q, 40)
+    : [];
+
+  const initialMatches = localHits.filter(isCleanSafe);
+  initialMatches.sort((a, b) => scoreSearchResult(b, q) - scoreSearchResult(a, q));
+
+  if (initialMatches.length > 0 && !signal.aborted) {
+    renderDropdownItems(initialMatches.slice(0, 8), q);
+  }
+
+  // Phase 2: Remote fetch from Cinemeta
+  try {
+    const [mRes, sRes] = await Promise.all([
+      fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] }))
+    ]);
+    if (signal.aborted) return;
+
+    const remoteItems = [
+      ...(mRes.metas || []).map(x => ({ ...x, type: 'movie' })),
+      ...(sRes.metas || []).map(x => ({ ...x, type: 'series' }))
+    ].filter(item => isCleanSafe(item) && isSearchRelevant(item, q));
+
+    const combined = dedupeMetas([...initialMatches, ...remoteItems]);
+    combined.sort((a, b) => scoreSearchResult(b, q) - scoreSearchResult(a, q));
+
+    if (!signal.aborted) {
+      renderDropdownItems(combined.slice(0, 8), q, combined.length);
+    }
+  } catch (err) {
+    if (signal.aborted) return;
+    if (!initialMatches.length) {
+      dd.innerHTML = `
+        <div class="search-dropdown-header"><span>Search Results</span></div>
+        <div class="search-dropdown-empty">No matching titles found for "${escapeHtml(q)}".</div>
+      `;
+    }
+  }
+}
+
+function renderDropdownItems(items, query, totalCount) {
+  const dd = $('searchDropdown');
+  if (!dd) return;
+
+  currentDropdownResults = items;
+  activeDropdownIndex = -1;
+
+  if (!items || !items.length) {
+    dd.innerHTML = `
+      <div class="search-dropdown-header"><span>Search Results</span></div>
+      <div class="search-dropdown-empty">No matching titles found for "${escapeHtml(query)}".</div>
+    `;
+    return;
+  }
+
+  const listHtml = items.map((m, idx) => {
+    const isSeries = (m.type === 'series' || m.type === 'tv');
+    const badgeText = isSeries ? 'TV SERIES' : 'MOVIE';
+    const badgeClass = isSeries ? 'badge-series' : 'badge-movie';
+    const itemTitle = escapeHtml(m.name || m.title || 'Untitled');
+    const itemYear = m.year || m.releaseInfo || '';
+    const itemRating = m.imdbRating ? `★ ${m.imdbRating}` : '';
+    const itemPoster = poster(m, false);
+    const itemFallback = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', itemYear, m.imdbRating || '8.2', m.type || (isSeries ? 'series' : 'movie'), false);
+
+    return `
+      <div class="search-dropdown-item" data-idx="${idx}" role="option" tabIndex="-1">
+        <img src="${itemPoster}" alt="${itemTitle}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${itemFallback}';">
+        <div class="search-item-info">
+          <div class="search-item-title">${itemTitle}</div>
+          <div class="search-item-meta">
+            <span class="search-badge ${badgeClass}">${badgeText}</span>
+            ${itemYear ? `<span>${escapeHtml(itemYear)}</span>` : ''}
+            ${itemRating ? `<span class="search-rating">${itemRating}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  const countDisplay = totalCount ? `${totalCount}+` : items.length;
+  dd.innerHTML = `
+    <div class="search-dropdown-header">
+      <span>Suggested Titles (${countDisplay})</span>
+    </div>
+    <div class="search-dropdown-list">
+      ${listHtml}
+    </div>
+    <div class="search-dropdown-footer" id="searchDropdownSeeAll">
+      See all results for "${escapeHtml(query)}"
+    </div>
+  `;
+
+  dd.querySelectorAll('.search-dropdown-item').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const idx = parseInt(el.dataset.idx, 10);
+      const chosen = currentDropdownResults[idx];
+      if (!chosen) return;
+      selectDropdownResult(chosen);
+    });
+  });
+
+  const seeAllBtn = $('searchDropdownSeeAll');
+  if (seeAllBtn) {
+    seeAllBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeSearchDropdown();
+      doSearch(query);
+    });
+  }
+}
+
+function highlightDropdownItem(idx) {
+  const dd = $('searchDropdown');
+  if (!dd) return;
+  const items = dd.querySelectorAll('.search-dropdown-item');
+  items.forEach((itemEl, i) => {
+    itemEl.classList.toggle('active-item', i === idx);
+    if (i === idx) {
+      itemEl.scrollIntoView({ block: 'nearest' });
+    }
+  });
+}
+
+function selectDropdownResult(item) {
+  closeSearchDropdown();
+  const id = item.id || item.imdb_id || item.imdb || (item.moviedb_id ? `tmdb:${item.moviedb_id}` : null) || item.name || item.title;
+  const isSeries = (item.type === 'series' || item.type === 'tv');
+  const tp = isSeries ? 'series' : 'movie';
+  openDetail(id, tp, false, null, item);
+}
+
 if (searchBtn && searchWrap && searchInput) {
   searchBtn.onclick = () => {
     searchWrap.classList.toggle('open');
     if (searchWrap.classList.contains('open')) {
       searchInput.focus();
     } else {
+      closeSearchDropdown();
       if (pages.search.classList.contains('show')) show('home');
     }
   };
 
   searchInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') doSearch(e.target.value);
+    const dd = $('searchDropdown');
+    const isDropdownOpen = dd && dd.classList.contains('show');
+
+    if (e.key === 'ArrowDown' && isDropdownOpen && currentDropdownResults.length) {
+      e.preventDefault();
+      activeDropdownIndex = (activeDropdownIndex + 1) % currentDropdownResults.length;
+      highlightDropdownItem(activeDropdownIndex);
+      return;
+    }
+    if (e.key === 'ArrowUp' && isDropdownOpen && currentDropdownResults.length) {
+      e.preventDefault();
+      activeDropdownIndex = (activeDropdownIndex - 1 + currentDropdownResults.length) % currentDropdownResults.length;
+      highlightDropdownItem(activeDropdownIndex);
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (isDropdownOpen && activeDropdownIndex >= 0 && currentDropdownResults[activeDropdownIndex]) {
+        selectDropdownResult(currentDropdownResults[activeDropdownIndex]);
+        return;
+      }
+      closeSearchDropdown();
+      doSearch(e.target.value);
+      return;
+    }
+    if (e.key === 'Escape') {
+      closeSearchDropdown();
+      return;
+    }
   });
 }
 
 if (searchClearBtn && searchInput) {
   searchClearBtn.onclick = () => {
     searchInput.value = '';
+    closeSearchDropdown();
     searchInput.focus();
   };
 }
@@ -333,9 +674,22 @@ if (searchGo && searchBox) {
   });
 }
 
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#searchWrap') && !e.target.closest('#searchDropdown')) {
+    closeSearchDropdown();
+  }
+});
+
 let currentSearchResults = [];
 let currentSearchOffset = 0;
 const SEARCH_PAGE_SIZE = 48;
+let currentActiveSearchQuery = '';
+let searchRemoteSkip = 0;
+let isSearchFetching = false;
+let searchHasMore = true;
+let seenSearchIds = new Set();
+let seenSearchTitles = new Set();
+let searchAbortCtrl = null;
 
 function renderSearchChunk() {
   const container = $('searchResults');
@@ -349,18 +703,40 @@ function renderSearchChunk() {
 async function doSearch(q) {
   q = (q || '').trim();
   if (!q) return;
+
+  if (searchAbortCtrl) {
+    try { searchAbortCtrl.abort(); } catch {}
+  }
+  searchAbortCtrl = new AbortController();
+  const signal = searchAbortCtrl.signal;
+
+  currentActiveSearchQuery = q;
+  searchRemoteSkip = 0;
+  searchHasMore = true;
+  isSearchFetching = false;
+  seenSearchIds.clear();
+  seenSearchTitles.clear();
+
   show('search');
+  closeSearchDropdown();
+
   if ($('searchTitle')) $('searchTitle').textContent = `Results for "${q}"`;
   if ($('searchBox')) $('searchBox').value = q;
   if ($('searchInput')) $('searchInput').value = q;
 
+  const retryEl = $('searchRetry');
+  if (retryEl) retryEl.style.display = 'none';
+
   // Phase 1: Instant smart results from CuratedCatalog (0ms latency!)
   const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated)
-    ? CuratedCatalog.searchCurated(q, 150)
+    ? CuratedCatalog.searchCurated(q, 200)
     : [];
 
-  if (curatedMatches.length > 0) {
-    currentSearchResults = curatedMatches.filter(isCleanSafe);
+  const initialCurated = curatedMatches.filter(isCleanSafe);
+  initialCurated.forEach(m => recordCardSeen(m, seenSearchIds, seenSearchTitles));
+
+  if (initialCurated.length > 0) {
+    currentSearchResults = initialCurated;
     currentSearchOffset = 0;
     $('searchResults').innerHTML = '';
     renderSearchChunk();
@@ -371,34 +747,110 @@ async function doSearch(q) {
   // Phase 2: Asynchronous background enrichment from Cinemeta
   try {
     const [m1, m2, s1, s2] = await Promise.all([
-      fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/movie/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
+      fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/movie/imdbRating/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] }))
     ]);
-    const remoteMetas = [
-      ...(m1.metas || []),
-      ...(m2.metas || []),
-      ...(s1.metas || []),
-      ...(s2.metas || [])
+    if (signal.aborted) return;
+
+    searchRemoteSkip = 100;
+    const rawRemote = [
+      ...(m1.metas || []).map(x => ({ ...x, type: 'movie' })),
+      ...(m2.metas || []).map(x => ({ ...x, type: 'movie' })),
+      ...(s1.metas || []).map(x => ({ ...x, type: 'series' })),
+      ...(s2.metas || []).map(x => ({ ...x, type: 'series' }))
     ];
-    if (remoteMetas.length > 0) {
-      const all = dedupeMetas([
-        ...curatedMatches,
-        ...remoteMetas
-      ]).filter(isCleanSafe);
-      currentSearchResults = all;
-      currentSearchOffset = 0;
-      $('searchResults').innerHTML = '';
-      renderSearchChunk();
-    }
+
+    const relevantRemote = rawRemote.filter(item => isCleanSafe(item) && isSearchRelevant(item, q));
+
+    const combined = dedupeMetas([...initialCurated, ...relevantRemote]);
+    combined.sort((a, b) => scoreSearchResult(b, q) - scoreSearchResult(a, q));
+
+    const freshCombined = [];
+    combined.forEach(m => {
+      if (isCardUnseen(m, seenSearchIds, seenSearchTitles)) {
+        freshCombined.push(m);
+        recordCardSeen(m, seenSearchIds, seenSearchTitles);
+      }
+    });
+
+    currentSearchResults = [...initialCurated, ...freshCombined];
+    $('searchResults').innerHTML = '';
+    currentSearchOffset = 0;
+    renderSearchChunk();
   } catch (err) {
-    // If remote fails, instant curated results are already displayed
+    if (signal.aborted) return;
   }
 
   if (!currentSearchResults || !currentSearchResults.length) {
     $('searchResults').innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>Your search for "${escapeHtml(q)}" did not have any matches.</h2><p>Try searching for a different movie, TV show, actor, director, or genre.</p></div>`;
   }
+
+  initInfiniteScrolling();
+}
+
+async function fetchMoreSearchResults() {
+  if (isSearchFetching || !searchHasMore) return;
+  const resultsContainer = $('searchResults');
+  if (!resultsContainer || $('searchPage')?.style.display === 'none') return;
+
+  if (currentSearchOffset < currentSearchResults.length) {
+    renderSearchChunk();
+    return;
+  }
+
+  isSearchFetching = true;
+  const loader = $('searchLoader');
+  const retryEl = $('searchRetry');
+  if (loader) loader.style.display = 'flex';
+  if (retryEl) retryEl.style.display = 'none';
+
+  try {
+    const q = currentActiveSearchQuery;
+    if (!q) { searchHasMore = false; return; }
+
+    const skip = searchRemoteSkip;
+    const [mRemote, sRemote] = await Promise.all([
+      fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}/skip=${skip}.json`).then(r => r.json()).catch(() => ({ metas: [] })),
+      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}/skip=${skip}.json`).then(r => r.json()).catch(() => ({ metas: [] }))
+    ]);
+
+    searchRemoteSkip += 100;
+    const incoming = [
+      ...(mRemote.metas || []).map(x => ({ ...x, type: 'movie' })),
+      ...(sRemote.metas || []).map(x => ({ ...x, type: 'series' }))
+    ].filter(item => isCleanSafe(item) && isSearchRelevant(item, q));
+
+    const newItems = [];
+    incoming.forEach(m => {
+      if (isCardUnseen(m, seenSearchIds, seenSearchTitles)) {
+        newItems.push(m);
+        recordCardSeen(m, seenSearchIds, seenSearchTitles);
+      }
+    });
+
+    if (newItems.length > 0) {
+      newItems.sort((a, b) => scoreSearchResult(b, q) - scoreSearchResult(a, q));
+      currentSearchResults = [...currentSearchResults, ...newItems];
+      renderSearchChunk();
+    } else {
+      searchHasMore = false;
+    }
+  } catch (err) {
+    console.warn('Search infinite scroll error:', err);
+    if (retryEl) retryEl.style.display = 'flex';
+  } finally {
+    if (loader) loader.style.display = 'none';
+    isSearchFetching = false;
+  }
+}
+
+const searchRetryBtn = $('searchRetryBtn');
+if (searchRetryBtn) {
+  searchRetryBtn.onclick = () => {
+    fetchMoreSearchResults();
+  };
 }
 
 const isCleanSafe = (m) => {
@@ -479,19 +931,89 @@ if (typeof window !== 'undefined') {
   window.createPosterFallback = createPosterFallback;
 }
 
+function formatPosterUrl(raw, isBackdrop = false) {
+  if (!raw || typeof raw !== 'string') return null;
+  let url = raw.trim();
+  if (!url || url === 'null' || url === 'undefined' || url === 'none' || url === 'N/A') return null;
+  if (url.includes('/null') || url.includes('/undefined')) return null;
+  if (url.startsWith('/')) {
+    const size = isBackdrop ? 'w1280' : 'w500';
+    return `https://image.tmdb.org/t/p/${size}${url}`;
+  }
+  if (url.startsWith('http://image.tmdb.org/') || url.startsWith('http://images.metahub.space/')) {
+    return url.replace(/^http:\/\//i, 'https://');
+  }
+  if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+    return url.replace(/^http:\/\//i, 'https://');
+  }
+  return url;
+}
+
 const poster = (m, isLandscape = false) => {
   if (!m) return createPosterFallback('Feature', 'Cinema', '2024', '8.2', 'movie', isLandscape);
-  if (isLandscape && m.background) return m.background;
-  if (m.poster) return m.poster;
-  if (m.background) return m.background;
-  return createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie', isLandscape);
+
+  const mType = (m.type === 'series' || m.type === 'tv') ? 'series' : 'movie';
+  const mTitle = m.name || m.title || 'Feature Film';
+  const mGenre = (m.genres && m.genres[0]) || (mType === 'series' ? 'TV Series' : 'Cinema');
+  const mYear = m.year || m.releaseInfo || '2024';
+  const mRating = m.imdbRating || '8.2';
+
+  if (isLandscape) {
+    const bg = formatPosterUrl(m.background, true) ||
+               formatPosterUrl(m.backdrop_path, true) ||
+               formatPosterUrl(m.poster, false) ||
+               formatPosterUrl(m.poster_path, false);
+    if (bg) return bg;
+  } else {
+    const pos = formatPosterUrl(m.poster, false) ||
+                formatPosterUrl(m.poster_path, false) ||
+                formatPosterUrl(m.background, true) ||
+                formatPosterUrl(m.backdrop_path, true);
+    if (pos) return pos;
+  }
+
+  // Cross-reference with CuratedCatalog by ID or Title (strictly respecting media type)
+  if (typeof CuratedCatalog !== 'undefined') {
+    const cid = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null) || m.tmdbId;
+    if (cid && CuratedCatalog.getCuratedById) {
+      const cur = CuratedCatalog.getCuratedById(cid);
+      if (cur) {
+        const curType = (cur.type === 'series' || cur.type === 'tv') ? 'series' : 'movie';
+        if (curType === mType) {
+          if (isLandscape) {
+            const cbg = formatPosterUrl(cur.background, true) || formatPosterUrl(cur.poster, false);
+            if (cbg) return cbg;
+          } else {
+            const cpos = formatPosterUrl(cur.poster, false) || formatPosterUrl(cur.background, true);
+            if (cpos) return cpos;
+          }
+        }
+      }
+    }
+    if (mTitle && CuratedCatalog.searchCurated) {
+      const hits = CuratedCatalog.searchCurated(mTitle, 5);
+      const match = hits.find(h => {
+        const hType = (h.type === 'series' || h.type === 'tv') ? 'series' : 'movie';
+        return hType === mType && (h.name || h.title || '').toLowerCase() === mTitle.toLowerCase();
+      });
+      if (match) {
+        if (isLandscape) {
+          const mbg = formatPosterUrl(match.background, true) || formatPosterUrl(match.poster, false);
+          if (mbg) return mbg;
+        } else {
+          const mpos = formatPosterUrl(match.poster, false) || formatPosterUrl(match.background, true);
+          if (mpos) return mpos;
+        }
+      }
+    }
+  }
+
+  return createPosterFallback(mTitle, mGenre, mYear, mRating, mType, isLandscape);
 };
 
 const backdrop = m => {
   if (!m) return createPosterFallback('Feature', 'Cinema', '2024', '8.2', 'movie', true);
-  if (m.background) return m.background;
-  if (m.poster) return m.poster;
-  return createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || 'movie', true);
+  return poster(m, true);
 };
 function matchScore(m) {
   const r = parseFloat(m.imdbRating);
@@ -1093,6 +1615,10 @@ function openCardPortal(card, m, badge, rank) {
       openDetail(id, tp, false, null, m);
     } else {
       closeCardPortal();
+      if (activeHoverCard && activeHoverCard.closest('#searchResults')) {
+        openDetail(id, tp, false, null, m);
+        return;
+      }
       if (isTv) {
         if (isContinue) {
           const hist = history[id] || history[m.id] || history[String(id).replace(/^tmdb:/, '')];
@@ -1229,6 +1755,7 @@ function buildCard(m, badge, rank) {
   const titleText = escapeHtml(m.name || m.title || '');
   const titleOverlay = `<div class="card-title-fallback">${titleText}</div>`;
 
+  const fallbackPosterSvg = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type, isLandscape);
   const cardImgSrc = isLandscape
     ? (m.background || backdrop(m) || m.poster || poster(m, true))
     : (m.poster || poster(m, false));
@@ -1242,11 +1769,15 @@ function buildCard(m, badge, rank) {
       ${top10Html}
       ${finishToggleBtn}
       ${removeBtn}
-      <img ${imgLoadingAttr} src="${cardImgSrc}" alt="${titleText}">
+      <img ${imgLoadingAttr} src="${cardImgSrc}" alt="${titleText}" onerror="this.onerror=null;this.classList.add('poster-fallback');this.src='${fallbackPosterSvg}';this.parentElement.parentElement.classList.add('show-title-overlay');">
       ${titleOverlay}
       ${prog}
     </div>
   `;
+
+  if (cardImgSrc === fallbackPosterSvg) {
+    el.classList.add('show-title-overlay');
+  }
 
   const cardImg = el.querySelector('img');
   if (cardImg) {
@@ -1259,12 +1790,9 @@ function buildCard(m, badge, rank) {
     }
     cardImg.onerror = function() {
       this.onerror = null;
+      this.classList.add('poster-fallback');
       el.classList.add('show-title-overlay');
-      if (isLandscape && m.poster && this.src !== m.poster) {
-        this.src = m.poster;
-        return;
-      }
-      this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || m.releaseInfo || '2024', m.imdbRating || '8.2', m.type || type, isLandscape);
+      this.src = fallbackPosterSvg;
     };
   }
 
@@ -1360,6 +1888,12 @@ function buildCard(m, badge, rank) {
       } else if (parentSec && (parentSec.id.includes('movie') || parentSec.id.includes('b_mov'))) {
         tp = 'movie';
       }
+    }
+
+    const isSearchResult = !!el.closest('#searchResults');
+    if (isSearchResult) {
+      openDetail(id, tp, false, null, m);
+      return;
     }
 
     if (tp === 'series') {
@@ -1829,6 +2363,7 @@ async function openDetail(id, type, autoplay, continueTarget) {
 
   if (currentRoute.page !== 'detail') {
     lastPage = currentRoute.page || 'home';
+    savedPageScroll = window.scrollY || document.documentElement.scrollTop || 0;
   }
   currentRoute = { page: 'detail', id, type };
 
@@ -2008,8 +2543,11 @@ function closeDetail(syncUrl = true) {
   } else {
     const pageEl = pages[lastPage];
     if (pageEl && !pageEl.classList.contains('show')) {
-      show(lastPage);
+      show(lastPage, null, true);
     }
+  }
+  if (savedPageScroll != null && savedPageScroll > 0) {
+    window.scrollTo(0, savedPageScroll);
   }
 }
 
@@ -2259,11 +2797,72 @@ async function loadCategoryRows(kind) {
       }
     }
   })();
+  // Connect infinite scrolling for full catalog beneath category rows
+  browseRemoteSkip = 100;
+  browseHasMore = true;
+  isBrowseFetching = false;
+  seenBrowseGridIds.clear();
+  seenBrowseGridTitles.clear();
+
+  const catalogSource = kind === 'series'
+    ? (typeof CuratedCatalog !== 'undefined' ? (CuratedCatalog.CURATED_SERIES || []) : [])
+    : (typeof CuratedCatalog !== 'undefined' ? (CuratedCatalog.CURATED_MOVIES || []) : []);
+
+  const remainingCatalog = [];
+  catalogSource.forEach(m => {
+    if (isCleanSafe(m) && isCardUnseen(m, seenBrowseIds, seenBrowseTitles)) {
+      remainingCatalog.push(m);
+      recordCardSeen(m, seenBrowseGridIds, seenBrowseGridTitles);
+    }
+  });
+
+  currentBrowseResults = remainingCatalog;
+  currentBrowseOffset = 0;
+  gridWrap.innerHTML = '';
+  renderBrowseChunk();
+  initInfiniteScrolling();
 }
 
 let currentBrowseResults = [];
 let currentBrowseOffset = 0;
 const BROWSE_PAGE_SIZE = 48;
+let browseRemoteSkip = 0;
+let isBrowseFetching = false;
+let browseHasMore = true;
+let seenBrowseGridIds = new Set();
+let seenBrowseGridTitles = new Set();
+let browseAbortCtrl = null;
+
+let searchSentinelObserver = null;
+let browseSentinelObserver = null;
+
+function initInfiniteScrolling() {
+  const searchSentinel = $('searchSentinel');
+  if (searchSentinel && 'IntersectionObserver' in window) {
+    if (searchSentinelObserver) searchSentinelObserver.disconnect();
+    searchSentinelObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !isSearchFetching && searchHasMore) {
+          fetchMoreSearchResults();
+        }
+      });
+    }, { rootMargin: '400px' });
+    searchSentinelObserver.observe(searchSentinel);
+  }
+
+  const browseSentinel = $('browseSentinel');
+  if (browseSentinel && 'IntersectionObserver' in window) {
+    if (browseSentinelObserver) browseSentinelObserver.disconnect();
+    browseSentinelObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !isBrowseFetching && browseHasMore) {
+          fetchMoreBrowseResults();
+        }
+      });
+    }, { rootMargin: '400px' });
+    browseSentinelObserver.observe(browseSentinel);
+  }
+}
 
 function renderBrowseChunk() {
   const container = $('browseGrid');
@@ -2274,10 +2873,88 @@ function renderBrowseChunk() {
   currentBrowseOffset += nextChunk.length;
 }
 
+async function fetchMoreBrowseResults() {
+  if (isBrowseFetching || !browseHasMore) return;
+  const grid = $('browseGrid');
+  if (!grid || $('browsePage')?.style.display === 'none') return;
+
+  if (currentBrowseOffset < currentBrowseResults.length) {
+    renderBrowseChunk();
+    return;
+  }
+
+  isBrowseFetching = true;
+  const loader = $('browseLoader');
+  const retryEl = $('browseRetry');
+  if (loader) loader.style.display = 'flex';
+  if (retryEl) retryEl.style.display = 'none';
+
+  try {
+    const type = currentBrowseKind === 'series' ? 'series' : 'movie';
+    const genre = $('genreSelect')?.value || '';
+    const skip = browseRemoteSkip;
+    const url = genre
+      ? `${type}/top/genre=${encodeURIComponent(genre)}/skip=${skip}`
+      : `${type}/top/skip=${skip}`;
+
+    const metas = await fetchCatalog(url);
+    if (!metas || !metas.length) {
+      const altUrl = genre
+        ? `${type}/imdbRating/genre=${encodeURIComponent(genre)}/skip=${skip}`
+        : `${type}/imdbRating/skip=${skip}`;
+      const altMetas = await fetchCatalog(altUrl);
+      if (!altMetas || !altMetas.length) {
+        browseHasMore = false;
+        if (loader) loader.style.display = 'none';
+        isBrowseFetching = false;
+        return;
+      }
+      metas.push(...altMetas);
+    }
+
+    browseRemoteSkip += 100;
+    const safeMetas = metas.filter(isCleanSafe);
+    const newItems = [];
+    safeMetas.forEach(m => {
+      if (m && type === 'series') m.type = 'series';
+      else if (m && type === 'movie') m.type = 'movie';
+      if (isCardUnseen(m, seenBrowseGridIds, seenBrowseGridTitles)) {
+        newItems.push(m);
+        recordCardSeen(m, seenBrowseGridIds, seenBrowseGridTitles);
+      }
+    });
+
+    if (newItems.length > 0) {
+      currentBrowseResults = [...currentBrowseResults, ...newItems];
+      renderBrowseChunk();
+    } else if (browseRemoteSkip > 1200) {
+      browseHasMore = false;
+    }
+  } catch (err) {
+    console.warn('Infinite scroll browse fetch error:', err);
+    if (retryEl) retryEl.style.display = 'flex';
+  } finally {
+    if (loader) loader.style.display = 'none';
+    isBrowseFetching = false;
+  }
+}
+
+const browseRetryBtn = $('browseRetryBtn');
+if (browseRetryBtn) {
+  browseRetryBtn.onclick = () => {
+    fetchMoreBrowseResults();
+  };
+}
+
 async function filterBrowseByGenre(genre) {
   const rowsWrap = $('browseRows');
   const gridWrap = $('browseGrid');
   if (!rowsWrap || !gridWrap) return;
+
+  if (browseAbortCtrl) {
+    try { browseAbortCtrl.abort(); } catch {}
+  }
+  browseAbortCtrl = new AbortController();
 
   if (!genre) {
     gridWrap.innerHTML = '';
@@ -2289,15 +2966,23 @@ async function filterBrowseByGenre(genre) {
 
   rowsWrap.innerHTML = '';
   gridWrap.innerHTML = '';
+  currentBrowseOffset = 0;
+  browseRemoteSkip = 0;
+  browseHasMore = true;
+  isBrowseFetching = false;
+  seenBrowseGridIds.clear();
+  seenBrowseGridTitles.clear();
 
   const type = currentBrowseKind === 'series' ? 'series' : 'movie';
   const curatedMatches = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA)
     ? CuratedCatalog.CURATED_MEDIA.filter(m => m.type === type && (m.genres || []).includes(genre))
     : [];
 
-  if (curatedMatches.length) {
-    currentBrowseResults = curatedMatches;
-    currentBrowseOffset = 0;
+  const initialItems = dedupeMetas(curatedMatches).filter(isCleanSafe);
+  initialItems.forEach(m => recordCardSeen(m, seenBrowseGridIds, seenBrowseGridTitles));
+
+  currentBrowseResults = initialItems;
+  if (initialItems.length) {
     renderBrowseChunk();
   } else {
     gridWrap.innerHTML = skels(12);
@@ -2310,16 +2995,27 @@ async function filterBrowseByGenre(genre) {
       fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=100`),
       fetchCatalog(`${type}/top/genre=${encodeURIComponent(genre)}/skip=200`)
     ]);
-    const items = dedupeMetas([...curatedMatches, ...p1, ...p2, ...p3]).filter(isCleanSafe);
-    gridWrap.innerHTML = items.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
-    currentBrowseResults = items;
-    currentBrowseOffset = 0;
-    renderBrowseChunk();
+    browseRemoteSkip = 300;
+    const items = dedupeMetas([...initialItems, ...p1, ...p2, ...p3]).filter(isCleanSafe);
+    const fresh = [];
+    items.forEach(m => {
+      if (isCardUnseen(m, seenBrowseGridIds, seenBrowseGridTitles)) {
+        fresh.push(m);
+        recordCardSeen(m, seenBrowseGridIds, seenBrowseGridTitles);
+      }
+    });
+    currentBrowseResults = [...initialItems, ...fresh];
+    if (gridWrap.innerHTML.includes('skeleton')) {
+      gridWrap.innerHTML = '';
+      currentBrowseOffset = 0;
+      renderBrowseChunk();
+    }
   } catch (e) {
-    if (!curatedMatches.length) {
+    if (!initialItems.length) {
       gridWrap.innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>No titles found for ${escapeHtml(genre)}</h2></div>`;
     }
   }
+  initInfiniteScrolling();
 }
 
 /* ---------- PROFILES ---------- */
@@ -2331,9 +3027,14 @@ function renderProfiles() {
   PROFILES.forEach(p => {
     const d = document.createElement('div');
     d.className = 'pav';
+    const avatarImg = p.avatar
+      ? `<img class="profile-box-img" src="${escapeHtml(p.avatar)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';"><span class="profile-id-fallback" style="display:none">${escapeHtml(p.id)}</span>`
+      : `<span class="profile-id-fallback">${escapeHtml(p.id)}</span>`;
     d.innerHTML = `
-      <div class="box" style="background:${p.color}">${p.id}</div>
-      <div>${p.name}</div>
+      <div class="box" style="background:${p.color}">
+        ${avatarImg}
+      </div>
+      <div>${escapeHtml(p.name)}</div>
     `;
     d.onclick = () => selectProfile(p);
     av.appendChild(d);
@@ -2350,9 +3051,14 @@ function renderProfileSwitcherDropdown() {
   PROFILES.forEach(p => {
     const item = document.createElement('div');
     item.className = 'profile-quick-switch';
+    const miniImg = p.avatar
+      ? `<img src="${escapeHtml(p.avatar)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';"><span style="display:none">${escapeHtml(p.id)}</span>`
+      : `<span>${escapeHtml(p.id)}</span>`;
     item.innerHTML = `
-      <div class="mini-box" style="background:${p.color}">${p.id}</div>
-      <span style="font-size:13px;color:#fff">${p.name}</span>
+      <div class="mini-box" style="background:${p.color}">
+        ${miniImg}
+      </div>
+      <span style="font-size:13px;color:#fff">${escapeHtml(p.name)}</span>
       ${p.id === current ? '<span style="margin-left:auto;color:#46D369;font-size:11px">● Active</span>' : ''}
     `;
     item.onclick = () => {
@@ -2371,7 +3077,11 @@ function selectProfile(p) {
   }
   const letter = $('avatarLetter');
   if (letter) {
-    letter.textContent = p.id;
+    if (p.avatar) {
+      letter.innerHTML = `<img src="${escapeHtml(p.avatar)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';"><span style="display:none">${escapeHtml(p.id)}</span>`;
+    } else {
+      letter.textContent = p.id;
+    }
     letter.style.background = p.color;
   }
   show('home');
@@ -4672,9 +5382,14 @@ function renderGate() {
   PROFILES.forEach(p => {
     const d = document.createElement('div');
     d.className = 'pav';
+    const avatarImg = p.avatar
+      ? `<img class="profile-box-img" src="${escapeHtml(p.avatar)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';"><span class="profile-id-fallback" style="display:none">${escapeHtml(p.id)}</span>`
+      : `<span class="profile-id-fallback">${escapeHtml(p.id)}</span>`;
     d.innerHTML = `
-      <div class="box" style="background:${p.color}">${p.id}</div>
-      <div>${p.name}</div>
+      <div class="box" style="background:${p.color}">
+        ${avatarImg}
+      </div>
+      <div>${escapeHtml(p.name)}</div>
     `;
     d.onclick = () => {
       selectProfile(p);
@@ -4697,17 +5412,33 @@ function armLiveSearch(input, box) {
   input.addEventListener('input', () => {
     clearTimeout(liveT);
     const q = input.value.trim();
-    if (q.length < 2) return;
-    liveT = setTimeout(() => {
-      if (box) box.value = q;
-      doSearch(q);
-    }, 350);
+    if (input.id === 'searchInput') {
+      if (q.length < 2) {
+        closeSearchDropdown();
+        return;
+      }
+      liveT = setTimeout(() => {
+        updateSearchDropdown(q);
+      }, 300);
+    } else if (input.id === 'searchBox') {
+      if (q.length < 2) return;
+      liveT = setTimeout(() => {
+        doSearch(q);
+      }, 350);
+    } else {
+      if (q.length < 2) return;
+      liveT = setTimeout(() => {
+        if (box) box.value = q;
+        doSearch(q);
+      }, 350);
+    }
   });
 }
 
 /* ---------- ESCAPE KEY & INIT ---------- */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    closeSearchDropdown();
     closeDetail();
     closeDownloadModal();
     closeCaptionsModal();
@@ -4765,7 +5496,11 @@ if (currentProfileId === 'N') currentProfileId = 'Z';
 const activeProf = PROFILES.find(p => p.id === currentProfileId) || PROFILES[0];
 const letterEl = $('avatarLetter');
 if (letterEl) {
-  letterEl.textContent = activeProf.id;
+  if (activeProf.avatar) {
+    letterEl.innerHTML = `<img src="${escapeHtml(activeProf.avatar)}" alt="${escapeHtml(activeProf.name)}" onerror="this.style.display='none';if(this.nextElementSibling)this.nextElementSibling.style.display='block';"><span style="display:none">${escapeHtml(activeProf.id)}</span>`;
+  } else {
+    letterEl.textContent = activeProf.id;
+  }
   letterEl.style.background = activeProf.color;
 }
 

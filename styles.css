@@ -390,11 +390,18 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
   font-weight: 800;
   font-size: 14px;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
   transition: transform 0.15s ease;
+}
+#avatarLetter img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .avatar:hover #avatarLetter {
   transform: scale(1.05);
@@ -449,6 +456,14 @@ img {
   font-weight: 800;
   font-size: 12px;
   color: #fff;
+  overflow: hidden;
+  object-fit: cover;
+}
+.profile-quick-switch .mini-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .dropdown .dd-item {
   display: flex;
@@ -2336,6 +2351,14 @@ body.is-scrolling #cardPortal {
   color: #ffffff;
   transition: transform 0.25s var(--ease), border-color 0.25s;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  position: relative;
+}
+.pav .box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .pav:hover .box {
   border-color: #ffffff;
@@ -3910,4 +3933,248 @@ footer {
   flex-direction: row-reverse;
   text-align: right;
 }
+
+/* ==========================================================================
+   ADVANCED SEARCH DROPDOWN SYSTEM
+   ========================================================================== */
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  max-width: 90vw;
+  max-height: 480px;
+  overflow-y: auto;
+  background: rgba(16, 16, 18, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 100000;
+  display: none;
+  flex-direction: column;
+  animation: searchDropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.search-dropdown.show {
+  display: flex;
+}
+
+@keyframes searchDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.search-dropdown-header {
+  padding: 10px 14px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #888888;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+.search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+  border-left: 3px solid transparent;
+}
+
+.search-dropdown-item:hover,
+.search-dropdown-item.active-item {
+  background: rgba(255, 255, 255, 0.12);
+  border-left-color: #E50914;
+}
+
+.search-dropdown-item img {
+  width: 44px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #202020;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.search-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.search-item-title {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.search-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #a0a0a0;
+}
+
+.search-item-meta .search-rating {
+  color: #46d369;
+  font-weight: 700;
+}
+
+.search-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.search-badge.badge-movie {
+  background: rgba(229, 9, 20, 0.22);
+  color: #ff5e67;
+  border: 1px solid rgba(229, 9, 20, 0.45);
+}
+
+.search-badge.badge-series {
+  background: rgba(33, 150, 243, 0.22);
+  color: #64b5f6;
+  border: 1px solid rgba(33, 150, 243, 0.45);
+}
+
+.search-dropdown-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #888888;
+  font-size: 13px;
+}
+
+.search-dropdown-loading {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #aaaaaa;
+  font-size: 13px;
+}
+
+.search-dropdown-footer {
+  padding: 11px 14px;
+  background: rgba(0, 0, 0, 0.45);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 700;
+  color: #E50914;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.search-dropdown-footer:hover {
+  background: rgba(229, 9, 20, 0.18);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   INFINITE SCROLLING & SENTINEL STYLING
+   ========================================================================== */
+.infinite-sentinel {
+  height: 20px;
+  width: 100%;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.infinite-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px 0 50px;
+  width: 100%;
+  color: #aaaaaa;
+  font-size: 14px;
+  grid-column: 1 / -1;
+}
+
+.infinite-loader .spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #E50914;
+  border-radius: 50%;
+  animation: infSpinner 0.8s linear infinite;
+}
+
+@keyframes infSpinner {
+  to { transform: rotate(360deg); }
+}
+
+.infinite-retry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 0 50px;
+  width: 100%;
+  color: #cccccc;
+  font-size: 14px;
+  grid-column: 1 / -1;
+}
+
+.infinite-retry p {
+  margin: 0;
+}
+
+/* Poster fallback visual polish */
+.poster-fallback {
+  filter: contrast(1.05) brightness(0.95);
+}
+
+.card.show-title-overlay .card-title-fallback {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .search-dropdown {
+    position: fixed;
+    top: 56px;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    max-height: 65vh;
+  }
+}
+
 
