@@ -5496,14 +5496,13 @@ function startFocusGuardian() {
       stopFocusGuardian();
       return;
     }
-    // High-speed liveness check: if active document lost system focus or visibility to a popunder, snap back at light speed!
+    // High-speed liveness check: if active document lost system visibility to an unwanted pop-under tab, snap back at light speed!
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
-    const lostFocus = typeof document.hasFocus === 'function' && !document.hasFocus();
-    if (isHidden || lostFocus) {
+    if (isHidden) {
       triggerLightSpeedFocusSnap();
     }
     _lastActiveElement = document.activeElement;
-  }, 10);
+  }, 50);
 }
 
 function stopFocusGuardian() {
@@ -5513,17 +5512,19 @@ function stopFocusGuardian() {
   }
 }
 
-const _handleFocusLossOrVisibility = () => {
+const _handleFocusLossOrVisibility = (e) => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-    armVidShield();
-    triggerLightSpeedFocusSnap();
-    clearTimeout(_focusSnapTimer);
-    _focusSnapTimer = setTimeout(snapWindowFocus, 10);
-    setTimeout(snapWindowFocus, 25);
-    setTimeout(snapWindowFocus, 45);
-    setTimeout(snapWindowFocus, 120);
-    setTimeout(snapWindowFocus, 300);
-    setTimeout(snapWindowFocus, 600);
+    const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
+    if (isHidden || e?.type === 'pagehide' || e?.type === 'visibilitychange') {
+      snapWindowFocus();
+      clearTimeout(_focusSnapTimer);
+      _focusSnapTimer = setTimeout(snapWindowFocus, 10);
+      setTimeout(snapWindowFocus, 25);
+      setTimeout(snapWindowFocus, 45);
+      setTimeout(snapWindowFocus, 120);
+      setTimeout(snapWindowFocus, 300);
+      setTimeout(snapWindowFocus, 600);
+    }
   }
 };
 
@@ -5576,13 +5577,7 @@ function armVidShield() {
       }
       shield.style.display = 'none';
       shield.style.pointerEvents = 'none';
-      triggerLightSpeedFocusSnap();
       clearTimeout(shieldDisarmTimer);
-      shieldDisarmTimer = setTimeout(() => {
-        if ($('playerView')?.classList.contains('show') && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
-          armVidShield();
-        }
-      }, 1500);
     };
 
     shield.onclick = handleShieldTap;
