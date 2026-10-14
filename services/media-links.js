@@ -24,6 +24,7 @@ const OMNISAVE_BASE = 'https://videodownloader.site/';
 const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
 const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
+const NHDAPI_BASE = 'https://nhdapi.com';
 
 const IMDB_RE = /^tt\d+$/;
 
@@ -36,6 +37,12 @@ function toInt(n) {
 function getMovieStreamUrl(movie, server = 'server1') {
   const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
   const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+
+  if (server === 'nhdapi') {
+    const id = /^\d+$/.test(tmdb) ? tmdb : '';
+    if (!id) return null;
+    return `${NHDAPI_BASE}/movie/${id}`;
+  }
 
   if (server === 'server2' || server === 'vidsrc') {
     const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
@@ -62,6 +69,11 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   const e = toInt(episode);
   if (!s || !e) return null;
 
+  if (server === 'nhdapi') {
+    if (!tmdb || !/^\d+$/.test(tmdb)) return null;
+    return `${NHDAPI_BASE}/tv/${tmdb}?season=${s}&episode=${e}`;
+  }
+
   if (server === 'server2' || server === 'vidsrc') {
     const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
     if (!id) return null;
@@ -75,6 +87,54 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   }
 
   return `${VAPLAYER_BASE}/tv/${tmdb}/${s}/${e}`;
+}
+
+/** NHDApi movie iframe embed URL */
+function getNhdApiMovieUrl(tmdbId) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) return null;
+  return `${NHDAPI_BASE}/movie/${id}`;
+}
+
+/** NHDApi TV episode iframe embed URL */
+function getNhdApiEpisodeUrl(tmdbId, season, episode) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
+}
+
+/** NHDApi movie streaming API (SSE) endpoint */
+function getNhdApiMovieApiUrl(tmdbId) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) return null;
+  return `${NHDAPI_BASE}/movie?id=${id}`;
+}
+
+/** NHDApi TV episode streaming API (SSE) endpoint */
+function getNhdApiEpisodeApiUrl(tmdbId, season, episode) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  return `${NHDAPI_BASE}/tv?id=${id}&season=${s}&episode=${e}`;
+}
+
+/** NHDApi movie subtitles endpoint */
+function getNhdApiMovieSubtitlesUrl(tmdbId) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) return null;
+  return `${NHDAPI_BASE}/subtitles/movie/${id}`;
+}
+
+/** NHDApi TV episode subtitles endpoint */
+function getNhdApiEpisodeSubtitlesUrl(tmdbId, season, episode) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  return `${NHDAPI_BASE}/subtitles/tv/${id}/${s}/${e}`;
 }
 
 /**
@@ -191,8 +251,15 @@ const MediaLinks = {
   OMNISAVE_BASE,
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
+  NHDAPI_BASE,
   getMovieStreamUrl,
   getEpisodeStreamUrl,
+  getNhdApiMovieUrl,
+  getNhdApiEpisodeUrl,
+  getNhdApiMovieApiUrl,
+  getNhdApiEpisodeApiUrl,
+  getNhdApiMovieSubtitlesUrl,
+  getNhdApiEpisodeSubtitlesUrl,
   cleanTitle,
   getMovieDownloadSearch,
   getEpisodeDownloadSearch,

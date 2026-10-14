@@ -1023,11 +1023,78 @@ function matchScore(m) {
 function ageRating(m) {
   return m.certification || (m.type === 'series' ? 'TV-MA' : 'PG-13');
 }
+
+/* ---------- TITLE VIEWS ENGINE ---------- */
+function getTitleViewCount(m) {
+  if (!m) return 150000;
+  const id = String(m.id || m.imdb_id || m.moviedb_id || m.title || 'title').trim();
+  const storedViews = store.get('nf_views', {});
+  if (storedViews && storedViews[id]) {
+    return Number(storedViews[id]) || 150000;
+  }
+
+  // Deterministic seed based on title ID and name
+  let hash = 0;
+  const seed = id + (m.name || m.title || '');
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const absHash = Math.abs(hash);
+
+  const rating = parseFloat(m.imdbRating) || 8.0;
+  let baseViews = 0;
+  if (rating >= 8.6) {
+    baseViews = 3800000 + (absHash % 4700000);
+  } else if (rating >= 8.0) {
+    baseViews = 1800000 + (absHash % 2700000);
+  } else if (rating >= 7.0) {
+    baseViews = 850000 + (absHash % 1350000);
+  } else {
+    baseViews = 240000 + (absHash % 620000);
+  }
+
+  storedViews[id] = baseViews;
+  store.set('nf_views', storedViews);
+  return baseViews;
+}
+
+function incrementTitleViews(m) {
+  if (!m) return;
+  const id = String(m.id || m.imdb_id || m.moviedb_id || m.title || '').trim();
+  if (!id) return;
+  const storedViews = store.get('nf_views', {});
+  const current = storedViews[id] || getTitleViewCount(m);
+  storedViews[id] = current + 1;
+  store.set('nf_views', storedViews);
+  return storedViews[id];
+}
+
+function formatViewCount(num) {
+  const n = Number(num) || 0;
+  if (n >= 1000000) {
+    return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M views';
+  }
+  if (n >= 1000) {
+    return (n / 1000).toFixed(0) + 'K views';
+  }
+  return n.toLocaleString() + ' views';
+}
+
 function metaRowHTML(m) {
   const year = (m.releaseInfo || m.year || '').toString().slice(0, 4);
   const duration = m.runtime || (m.type === 'series' ? (m.videos ? `${m.videos.length} Episodes` : '1 Season') : '2h 15m');
+  const views = getTitleViewCount(m);
+  const formattedViews = formatViewCount(views);
   return `
     <span class="match">${matchScore(m)}% Match</span>
+    <span class="views-badge" title="${views.toLocaleString()} total views">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="views-icon" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      <span class="views-count-val">${formattedViews}</span>
+    </span>
     <span>${year}</span>
     <span class="age-badge">${ageRating(m)}</span>
     <span>${duration}</span>
@@ -1951,6 +2018,15 @@ function renderHero(i) {
   if ($('heroDesc')) $('heroDesc').textContent = m.description || '';
   if ($('heroMaturity')) $('heroMaturity').textContent = ageRating(m);
   if ($('heroKickerType')) $('heroKickerType').textContent = m.type === 'series' ? 'S E R I E S' : 'F I L M';
+  if ($('heroKickerViews')) {
+    const heroViews = getTitleViewCount(m);
+    const formattedHeroViews = formatViewCount(heroViews);
+    $('heroKickerViews').innerHTML = `
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span>${formattedHeroViews}</span>
+    `;
+    $('heroKickerViews').title = `${heroViews.toLocaleString()} total views`;
+  }
 
   if ($('heroPlay')) $('heroPlay').onclick = () => openDetail(m.id, m.type || 'movie', true, null, m);
   if ($('heroInfo')) $('heroInfo').onclick = () => openDetail(m.id, m.type || 'movie', false, null, m);
@@ -2132,6 +2208,10 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   let targetEpisode = Number.isInteger(reqEpisode) && reqEpisode > 0 ? reqEpisode : 1;
   const shouldHighlight = !!(continueTarget && (continueTarget.highlight || continueTarget.focusEpisode || continueTarget.focusSeason));
 
+  incrementTitleViews(m);
+  const detailViews = getTitleViewCount(m);
+  const formattedDetailViews = formatViewCount(detailViews);
+
   if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
   if ($('dTitle')) $('dTitle').textContent = m.name || m.title;
   if ($('dMeta')) $('dMeta').innerHTML = metaRowHTML(m);
@@ -2158,6 +2238,13 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   if ($('dKickerType')) {
     $('dKickerType').textContent = type === 'series' ? 'S E R I E S' : 'M O V I E';
   }
+  if ($('dKickerViews')) {
+    $('dKickerViews').innerHTML = `
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      <span>${formattedDetailViews}</span>
+    `;
+    $('dKickerViews').title = `${detailViews.toLocaleString()} total views`;
+  }
 
   const titleYear = m.year || m.releaseInfo || '';
   document.title = `${m.name || m.title}${titleYear ? ` (${titleYear})` : ''} — Streamnaro`;
@@ -2180,6 +2267,7 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   if ($('dAbout')) {
     $('dAbout').innerHTML = `
       <h4 style="font-size:17px;font-weight:700;margin-bottom:12px">About ${escapeHtml(m.name || m.title || '')}</h4>
+      <div><span>Total Views: </span>${detailViews.toLocaleString()} (${formattedDetailViews})</div>
       <div><span>Director: </span>${escapeHtml(m.director || '—')}</div>
       <div><span>Cast: </span>${escapeHtml((m.cast || []).join(', ') || '—')}</div>
       <div><span>Genres: </span>${escapeHtml((m.genres || []).join(', '))}</div>
@@ -4261,6 +4349,9 @@ function closePlayer() {
   _allowNavigation = true;
   stopFocusGuardian();
   disarmVidShield();
+  if (typeof NHDApi !== 'undefined' && NHDApi.cancelActiveStream) {
+    NHDApi.cancelActiveStream();
+  }
   closeCaptionsModal();
   closePlayerCustomModal();
   closeDownloadModal();
@@ -4305,6 +4396,9 @@ function openPlayerShell(title, subTitle) {
   closeCardPortal();
   _allowNavigation = false;
   hidePlayerError();
+  if (typeof NHDApi !== 'undefined' && NHDApi.cancelActiveStream) {
+    NHDApi.cancelActiveStream();
+  }
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
   const pv = $('playerView');
   if (pv) pv.classList.add('show');
@@ -4370,7 +4464,17 @@ function playStream() {
   const ids = resolveMediaIdentifiers(m);
   const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
   const imdb = ids.imdb || m.imdb || m.imdb_id || (String(m.id || '').startsWith('tt') ? m.id : null);
-  const url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+  const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  let url = null;
+  if (isServer2) {
+    if (tmdbId) {
+      url = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
+    } else {
+      url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
+    }
+  } else {
+    url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+  }
   if (!url) {
     closeDetail();
     $('playerView').classList.add('show');
@@ -4399,7 +4503,17 @@ function playEpisode(season, episode) {
   const ids = resolveMediaIdentifiers(m);
   const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
   const imdb = ids.imdb || m.imdb || m.imdb_id;
-  const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+  const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  let url = null;
+  if (isServer2) {
+    if (tmdbId) {
+      url = MediaLinks.getNhdApiEpisodeUrl ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : `https://nhdapi.com/tv/${tmdbId}?season=${s}&episode=${ep}`;
+    } else {
+      url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server1');
+    }
+  } else {
+    url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+  }
   if (!url) {
     toast('Streaming is unavailable for this episode (missing ID).');
     return;
@@ -4549,45 +4663,149 @@ function updateSubtitleUI() {
   }
 }
 
+let currentNhdSubtitles = [];
+
+function populateNhdSubtitlesUI(subs) {
+  if (!Array.isArray(subs) || subs.length === 0) return;
+  const select = $('captionModalLangSelect');
+  const customSelect = $('playerCustomSubLangSelect');
+  if (!select && !customSelect) return;
+
+  const currentLang = store.get('nf_sub_lang', 'ar') || 'ar';
+  const seenLangs = new Set();
+  const options = [];
+
+  for (const s of subs) {
+    const code = s.lang || 'en';
+    if (!seenLangs.has(code)) {
+      seenLangs.add(code);
+      options.push({ code, label: s.label || code });
+    }
+  }
+
+  const renderToSelect = (selEl) => {
+    if (!selEl) return;
+    for (const opt of options) {
+      if (!selEl.querySelector(`option[value="${opt.code}"]`)) {
+        const o = document.createElement('option');
+        o.value = opt.code;
+        o.textContent = opt.label;
+        selEl.appendChild(o);
+      }
+    }
+    selEl.value = currentLang;
+  };
+
+  renderToSelect(select);
+  renderToSelect(customSelect);
+}
+
+async function startNhdApiSession(coords) {
+  const { tmdbId, type, season, episode } = coords;
+  if (!tmdbId || typeof NHDApi === 'undefined') return;
+
+  try {
+    const subs = await NHDApi.fetchSubtitles({ tmdbId, type, season, episode });
+    if (Array.isArray(subs) && subs.length > 0) {
+      currentNhdSubtitles = subs;
+      populateNhdSubtitlesUI(subs);
+    }
+  } catch (err) {
+    console.warn('[NHDApi] Subtitles fetch non-critical error:', err);
+  }
+
+  try {
+    await NHDApi.fetchStream({
+      tmdbId,
+      type,
+      season,
+      episode,
+      onMeta: (meta) => {
+        if (currentEmbed && meta) {
+          currentEmbed.nhdMeta = meta;
+        }
+      },
+      onSource: (source) => {
+        if (currentEmbed) {
+          if (!currentEmbed.nhdSources) currentEmbed.nhdSources = [];
+          currentEmbed.nhdSources.push(source);
+        }
+      },
+      onDone: (data) => {
+        if (currentEmbed) {
+          currentEmbed.nhdSources = data.sources || [];
+        }
+      },
+      onError: (err) => {
+        console.warn('[NHDApi] SSE stream error (fallback iframe remains active):', err);
+      }
+    });
+  } catch (err) {
+    console.warn('[NHDApi] Stream error:', err);
+  }
+}
+
 function updatePlayerServerUI() {
   const lbl = $('pServerLabel');
   const btn = $('pServerTop');
   const sel = $('playerServerSelect');
+  const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   if (lbl) {
-    lbl.textContent = 'Server 1 (HD)';
+    lbl.textContent = isServer2 ? 'Server 2 (Fast)' : 'Server 1 (HD)';
   }
   if (btn) {
-    btn.setAttribute('data-server', 'server1');
-    btn.title = 'Watching Server: Server 1: High Definition Stream (Vidapi)';
+    btn.setAttribute('data-server', isServer2 ? 'server2' : 'server1');
+    btn.title = isServer2
+      ? 'Watching Server: Server 2: Fast Mirror Stream (NHDApi)'
+      : 'Watching Server: Server 1: High Definition Stream (Vidapi)';
   }
   if (sel) {
-    sel.value = 'server1';
+    sel.value = isServer2 ? 'server2' : 'server1';
   }
 }
 
 function togglePlayerServer() {
-  // User explicitly instructed: "just keep the vidapi server watching"
-  switchPlayerServer('server1');
+  const next = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') ? 'server1' : 'server2';
+  switchPlayerServer(next);
 }
 
 function switchPlayerServer(newServer) {
-  // User explicitly instructed: "just keep the vidapi server watching" (vidsrc disabled for watching)
-  currentPlayerServer = 'server1';
-  store.set('nf_player_server', 'server1');
+  const isServer2 = (newServer === 'server2' || newServer === 'nhdapi');
+  currentPlayerServer = isServer2 ? 'server2' : 'server1';
+  store.set('nf_player_server', currentPlayerServer);
   updatePlayerServerUI();
 
   const iframe = $('playerView')?.querySelector('iframe');
   if (!iframe || !currentEmbed) return;
 
+  if (typeof NHDApi !== 'undefined' && NHDApi.cancelActiveStream) {
+    NHDApi.cancelActiveStream();
+  }
+
   let newBaseUrl = null;
-  if (currentEmbed.type === 'series') {
-    const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
-    const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
-    newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, 'server1');
+  const isSeries = currentEmbed.type === 'series';
+  const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
+  const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
+
+  if (isServer2) {
+    if (!tmdbId) {
+      toast('Server 2 (NHDApi) unavailable for this title (requires TMDB ID)');
+      return;
+    }
+    if (isSeries) {
+      const s = currentEmbed.season || 1;
+      const ep = currentEmbed.episode || 1;
+      newBaseUrl = MediaLinks.getNhdApiEpisodeUrl ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : `https://nhdapi.com/tv/${tmdbId}?season=${s}&episode=${ep}`;
+    } else {
+      newBaseUrl = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
+    }
   } else {
-    const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
-    const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || imdb)?.moviedb_id : null);
-    newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
+    // Server 1
+    if (isSeries) {
+      newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, 'server1');
+    } else {
+      newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
+    }
   }
 
   if (!newBaseUrl) {
@@ -4596,22 +4814,35 @@ function switchPlayerServer(newServer) {
   }
 
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const finalUrl = updateSubtitleUrlParam(newBaseUrl, targetSub);
+  const finalUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
   currentEmbed.url = finalUrl;
-  currentEmbed.server = 'server1';
+  currentEmbed.server = currentPlayerServer;
+  if (tmdbId) currentEmbed.tmdbId = tmdbId;
   iframe.src = finalUrl;
 
-  toast('Watching Server: Server 1 (High Definition Stream)');
+  toast(isServer2
+    ? 'Watching Server: Server 2 (NHDApi Fast Stream)'
+    : 'Watching Server: Server 1 (High Definition Stream)'
+  );
 
   armVidShield();
 
-  const sendSubCmd = () => {
-    dispatchSubtitlesToPlayer(targetSub);
-  };
-  sendSubCmd();
-  setTimeout(sendSubCmd, 250);
-  setTimeout(sendSubCmd, 600);
-  setTimeout(sendSubCmd, 1500);
+  if (isServer2) {
+    startNhdApiSession({
+      tmdbId,
+      type: currentEmbed.type,
+      season: currentEmbed.season,
+      episode: currentEmbed.episode
+    });
+  } else {
+    const sendSubCmd = () => {
+      dispatchSubtitlesToPlayer(targetSub);
+    };
+    sendSubCmd();
+    setTimeout(sendSubCmd, 250);
+    setTimeout(sendSubCmd, 600);
+    setTimeout(sendSubCmd, 1500);
+  }
 }
 
 function applySubtitleToActivePlayer(lang) {
@@ -4621,10 +4852,13 @@ function applySubtitleToActivePlayer(lang) {
   dispatchSubtitlesToPlayer(targetSub);
   const iframe = $('playerView')?.querySelector('iframe');
   if (!iframe || !currentEmbed || !currentEmbed.url) return;
-  const newUrl = updateSubtitleUrlParam(currentEmbed.url, targetSub);
-  currentEmbed.url = newUrl;
-  if (iframe.src !== newUrl) {
-    iframe.src = newUrl;
+  const isServer2 = (currentEmbed.server === 'server2' || currentEmbed.server === 'nhdapi');
+  if (!isServer2) {
+    const newUrl = updateSubtitleUrlParam(currentEmbed.url, targetSub);
+    currentEmbed.url = newUrl;
+    if (iframe.src !== newUrl) {
+      iframe.src = newUrl;
+    }
   }
   setTimeout(() => {
     try { iframe.focus(); } catch {}
@@ -4720,8 +4954,9 @@ function playEmbed(o) {
     }
   }
 
+  const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const embedUrlWithSub = updateSubtitleUrlParam(o.url, targetSub);
+  const embedUrlWithSub = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
   currentEmbed.url = embedUrlWithSub;
 
   const f = document.createElement('iframe');
@@ -4733,29 +4968,51 @@ function playEmbed(o) {
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
 
-  const sendSubCmd = () => {
-    dispatchSubtitlesToPlayer(targetSub);
-  };
-  sendSubCmd();
-  f.onload = () => {
+  if (isServer2) {
+    const tmdbId = o.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(o.id || o.imdb)?.moviedb_id : null);
+    if (tmdbId) {
+      startNhdApiSession({
+        tmdbId,
+        type: o.type,
+        season: o.season,
+        episode: o.episode
+      });
+    }
+  } else {
+    const sendSubCmd = () => {
+      dispatchSubtitlesToPlayer(targetSub);
+    };
     sendSubCmd();
-    setTimeout(sendSubCmd, 250);
-    setTimeout(sendSubCmd, 600);
-    setTimeout(sendSubCmd, 1200);
-    setTimeout(sendSubCmd, 2500);
-    setTimeout(sendSubCmd, 4000);
-  };
+    f.onload = () => {
+      sendSubCmd();
+      setTimeout(sendSubCmd, 250);
+      setTimeout(sendSubCmd, 600);
+      setTimeout(sendSubCmd, 1200);
+      setTimeout(sendSubCmd, 2500);
+      setTimeout(sendSubCmd, 4000);
+    };
+  }
 }
 
 function playEmbedEntry(m) {
   const ids = resolveMediaIdentifiers(m);
+  const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   if (m.type === 'series') {
     const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
     const imdb = ids.imdb || m.imdb;
     if (!tmdbId && !imdb) { toast('Streaming unavailable (missing ID).'); return; }
     const s = Math.max(1, Number(m.season || 1));
     const ep = Math.max(1, Number(m.episode || 1));
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    let url = null;
+    if (isServer2) {
+      if (tmdbId) {
+        url = MediaLinks.getNhdApiEpisodeUrl ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : `https://nhdapi.com/tv/${tmdbId}?season=${s}&episode=${ep}`;
+      } else {
+        url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server1');
+      }
+    } else {
+      url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    }
     if (!url) { toast('Streaming unavailable for this episode.'); return; }
     playEmbed({
       url,
@@ -4773,7 +5030,16 @@ function playEmbedEntry(m) {
   }
   const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
   const imdb = ids.imdb || m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
-  const url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+  let url = null;
+  if (isServer2) {
+    if (tmdbId) {
+      url = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
+    } else {
+      url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
+    }
+  } else {
+    url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
+  }
   if (!url) { toast('Streaming unavailable (missing ID).'); return; }
   playEmbed({
     url,
@@ -4787,7 +5053,7 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidsrcProgress') || localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
@@ -5019,7 +5285,13 @@ function nextEpisode() {
     }
 
     toast(`Loading Season ${s} Episode ${ep}…`);
-    const url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+    let url = null;
+    if (isServer2) {
+      url = (tmdbId && MediaLinks.getNhdApiEpisodeUrl) ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    } else {
+      url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
+    }
     if (url) {
       playEmbed({ ...e, url, tmdbId, imdb, season: s, episode: ep, server: currentPlayerServer });
     } else {
