@@ -93,7 +93,9 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
 function getNhdApiMovieUrl(tmdbId) {
   const id = tmdbId != null ? String(tmdbId).trim() : '';
   if (!/^\d+$/.test(id)) return null;
-  return `${NHDAPI_BASE}/movie/${id}`;
+  const apiKey = (typeof NHDApi !== 'undefined' && NHDApi.getApiKey) ? NHDApi.getApiKey() : '';
+  const keyParam = apiKey ? `?key=${encodeURIComponent(apiKey)}` : '';
+  return `${NHDAPI_BASE}/movie/${id}${keyParam}`;
 }
 
 /** NHDApi TV episode iframe embed URL */
@@ -102,7 +104,9 @@ function getNhdApiEpisodeUrl(tmdbId, season, episode) {
   const s = toInt(season);
   const e = toInt(episode);
   if (!/^\d+$/.test(id) || !s || !e) return null;
-  return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
+  const apiKey = (typeof NHDApi !== 'undefined' && NHDApi.getApiKey) ? NHDApi.getApiKey() : '';
+  const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : '';
+  return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}${keyParam}`;
 }
 
 /** NHDApi movie streaming API (SSE) endpoint */

@@ -115,19 +115,33 @@ async function runBrowserTests() {
   await send('Runtime.enable');
 
   console.log('\n--- 1. Page Load & Initial State ---');
-  await new Promise(r => setTimeout(r, 1500));
+  // Wait until app.js has executed and initialized
+  for (let i = 0; i < 40; i++) {
+    const ready = await evaluate(`typeof currentPlayerServer !== 'undefined'`);
+    if (ready) break;
+    await new Promise(r => setTimeout(r, 200));
+  }
 
   // Select profile if profile gate is shown
   const isProfileGate = await evaluate(`document.body.classList.contains('profile-gate-active')`);
   if (isProfileGate) {
-    console.log('Profile gate is active, selecting Profile 1...');
-    await evaluate(`selectProfile('p1')`);
+    console.log('Profile gate is active, selecting Profile...');
+    await evaluate(`selectProfile(PROFILES[0])`);
     await new Promise(r => setTimeout(r, 600));
   }
 
   const initialServer = await evaluate(`currentPlayerServer`);
   console.log('Initial default player server:', initialServer);
   if (initialServer !== 'server1') throw new Error(`Default server should be server1, got ${initialServer}`);
+
+  // Verify Telegram links in footer and top player control bar
+  const footerTg = await evaluate(`document.querySelector('.ficons a[href="https://t.me/blackroner"]')?.href`);
+  console.log('Footer Telegram Link:', footerTg);
+  if (footerTg !== 'https://t.me/blackroner') throw new Error('Footer telegram link missing or incorrect');
+
+  const playerTg = await evaluate(`$('pTelegramTop')?.getAttribute('href')`);
+  console.log('Player Topbar Telegram Link:', playerTg);
+  if (playerTg !== 'https://t.me/blackroner') throw new Error('Player topbar telegram link missing or incorrect');
 
   console.log('\n--- 2. Movie Playback on Server 1 (Default) ---');
   // Open Inception (TMDB ID 27205, IMDb tt1375666)

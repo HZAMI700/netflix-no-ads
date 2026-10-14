@@ -2142,6 +2142,21 @@ body.is-scrolling #cardPortal {
   border-color: rgba(255, 255, 255, 0.6);
   box-shadow: 0 6px 18px rgba(229, 9, 20, 0.6);
 }
+.player-pill-btn.telegram-pill {
+  background: rgba(42, 171, 238, 0.18);
+  border-color: rgba(42, 171, 238, 0.5);
+  color: #2aabee;
+  text-decoration: none;
+}
+.player-pill-btn.telegram-pill:hover {
+  background: rgba(42, 171, 238, 0.35);
+  border-color: #2aabee;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(42, 171, 238, 0.4);
+}
+.player-pill-btn.telegram-pill svg {
+  fill: currentColor;
+}
 .p-bottom,
 .p-bottom-sensor,
 .p-center-play-badge,

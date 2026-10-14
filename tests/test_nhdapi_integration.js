@@ -183,6 +183,12 @@ async function testAsync(name, fn) {
     assert.ok(playEmbedArm > -1);
   });
 
+  test('vidShield absorbs gestures and protects against ad traps', () => {
+    assert.ok(appContent.includes("shield.style.display = 'block'"));
+    assert.ok(appContent.includes('handleShieldTap'));
+    assert.ok(cssContent.includes('#vidShield'));
+  });
+
   test('Global window.open trap blocks unauthorized popups while allowing legitimate actions', () => {
     assert.ok(appContent.includes('window.open = function(url, target, features)'));
     assert.ok(appContent.includes('_nativeWindowOpen'));
@@ -192,6 +198,26 @@ async function testAsync(name, fn) {
     assert.ok(appContent.includes('snapWindowFocus'));
     assert.ok(appContent.includes('triggerLightSpeedFocusSnap'));
     assert.ok(appContent.includes('startFocusGuardian'));
+  });
+
+  console.log('\n--- 7. Join Telegram Integration ---');
+  test('index.html includes Telegram channel link https://t.me/blackroner in footer', () => {
+    assert.ok(htmlContent.includes('href="https://t.me/blackroner"'));
+    assert.ok(htmlContent.includes('aria-label="Join Telegram"'));
+  });
+
+  test('index.html includes Telegram button in player top bar', () => {
+    assert.ok(htmlContent.includes('id="pTelegramTop"'));
+    assert.ok(htmlContent.includes('href="https://t.me/blackroner"'));
+  });
+
+  test('styles.css styles player telegram pill button', () => {
+    assert.ok(cssContent.includes('.player-pill-btn.telegram-pill'));
+  });
+
+  test('app.js allows https://t.me/blackroner and intercepts third-party telegram redirects', () => {
+    assert.ok(appContent.includes("t.me/blackroner"));
+    assert.ok(appContent.includes("NOWHDTVUPDATE"));
   });
 
   console.log(`\n========================================`);

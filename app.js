@@ -3158,6 +3158,11 @@ function renderProfileSwitcherDropdown() {
 }
 
 function selectProfile(p) {
+  if (typeof p === 'string') {
+    const found = PROFILES.find(x => x.id === p) || PROFILES[0];
+    p = found;
+  }
+  if (!p || typeof p !== 'object') p = PROFILES[0];
   store.set('nf_profile_selected', true);
   store.set('nf_profile', p.id);
   if (typeof document !== 'undefined' && document.body) {
@@ -5338,9 +5343,15 @@ window.open = function(url, target, features) {
     urlStr.includes('videodownloader.site') ||
     urlStr.includes('omnisave') ||
     urlStr.includes('opensubtitles.org') ||
-    urlStr.includes('strem.io')
+    urlStr.includes('strem.io') ||
+    urlStr.includes('t.me/blackroner') ||
+    urlStr.includes('telegram.me/blackroner')
   ) {
     return _nativeWindowOpen.call(window, url, target, features);
+  }
+  if (urlStr.includes('t.me') || urlStr.includes('telegram.me') || urlStr.includes('NOWHDTVUPDATE')) {
+    console.log('[Telegram] Redirecting unauthorized Telegram link to https://t.me/blackroner');
+    return _nativeWindowOpen.call(window, 'https://t.me/blackroner', target || '_blank', features || 'noopener,noreferrer');
   }
   console.warn('[AdBlock] Blocked unauthorized window.open popup attempt:', url);
   return null;
@@ -5360,6 +5371,13 @@ HTMLAnchorElement.prototype.click = function() {
   const href = String(this.href || '');
   const target = String(this.target || '');
   if (target === '_blank' || target === '_top') {
+    if (href.includes('t.me/blackroner') || href.includes('telegram.me/blackroner')) {
+      return _nativeAnchorClick.apply(this, arguments);
+    }
+    if (href.includes('t.me') || href.includes('telegram.me') || href.includes('NOWHDTVUPDATE')) {
+      this.href = 'https://t.me/blackroner';
+      return _nativeAnchorClick.apply(this, arguments);
+    }
     if (!href.includes('vidvault.to') &&
         !href.includes('02moviedownloader.site') &&
         !href.includes('videodownloader.site') &&
@@ -5380,6 +5398,13 @@ HTMLAnchorElement.prototype.dispatchEvent = function(event) {
     const href = String(this.href || '');
     const target = String(this.target || '');
     if (target === '_blank' || target === '_top') {
+      if (href.includes('t.me/blackroner') || href.includes('telegram.me/blackroner')) {
+        return _nativeAnchorDispatch.apply(this, arguments);
+      }
+      if (href.includes('t.me') || href.includes('telegram.me') || href.includes('NOWHDTVUPDATE')) {
+        this.href = 'https://t.me/blackroner';
+        return _nativeAnchorDispatch.apply(this, arguments);
+      }
       if (!href.includes('vidvault.to') &&
           !href.includes('02moviedownloader.site') &&
           !href.includes('videodownloader.site') &&
@@ -5420,6 +5445,12 @@ HTMLFormElement.prototype.submit = function() {
       const target = a.getAttribute('target');
       const href = a.getAttribute('href') || '';
       if (target === '_blank' || target === '_top') {
+        if (href.includes('t.me') || href.includes('telegram.me') || href.includes('NOWHDTVUPDATE')) {
+          if (!href.includes('blackroner')) {
+            a.setAttribute('href', 'https://t.me/blackroner');
+          }
+          return;
+        }
         if (!href.includes('vidvault.to') &&
             !href.includes('02moviedownloader.site') &&
             !href.includes('videodownloader.site') &&
@@ -5484,6 +5515,7 @@ function stopFocusGuardian() {
 
 const _handleFocusLossOrVisibility = () => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    armVidShield();
     triggerLightSpeedFocusSnap();
     clearTimeout(_focusSnapTimer);
     _focusSnapTimer = setTimeout(snapWindowFocus, 10);
@@ -5514,7 +5546,10 @@ let shieldDisarmTimer = null;
 
 function disarmVidShield() {
   const shield = $('vidShield');
-  if (shield) shield.style.display = 'none';
+  if (shield) {
+    shield.style.display = 'none';
+    shield.style.pointerEvents = 'none';
+  }
   const zoneShield = $('pControlZoneShield');
   if (zoneShield) {
     zoneShield.style.display = 'none';
@@ -5524,8 +5559,39 @@ function disarmVidShield() {
 }
 
 function armVidShield() {
-  const shield = $('vidShield');
-  if (shield) shield.style.display = 'none';
+  let shield = $('vidShield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'vidShield';
+    $('playerView')?.insertBefore(shield, $('pTop'));
+  }
+  if (shield) {
+    shield.style.display = 'block';
+    shield.style.pointerEvents = 'auto';
+
+    const handleShieldTap = (e) => {
+      if (e) {
+        try { e.preventDefault(); } catch {}
+        try { e.stopPropagation(); } catch {}
+      }
+      shield.style.display = 'none';
+      shield.style.pointerEvents = 'none';
+      triggerLightSpeedFocusSnap();
+      clearTimeout(shieldDisarmTimer);
+      shieldDisarmTimer = setTimeout(() => {
+        if ($('playerView')?.classList.contains('show') && (document.hidden || (typeof document.hasFocus === 'function' && !document.hasFocus()))) {
+          armVidShield();
+        }
+      }, 1500);
+    };
+
+    shield.onclick = handleShieldTap;
+    shield.ontouchend = handleShieldTap;
+    shield.onpointerdown = (e) => {
+      try { e.stopPropagation(); } catch {}
+      handleShieldTap(e);
+    };
+  }
   const zoneShield = $('pControlZoneShield');
   if (zoneShield) {
     zoneShield.style.display = 'none';
