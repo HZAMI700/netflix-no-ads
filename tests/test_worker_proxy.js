@@ -42,25 +42,27 @@ async function runTests() {
     assert.ok(appContent.includes('function getWorkerProxyUrl('));
   });
 
-  console.log('\n--- 2. Pre-Check Mechanism with 3-Second Timeout ---');
-  test('checkWorkerStreamAvailability defined with 3-second timeout', () => {
-    assert.ok(appContent.includes('checkWorkerStreamAvailability'));
-    assert.ok(appContent.includes('3000'));
+  console.log('\n--- 2. Direct Worker Proxy Routing & Iframe Attributes ---');
+  test('iframe src set directly to worker proxy URL with fullOriginalEmbedUrl', () => {
+    assert.ok(appContent.includes("f.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`"));
+    assert.ok(appContent.includes("iframe.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`"));
   });
 
-  test('Worker status 200 OK check and fallback branches exist in playEmbed', () => {
-    assert.ok(appContent.includes('const isWorkerOk = await checkWorkerStreamAvailability(workerUrl);'));
-    assert.ok(appContent.includes('const finalUrl = isWorkerOk ? workerUrl : originalStreamUrl;'));
+  test('iframe includes allow="autoplay; fullscreen; encrypted-media" and allowFullScreen', () => {
+    assert.ok(appContent.includes("f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media')"));
+    assert.ok(appContent.includes('f.allowFullscreen = true'));
+    assert.ok(appContent.includes("f.setAttribute('allowfullscreen', '')"));
   });
 
-  test('credentialless and allow attributes added when worker is OK', () => {
-    assert.ok(appContent.includes("f.setAttribute('credentialless', '')"));
-    assert.ok(appContent.includes("f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media"));
+  test('no fetch pre-check in player embed logic (broken pre-check removed)', () => {
+    assert.strictEqual(appContent.includes('checkWorkerStreamAvailability'), false);
+    assert.strictEqual(appContent.includes('await fetch(workerUrl'), false);
   });
 
-  test('switchPlayerServer also verifies worker and sets credentialless', () => {
-    assert.ok(appContent.includes("iframe.setAttribute('credentialless', '')"));
-    assert.ok(appContent.includes("iframe.removeAttribute('credentialless')"));
+  test('getWorkerProxyUrl never calls worker with an empty or invalid URL', () => {
+    assert.strictEqual(MediaLinks.getWorkerProxyUrl(''), '');
+    assert.strictEqual(MediaLinks.getWorkerProxyUrl(null), '');
+    assert.strictEqual(MediaLinks.getWorkerProxyUrl('https://nhdapi.com/movie?id='), '');
   });
 
   test('index.html contains preconnect for Cloudflare Worker domain', () => {

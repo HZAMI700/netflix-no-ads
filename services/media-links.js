@@ -29,7 +29,7 @@ const NHDAPI_BASE = 'https://nhdapi.com';
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
 
 function getWorkerProxyUrl(originalUrl) {
-  if (!originalUrl) return '';
+  if (!originalUrl || !isValidStreamEmbedUrl(originalUrl)) return '';
   return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
 }
 

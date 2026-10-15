@@ -4773,7 +4773,7 @@ function updatePlayerServerUI() {
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
 
 function getWorkerProxyUrl(originalUrl) {
-  if (!originalUrl) return '';
+  if (!originalUrl || !isValidStreamEmbedUrl(originalUrl)) return '';
   return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
 }
 
@@ -4890,34 +4890,6 @@ function ensureValidStreamEmbedUrl(url, tmdbId, metadata = {}) {
 
 let _playerLoadSessionId = 0;
 
-async function checkWorkerStreamAvailability(workerUrl) {
-  try {
-    let signal = null;
-    let timer = null;
-    let controller = null;
-
-    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
-      signal = AbortSignal.timeout(3000);
-    } else if (typeof AbortController !== 'undefined') {
-      controller = new AbortController();
-      signal = controller.signal;
-      timer = setTimeout(() => {
-        try { controller.abort(); } catch {}
-      }, 3000);
-    }
-
-    const res = await fetch(workerUrl, {
-      method: 'GET',
-      signal
-    });
-    if (timer) clearTimeout(timer);
-    return !!(res && res.status === 200);
-  } catch (err) {
-    console.warn('[StreamProxy] Worker pre-check failed or timed out:', err?.message || err);
-    return false;
-  }
-}
-
 function togglePlayerServer() {
   const next = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') ? 'server1' : 'server2';
   switchPlayerServer(next);
@@ -4969,14 +4941,15 @@ async function switchPlayerServer(newServer) {
 
   const targetSub = store.get('nf_sub_lang', 'ar');
   const rawStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
-  const originalStreamUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, currentEmbed);
+  const fullOriginalEmbedUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, currentEmbed);
 
-  if (!originalStreamUrl || !isValidStreamEmbedUrl(originalStreamUrl)) {
+  // 1. Only render/switch iframe when a valid movie/TV id exists (never render an empty URL like /movie?id=)
+  if (!fullOriginalEmbedUrl || !isValidStreamEmbedUrl(fullOriginalEmbedUrl)) {
     toast('Server switch unavailable (invalid or empty ID)');
     return;
   }
 
-  currentEmbed.url = originalStreamUrl;
+  currentEmbed.url = fullOriginalEmbedUrl;
   currentEmbed.server = currentPlayerServer;
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
 
@@ -4987,23 +4960,20 @@ async function switchPlayerServer(newServer) {
 
   armVidShield();
 
-  const sessionId = ++_playerLoadSessionId;
-  const workerUrl = getWorkerProxyUrl(originalStreamUrl);
-  const isWorkerOk = await checkWorkerStreamAvailability(workerUrl);
-
-  if (sessionId !== _playerLoadSessionId || !$('playerView')?.classList.contains('show')) {
-    return;
-  }
-
-  const finalUrl = isWorkerOk ? workerUrl : originalStreamUrl;
-  iframe.src = finalUrl;
-  if (isWorkerOk) {
-    iframe.setAttribute('credentialless', '');
-    try { iframe.credentialless = true; } catch {}
-  } else {
-    iframe.removeAttribute('credentialless');
-  }
-  iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+  // 3. Set the iframe src directly to the worker proxy URL
+  // 4. Add allow="autoplay; fullscreen; encrypted-media" and allowFullScreen to the iframe
+  iframe.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`;
+  iframe.allowFullscreen = true;
+  iframe.setAttribute('allowfullscreen', '');
+  iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  iframe.setAttribute('credentialless', '');
+  try { iframe.credentialless = true; } catch {}
+  iframe.onerror = function() {
+    if (iframe.src !== fullOriginalEmbedUrl) {
+      iframe.src = fullOriginalEmbedUrl;
+      iframe.removeAttribute('credentialless');
+    }
+  };
 
   if (isServer2) {
     startNhdApiSession({
@@ -5138,44 +5108,41 @@ async function playEmbed(o) {
   const targetSub = store.get('nf_sub_lang', 'ar');
   const rawStreamUrl = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
 
-  // Ensure originalStreamUrl always contains a valid TMDB ID before loading (never load an empty ID like /movie?id=)
+  // 1. Only render the iframe when a valid movie/TV id exists (never render an empty URL like /movie?id=)
   const tmdbId = o.tmdbId || (o.meta ? (o.meta.tmdbId || o.meta.moviedb_id) : null) ||
     ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(o.id || o.imdb)?.moviedb_id : null);
 
-  const originalStreamUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, o);
+  // 2. Construct the full original embed URL first
+  const fullOriginalEmbedUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, o);
 
-  if (!originalStreamUrl || !isValidStreamEmbedUrl(originalStreamUrl)) {
-    console.warn('[Player] Blocked invalid stream URL or missing/empty TMDB ID:', o.url);
+  if (!fullOriginalEmbedUrl || !isValidStreamEmbedUrl(fullOriginalEmbedUrl)) {
+    console.warn('[Player] Blocked invalid stream URL or missing/empty TMDB ID:', o ? o.url : null);
     showPlayerError('Streaming is unavailable for this title (invalid or empty ID).');
     return;
   }
 
-  currentEmbed.url = originalStreamUrl;
+  currentEmbed.url = fullOriginalEmbedUrl;
 
   const oldIframe = $('playerView')?.querySelector('iframe');
   if (oldIframe) oldIframe.remove();
 
-  const sessionId = ++_playerLoadSessionId;
-
-  // Automatic pre-check before rendering iframe: test Worker URL with 3-second timeout
-  const workerUrl = getWorkerProxyUrl(originalStreamUrl);
-  const isWorkerOk = await checkWorkerStreamAvailability(workerUrl);
-
-  if (sessionId !== _playerLoadSessionId || !$('playerView')?.classList.contains('show')) {
-    return;
-  }
-
-  const finalUrl = isWorkerOk ? workerUrl : originalStreamUrl;
-
+  // 3. Set the iframe src directly to the worker proxy URL
+  // 4. Add allow="autoplay; fullscreen; encrypted-media" and allowFullScreen to the iframe
   const f = document.createElement('iframe');
-  f.src = finalUrl;
+  f.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`;
   f.allowFullscreen = true;
-  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+  f.setAttribute('allowfullscreen', '');
+  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
   f.setAttribute('referrerpolicy', 'origin');
-  if (isWorkerOk) {
-    f.setAttribute('credentialless', '');
-    try { f.credentialless = true; } catch {}
-  }
+  f.setAttribute('credentialless', '');
+  try { f.credentialless = true; } catch {}
+  f.onerror = function() {
+    console.warn('[Player] Worker proxy load error, falling back to direct URL');
+    if (f.src !== fullOriginalEmbedUrl) {
+      f.src = fullOriginalEmbedUrl;
+      f.removeAttribute('credentialless');
+    }
+  };
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
