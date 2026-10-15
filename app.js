@@ -2445,6 +2445,11 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
 }
 
 async function openDetail(id, type, autoplay, continueTarget) {
+  if (!id || id === 'undefined' || id === 'null' || id === 'NaN') {
+    toast('No title to play: missing valid ID.');
+    show('home');
+    return;
+  }
   const preloadedMeta = arguments[4] || (continueTarget && continueTarget.name ? continueTarget : null);
   closeCardPortal();
   type = (type === 'series' || type === 'tv') ? 'series' : 'movie';
@@ -2507,11 +2512,15 @@ async function openDetail(id, type, autoplay, continueTarget) {
   // 3. Resilient fallback: ensure title is playable even if network is offline
   if (!m && id) {
     const cleanId = String(id).trim();
+    const isNum = /^\d+$/.test(cleanId);
+    const tmdbVal = isNum ? cleanId : (cleanId.startsWith('tmdb:') ? cleanId.replace('tmdb:', '') : null);
+    const imdbVal = cleanId.startsWith('tt') ? cleanId : null;
     m = {
       id: cleanId,
-      imdb_id: cleanId.startsWith('tt') ? cleanId : null,
-      moviedb_id: cleanId.startsWith('tmdb:') ? cleanId.replace('tmdb:', '') : null,
-      name: (preloadedMeta?.name || preloadedMeta?.title) || (cleanId.startsWith('tt') ? 'Title ' + cleanId : cleanId),
+      imdb_id: imdbVal,
+      moviedb_id: tmdbVal,
+      tmdbId: tmdbVal,
+      name: (preloadedMeta?.name || preloadedMeta?.title) || (imdbVal ? 'Title ' + imdbVal : (tmdbVal ? 'Title ' + tmdbVal : cleanId)),
       type,
       year: '2024',
       imdbRating: '8.2',
@@ -4960,20 +4969,12 @@ async function switchPlayerServer(newServer) {
 
   armVidShield();
 
-  // 3. Set the iframe src directly to the worker proxy URL
-  // 4. Add allow="autoplay; fullscreen; encrypted-media" and allowFullScreen to the iframe
-  iframe.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`;
+  iframe.src = fullOriginalEmbedUrl;
   iframe.allowFullscreen = true;
   iframe.setAttribute('allowfullscreen', '');
-  iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   iframe.setAttribute('credentialless', '');
   try { iframe.credentialless = true; } catch {}
-  iframe.onerror = function() {
-    if (iframe.src !== fullOriginalEmbedUrl) {
-      iframe.src = fullOriginalEmbedUrl;
-      iframe.removeAttribute('credentialless');
-    }
-  };
 
   if (isServer2) {
     startNhdApiSession({
@@ -5004,8 +5005,7 @@ function applySubtitleToActivePlayer(lang) {
   if (!isServer2) {
     const newUrl = updateSubtitleUrlParam(currentEmbed.url, targetSub);
     currentEmbed.url = newUrl;
-    const isCurrentlyProxied = iframe.hasAttribute('credentialless') || (iframe.src || '').includes('adsclear.yassine-hzami.workers.dev');
-    const finalUrl = isCurrentlyProxied ? getWorkerProxyUrl(newUrl) : newUrl;
+    const finalUrl = newUrl;
     if (iframe.src !== finalUrl) {
       iframe.src = finalUrl;
     }
@@ -5126,23 +5126,14 @@ async function playEmbed(o) {
   const oldIframe = $('playerView')?.querySelector('iframe');
   if (oldIframe) oldIframe.remove();
 
-  // 3. Set the iframe src directly to the worker proxy URL
-  // 4. Add allow="autoplay; fullscreen; encrypted-media" and allowFullScreen to the iframe
   const f = document.createElement('iframe');
-  f.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`;
+  f.src = fullOriginalEmbedUrl;
   f.allowFullscreen = true;
   f.setAttribute('allowfullscreen', '');
-  f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media');
+  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   f.setAttribute('referrerpolicy', 'origin');
   f.setAttribute('credentialless', '');
   try { f.credentialless = true; } catch {}
-  f.onerror = function() {
-    console.warn('[Player] Worker proxy load error, falling back to direct URL');
-    if (f.src !== fullOriginalEmbedUrl) {
-      f.src = fullOriginalEmbedUrl;
-      f.removeAttribute('credentialless');
-    }
-  };
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
@@ -5708,18 +5699,52 @@ const _handleFocusLossOrVisibility = (e) => {
 });
 try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 
+// High-Frequency Focus Trap: outside iframe, snap focus back when window blurs to iframe
+window.addEventListener('blur', () => {
+  const iframe = $('playerView')?.querySelector('iframe');
+  if (iframe && document.activeElement === iframe) {
+    try { iframe.blur(); } catch {}
+    const trap = $('pFocusTrap');
+    if (trap) {
+      try { trap.focus(); } catch {}
+    }
+    setTimeout(() => {
+      try { window.focus(); } catch {}
+      try { window.top?.focus(); } catch {}
+    }, 50);
+  }
+}, true);
+
 let _allowNavigation = false;
+let _playerHovered = false;
+const _pvHover = $('playerView');
+if (_pvHover) {
+  _pvHover.addEventListener('mouseenter', () => { _playerHovered = true; });
+  _pvHover.addEventListener('mouseleave', () => { _playerHovered = false; });
+}
+
 window.addEventListener('beforeunload', (e) => {
-  if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+  if (_playerHovered && $('playerView')?.classList.contains('show') && !_allowNavigation) {
     e.preventDefault();
     e.returnValue = '';
     return '';
   }
 });
 
-let shieldDisarmTimer = null;
+let _firstClickDone = false;
+let _shieldActivateTimer = null;
+let _shieldUnlockTimer = null;
+let _shieldCountdownInterval = null;
+let _shieldActive = false;
 
-function disarmVidShield() {
+function disarmVidShield(seconds) {
+  clearTimeout(_shieldActivateTimer);
+  clearTimeout(_shieldUnlockTimer);
+  if (_shieldCountdownInterval) {
+    clearInterval(_shieldCountdownInterval);
+    _shieldCountdownInterval = null;
+  }
+  _shieldActive = false;
   const shield = $('vidShield');
   if (shield) {
     shield.style.display = 'none';
@@ -5730,10 +5755,39 @@ function disarmVidShield() {
     zoneShield.style.display = 'none';
     zoneShield.style.pointerEvents = 'none';
   }
-  clearTimeout(shieldDisarmTimer);
+  if (typeof seconds === 'number' && seconds > 0) {
+    let remaining = seconds;
+    const label = $('pUnlockShieldLabel');
+    if (label) label.textContent = `Unlocked (${remaining}s)`;
+    toast(`Controls unlocked for ${seconds}s`);
+
+    _shieldCountdownInterval = setInterval(() => {
+      remaining--;
+      if (remaining > 0 && label) {
+        label.textContent = `Unlocked (${remaining}s)`;
+      } else {
+        clearInterval(_shieldCountdownInterval);
+        _shieldCountdownInterval = null;
+      }
+    }, 1000);
+
+    _shieldUnlockTimer = setTimeout(() => {
+      activateVidShield();
+      toast('Player protected against ads.');
+    }, seconds * 1000);
+  } else {
+    const label = $('pUnlockShieldLabel');
+    if (label) label.textContent = 'Unlock Controls (3s)';
+    const controls = $('pShieldControls');
+    if (controls && !$('playerView')?.classList.contains('show')) {
+      controls.style.display = 'none';
+    }
+  }
 }
 
-function armVidShield() {
+function activateVidShield() {
+  if (!$('playerView')?.classList.contains('show')) return;
+  _shieldActive = true;
   let shield = $('vidShield');
   if (!shield) {
     shield = document.createElement('div');
@@ -5743,30 +5797,120 @@ function armVidShield() {
   if (shield) {
     shield.style.display = 'block';
     shield.style.pointerEvents = 'auto';
-
     const handleShieldTap = (e) => {
       if (e) {
         try { e.preventDefault(); } catch {}
         try { e.stopPropagation(); } catch {}
       }
-      shield.style.display = 'none';
-      shield.style.pointerEvents = 'none';
-      clearTimeout(shieldDisarmTimer);
+      toast('Player protected against ads. Click "Unlock Controls (3s)" to adjust settings.');
     };
-
     shield.onclick = handleShieldTap;
     shield.ontouchend = handleShieldTap;
-    shield.onpointerdown = (e) => {
-      try { e.stopPropagation(); } catch {}
-      handleShieldTap(e);
-    };
   }
-  const zoneShield = $('pControlZoneShield');
-  if (zoneShield) {
-    zoneShield.style.display = 'none';
-    zoneShield.style.pointerEvents = 'none';
+  const controls = $('pShieldControls');
+  if (controls) {
+    controls.style.display = 'flex';
+  }
+  const label = $('pUnlockShieldLabel');
+  if (label) label.textContent = 'Unlock Controls (3s)';
+}
+
+function armVidShield() {
+  clearTimeout(_shieldActivateTimer);
+  clearTimeout(_shieldUnlockTimer);
+  if (_shieldCountdownInterval) {
+    clearInterval(_shieldCountdownInterval);
+    _shieldCountdownInterval = null;
+  }
+  _firstClickDone = false;
+  _shieldActive = false;
+
+  let shield = $('vidShield');
+  if (!shield) {
+    shield = document.createElement('div');
+    shield.id = 'vidShield';
+    $('playerView')?.insertBefore(shield, $('pTop'));
+  }
+  if (shield) {
+    shield.style.display = 'none';
+    shield.style.pointerEvents = 'none';
+  }
+  const controls = $('pShieldControls');
+  if (controls) {
+    controls.style.display = 'flex';
+  }
+  const label = $('pUnlockShieldLabel');
+  if (label) label.textContent = 'Unlock Controls (3s)';
+
+  // Hook first user interaction on playerView to schedule activation 1.5 seconds later
+  const pv = $('playerView');
+  if (pv) {
+    const handleFirstTap = () => {
+      if (_firstClickDone) return;
+      _firstClickDone = true;
+      pv.removeEventListener('pointerdown', handleFirstTap, true);
+      pv.removeEventListener('click', handleFirstTap, true);
+      clearTimeout(_shieldActivateTimer);
+      _shieldActivateTimer = setTimeout(() => {
+        activateVidShield();
+      }, 1500);
+    };
+    pv.addEventListener('pointerdown', handleFirstTap, true);
+    pv.addEventListener('click', handleFirstTap, true);
   }
 }
+
+function togglePlayerWrapperFullscreen() {
+  const pv = $('playerView');
+  if (!pv) return;
+  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+  if (!isFull) {
+    if (pv.requestFullscreen) {
+      pv.requestFullscreen().catch(() => {});
+    } else if (pv.webkitRequestFullscreen) {
+      pv.webkitRequestFullscreen();
+    } else if (pv.mozRequestFullScreen) {
+      pv.mozRequestFullScreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.mozCancelFullScreen) {
+      document.mozCancelFullScreen();
+    }
+  }
+}
+
+const pUnlockShieldBtn = $('pUnlockShieldBtn');
+if (pUnlockShieldBtn) {
+  pUnlockShieldBtn.onclick = (e) => {
+    if (e) {
+      try { e.preventDefault(); } catch {}
+      try { e.stopPropagation(); } catch {}
+    }
+    disarmVidShield(3);
+  };
+}
+
+const pFullscreenShieldBtn = $('pFullscreenShieldBtn');
+if (pFullscreenShieldBtn) {
+  pFullscreenShieldBtn.onclick = (e) => {
+    if (e) {
+      try { e.preventDefault(); } catch {}
+      try { e.stopPropagation(); } catch {}
+    }
+    togglePlayerWrapperFullscreen();
+  };
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const lbl = $('pFullscreenShieldLabel');
+  if (!lbl) return;
+  const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  lbl.textContent = isFull ? 'Exit Fullscreen' : 'Fullscreen';
+});
 
 let lastPlayerTap = 0;
 ['pointerdown', 'touchstart', 'click', 'mousedown', 'mouseup'].forEach(evt => {
@@ -5981,7 +6125,8 @@ document.addEventListener('keydown', e => {
 
 // Initialize app: check if first-time visitor needs profile selection gate
 const isProfileSelected = !!store.get('nf_profile_selected', false);
-const hasSpecificRoute = window.location.hash && window.location.hash !== '#/' && window.location.hash !== '#/home';
+const initialRoute = parseRouteFromLocation();
+const hasSpecificRoute = initialRoute.type !== 'home';
 
 if (!isProfileSelected && !hasSpecificRoute) {
   if (typeof document !== 'undefined' && document.body) {
@@ -6012,10 +6157,95 @@ if (letterEl) {
 }
 
 /* ---------- ROUTE & DEEP LINK HANDLER ---------- */
+function parseRouteFromLocation() {
+  let path = '';
+  let search = '';
+
+  const rawHash = (typeof window !== 'undefined' && window.location.hash ? window.location.hash : '').trim();
+  if (rawHash && rawHash !== '#/' && rawHash !== '#/home' && rawHash !== '#') {
+    const afterHash = rawHash.replace(/^#\/?/, '');
+    const qIdx = afterHash.indexOf('?');
+    if (qIdx >= 0) {
+      path = afterHash.slice(0, qIdx);
+      search = afterHash.slice(qIdx);
+    } else {
+      path = afterHash;
+    }
+  }
+
+  const locPath = (typeof window !== 'undefined' && window.location.pathname ? window.location.pathname : '').replace(/^\/+/, '').replace(/\/+$/, '');
+  const locSearch = (typeof window !== 'undefined' && window.location.search) ? window.location.search : '';
+
+  if (!path && locPath && locPath !== 'index.html') {
+    path = locPath;
+  }
+  if (!search && locSearch) {
+    search = locSearch;
+  }
+
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  const qId = params.get('id') || params.get('tmdbId') || params.get('imdbId') || null;
+  const qKind = (params.get('kind') || params.get('type') || '').toLowerCase();
+  const qSeason = params.get('season') || params.get('s') || null;
+  const qEpisode = params.get('episode') || params.get('ep') || params.get('e') || null;
+
+  const segments = path ? path.split('/').map(decodeURIComponent).filter(Boolean) : [];
+  const first = (segments[0] || '').toLowerCase();
+
+  // /watch?kind=movie&id=... or /watch?kind=tv&id=...
+  if (first === 'watch') {
+    const id = qId || (segments[1] && segments[1] !== 'watch' ? segments[1] : null);
+    const kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : 'movie';
+    const season = qSeason ? parseInt(qSeason, 10) : (segments[2] ? parseInt(segments[2], 10) : 1);
+    const episode = qEpisode ? parseInt(qEpisode, 10) : (segments[3] ? parseInt(segments[3], 10) : 1);
+    return { type: 'media', kind, id, season, episode, isWatch: true };
+  }
+
+  // /movie/:id or /movie?id=...
+  if (first === 'movie') {
+    const id = (segments[1] && segments[1] !== 'movie') ? segments[1] : qId;
+    return { type: 'media', kind: 'movie', id, season: null, episode: null, isWatch: false };
+  }
+
+  // /tv/:id/:season/:episode or /tv/:id or /tv?id=... or /series/...
+  if (first === 'tv' || first === 'series') {
+    const id = (segments[1] && segments[1] !== first) ? segments[1] : qId;
+    const season = segments[2] ? parseInt(segments[2], 10) : (qSeason ? parseInt(qSeason, 10) : 1);
+    const episode = segments[3] ? parseInt(segments[3], 10) : (qEpisode ? parseInt(qEpisode, 10) : 1);
+    return { type: 'media', kind: 'series', id, season, episode, isWatch: false };
+  }
+
+  // Direct ?id=... with or without kind/season/episode
+  if (qId) {
+    const kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : 'movie';
+    const season = qSeason ? parseInt(qSeason, 10) : 1;
+    const episode = qEpisode ? parseInt(qEpisode, 10) : 1;
+    return { type: 'media', kind, id: qId, season, episode, isWatch: false };
+  }
+
+  // Browse categories
+  if (first === 'movies' || (first === 'browse' && segments[1] === 'movies')) {
+    return { type: 'browse', kind: 'movies' };
+  }
+  if (first === 'series' || (first === 'browse' && segments[1] === 'series')) {
+    return { type: 'browse', kind: 'series' };
+  }
+  if (first === 'new' || (first === 'browse' && segments[1] === 'new')) {
+    return { type: 'browse', kind: 'new' };
+  }
+
+  // Standard pages
+  if (first === 'search') return { type: 'page', page: 'search' };
+  if (first === 'mylist') return { type: 'page', page: 'mylist' };
+  if (first === 'settings') return { type: 'page', page: 'settings' };
+  if (first === 'profiles') return { type: 'page', page: 'profiles' };
+
+  return { type: 'home' };
+}
+
 function handleRouteFromHash() {
-  const rawHash = (window.location.hash || '').trim();
-  const hash = rawHash.replace(/^#\/?/, '');
-  if (!hash || hash === 'home' || hash === '/') {
+  const route = parseRouteFromLocation();
+  if (route.type === 'home') {
     if (currentRoute.page === 'detail') {
       closeDetail(false);
       show('home');
@@ -6023,34 +6253,52 @@ function handleRouteFromHash() {
     }
     return;
   }
-  const parts = hash.split('/').map(decodeURIComponent);
-  const routeType = parts[0];
-  const routeId = parts.slice(1).join('/');
 
-  if ((routeType === 'movie' || routeType === 'series') && routeId) {
-    if (!currentDetail || currentDetail.meta?.id !== routeId || currentRoute.page !== 'detail') {
-      isHandlingHashRoute = true;
-      openDetail(routeId, routeType, false).finally(() => {
-        isHandlingHashRoute = false;
-      });
+  if (route.type === 'media') {
+    const routeType = (route.kind === 'series' || route.kind === 'tv') ? 'series' : 'movie';
+    const routeId = route.id ? String(route.id).trim() : null;
+
+    if (!routeId || routeId === 'undefined' || routeId === 'null') {
+      toast('No title to play: missing valid ID.');
+      show('home');
+      return;
     }
-  } else if (routeType === 'movies' || (routeType === 'browse' && routeId === 'movies')) {
-    openBrowse('movies');
-  } else if (routeType === 'series' || (routeType === 'browse' && routeId === 'series')) {
-    openBrowse('series');
-  } else if (routeType === 'new' || (routeType === 'browse' && routeId === 'new')) {
-    openBrowse('new');
-  } else if (routeType === 'search') {
-    show('search');
-    document.title = 'Search — Streamnaro';
-  } else if (routeType === 'mylist') {
-    show('mylist');
-    renderMyList();
-    document.title = 'My List — Streamnaro';
-  } else if (routeType === 'settings') {
-    show('settings');
-    renderAddons();
-    document.title = 'Settings — Streamnaro';
+
+    if ((routeType === 'movie' || routeType === 'series') && routeId) {
+      if (!currentDetail || currentDetail.meta?.id !== routeId || currentRoute.page !== 'detail') {
+        isHandlingHashRoute = true;
+        const continueTarget = (routeType === 'series')
+          ? { season: route.season || 1, episode: route.episode || 1 }
+          : null;
+        openDetail(routeId, routeType, !!route.isWatch, continueTarget).finally(() => {
+          isHandlingHashRoute = false;
+        });
+      }
+    }
+    return;
+  }
+
+  if (route.type === 'browse') {
+    openBrowse(route.kind);
+    return;
+  }
+
+  if (route.type === 'page') {
+    if (route.page === 'search') {
+      show('search');
+      document.title = 'Search — Streamnaro';
+    } else if (route.page === 'mylist') {
+      show('mylist');
+      renderMyList();
+      document.title = 'My List — Streamnaro';
+    } else if (route.page === 'settings') {
+      show('settings');
+      renderAddons();
+      document.title = 'Settings — Streamnaro';
+    } else if (route.page === 'profiles') {
+      show('profiles');
+      document.title = 'Profiles — Streamnaro';
+    }
   }
 }
 
@@ -6061,7 +6309,7 @@ window.addEventListener('hashchange', () => {
   handleRouteFromHash();
 });
 
-if (window.location.hash) {
+if (hasSpecificRoute || window.location.hash) {
   setTimeout(() => {
     handleRouteFromHash();
   }, 100);

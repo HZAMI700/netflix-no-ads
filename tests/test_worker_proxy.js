@@ -42,16 +42,46 @@ async function runTests() {
     assert.ok(appContent.includes('function getWorkerProxyUrl('));
   });
 
-  console.log('\n--- 2. Direct Worker Proxy Routing & Iframe Attributes ---');
-  test('iframe src set directly to worker proxy URL with fullOriginalEmbedUrl', () => {
-    assert.ok(appContent.includes("f.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`"));
-    assert.ok(appContent.includes("iframe.src = `https://adsclear.yassine-hzami.workers.dev/?url=${encodeURIComponent(fullOriginalEmbedUrl)}`"));
+  console.log('\n--- 2. Direct Embed Loading & Multi-Layer Pop-Under Blocker ---');
+  test('iframe src set directly to fullOriginalEmbedUrl', () => {
+    assert.ok(appContent.includes("f.src = fullOriginalEmbedUrl;"));
+    assert.ok(appContent.includes("iframe.src = fullOriginalEmbedUrl;"));
   });
 
-  test('iframe includes allow="autoplay; fullscreen; encrypted-media" and allowFullScreen', () => {
-    assert.ok(appContent.includes("f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media')"));
+  test('iframe includes allow="autoplay; fullscreen; encrypted-media; window-management \'none\'" and allowFullScreen', () => {
+    assert.ok(appContent.includes('allow="autoplay; fullscreen; encrypted-media; window-management \'none\'"') || appContent.includes("autoplay; fullscreen; encrypted-media; window-management 'none'"));
     assert.ok(appContent.includes('f.allowFullscreen = true'));
     assert.ok(appContent.includes("f.setAttribute('allowfullscreen', '')"));
+    assert.ok(appContent.includes("f.setAttribute('credentialless', '')"));
+  });
+
+  test('no sandbox attribute on iframe (allows playback)', () => {
+    assert.strictEqual(appContent.includes("f.setAttribute('sandbox'"), false);
+    assert.strictEqual(appContent.includes("iframe.setAttribute('sandbox'"), false);
+  });
+
+  test('High-Frequency Focus Trap: hidden pFocusTrap outside iframe snaps focus back', () => {
+    assert.ok(htmlContent.includes('id="pFocusTrap"'));
+    assert.ok(appContent.includes('document.activeElement === iframe'));
+    assert.ok(appContent.includes('iframe.blur()'));
+    assert.ok(appContent.includes('trap.focus()'));
+  });
+
+  test('beforeunload redirect lock active ONLY while mouse hovers over player container', () => {
+    assert.ok(appContent.includes('_playerHovered'));
+    assert.ok(appContent.includes("addEventListener('mouseenter'"));
+    assert.ok(appContent.includes("addEventListener('mouseleave'"));
+    assert.ok(appContent.includes("if (_playerHovered && $('playerView')"));
+  });
+
+  test('smart click-shield overlay activates 1.5s after user first click with corner controls', () => {
+    assert.ok(appContent.includes('_shieldActivateTimer = setTimeout'));
+    assert.ok(appContent.includes('activateVidShield()'));
+    assert.ok(htmlContent.includes('id="pShieldControls"'));
+    assert.ok(htmlContent.includes('id="pUnlockShieldBtn"'));
+    assert.ok(htmlContent.includes('id="pFullscreenShieldBtn"'));
+    assert.ok(appContent.includes('disarmVidShield(3)'));
+    assert.ok(appContent.includes('togglePlayerWrapperFullscreen()'));
   });
 
   test('no fetch pre-check in player embed logic (broken pre-check removed)', () => {

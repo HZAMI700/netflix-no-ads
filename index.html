@@ -872,6 +872,17 @@
 <!-- PLAYER VIEW -->
 <div id="playerView">
   <div id="vidShield"></div>
+  <button id="pFocusTrap" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
+  <div id="pShieldControls" class="p-shield-controls" style="display:none;">
+    <button id="pUnlockShieldBtn" class="shield-corner-btn" title="Unlock player controls for 3 seconds" aria-label="Unlock controls">
+      <span class="shield-btn-icon">🔓</span>
+      <span id="pUnlockShieldLabel">Unlock Controls (3s)</span>
+    </button>
+    <button id="pFullscreenShieldBtn" class="shield-corner-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+      <span class="shield-btn-icon">⛶</span>
+      <span id="pFullscreenShieldLabel">Fullscreen</span>
+    </button>
+  </div>
   <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
   <video id="playerVideo" playsinline style="display:none !important"></video>
   <div class="p-top" id="pTop">
