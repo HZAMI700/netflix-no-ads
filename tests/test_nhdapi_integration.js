@@ -155,10 +155,10 @@ async function testAsync(name, fn) {
   });
 
   console.log('\n--- 5. Server Selection & UI Architecture ---');
-  test('index.html contains both server options with Ultra HD Fast Server as default', () => {
+  test('index.html contains both server options with Server 1 as default', () => {
     assert.ok(htmlContent.includes('Server 1: High Definition Stream'));
     assert.ok(htmlContent.includes('Ultra HD Fast Server'));
-    assert.ok(htmlContent.includes('value="server2" selected'));
+    assert.ok(htmlContent.includes('value="server1" selected'));
   });
 
   test('index.html includes services/nhdapi.js script tag', () => {

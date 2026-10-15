@@ -75,7 +75,12 @@ let heroItems = [], heroIdx = 0, heroTimer = null;
 let currentDetail = null;
 let currentStream = null;
 let currentEmbed = null;
-let currentPlayerServer = store.get('nf_player_server', 'server2');
+let currentPlayerServer = store.get('nf_player_server', 'server1');
+if (!store.get('nf_vidapi_default_active')) {
+  currentPlayerServer = 'server1';
+  store.set('nf_player_server', 'server1');
+  store.set('nf_vidapi_default_active', '1');
+}
 
 const PROFILES = [
   { id: 'Z', name: 'You', avatar: 'assets/profiles/profile_red.png', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
@@ -2301,9 +2306,12 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
     return;
   }
   m.type = type;
-  if (type === 'series' && !m.moviedb_id) {
-    const cur = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb_id) : null;
-    if (cur && cur.moviedb_id) m.moviedb_id = cur.moviedb_id;
+  if (!m.moviedb_id && !m.tmdbId) {
+    const cur = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(m.id || m.imdb_id || m.imdb) : null;
+    if (cur && (cur.moviedb_id || cur.tmdbId)) {
+      m.moviedb_id = cur.moviedb_id || cur.tmdbId;
+      m.tmdbId = cur.moviedb_id || cur.tmdbId;
+    }
   }
   currentDetail = { meta: m, type, streams: [], ep: { s: 1, e: 1 } };
 
@@ -4612,8 +4620,14 @@ function resolveMediaIdentifiers(m) {
 
   const rawId = String(m.id || '').trim();
   if (!tmdbId && /^\d+$/.test(rawId)) tmdbId = rawId;
-  if (!tmdbId && rawId.startsWith('tmdb:')) tmdbId = rawId.slice(5).trim();
-  if (!imdb && /^tt\d+$/.test(rawId)) imdb = rawId;
+  if (!tmdbId && rawId.startsWith('tmdb:')) {
+    const cleanTmdb = rawId.slice(5).split(':')[0].trim();
+    if (/^\d+$/.test(cleanTmdb)) tmdbId = cleanTmdb;
+  }
+  if (!imdb && /^tt\d+/.test(rawId)) {
+    const cleanImdb = rawId.split(':')[0].trim();
+    if (/^tt\d+$/.test(cleanImdb)) imdb = cleanImdb;
+  }
 
   if ((!tmdbId || !imdb) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
     const cur = CuratedCatalog.getCuratedById(rawId) ||
@@ -4623,6 +4637,17 @@ function resolveMediaIdentifiers(m) {
       if (!tmdbId && cur.moviedb_id) tmdbId = String(cur.moviedb_id);
       if (!tmdbId && cur.tmdbId) tmdbId = String(cur.tmdbId);
       if (!imdb && cur.id && /^tt\d+$/.test(cur.id)) imdb = cur.id;
+    }
+  }
+
+  if ((!tmdbId || !imdb) && (m.name || m.title) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.searchCurated) {
+    const searchName = m.name || m.title;
+    const hits = CuratedCatalog.searchCurated(searchName);
+    const targetType = (m.type === 'series' || m.type === 'tv') ? 'series' : 'movie';
+    const hit = hits.find(h => h && (h.moviedb_id || h.tmdbId) && (h.type === targetType || !h.type));
+    if (hit) {
+      if (!tmdbId && (hit.moviedb_id || hit.tmdbId)) tmdbId = String(hit.moviedb_id || hit.tmdbId).trim();
+      if (!imdb && hit.id && /^tt\d+$/.test(hit.id)) imdb = hit.id;
     }
   }
 
@@ -5093,8 +5118,10 @@ async function switchPlayerServer(newServer) {
 
   let newBaseUrl = null;
   const isSeries = currentEmbed.type === 'series';
-  const tmdbId = currentEmbed.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
-  const imdb = currentEmbed.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
+  const embedIds = resolveMediaIdentifiers(currentEmbed);
+  const detailIds = currentDetail?.meta ? resolveMediaIdentifiers(currentDetail.meta) : { tmdbId: null, imdb: null };
+  const tmdbId = currentEmbed.tmdbId || embedIds.tmdbId || detailIds.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
+  const imdb = currentEmbed.imdb || embedIds.imdb || detailIds.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
 
   if (isServer2) {
     if (!tmdbId) {

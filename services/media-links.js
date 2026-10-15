@@ -157,8 +157,19 @@ function getMovieStreamUrl(movie, server = 'server1') {
   const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
 
   if (server === 'nhdapi') {
-    const id = /^\d+$/.test(tmdb) ? tmdb : '';
-    if (!id) return null;
+    let id = /^\d+$/.test(tmdb) ? tmdb : '';
+    if (!id && movie && movie.id) {
+      const raw = String(movie.id).trim();
+      if (/^\d+$/.test(raw)) id = raw;
+      else if (raw.startsWith('tmdb:')) id = raw.slice(5).trim();
+    }
+    if (!id && (imdb || (movie && movie.id)) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(imdb || movie.id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+    if (!id || !/^\d+$/.test(id)) return null;
     return `${NHDAPI_BASE}/movie/${id}`;
   }
 
@@ -188,8 +199,20 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   if (!s || !e) return null;
 
   if (server === 'nhdapi') {
-    if (!tmdb || !/^\d+$/.test(tmdb)) return null;
-    return `${NHDAPI_BASE}/tv/${tmdb}?season=${s}&episode=${e}`;
+    let id = (tmdb && /^\d+$/.test(tmdb)) ? tmdb : '';
+    if (!id && series && series.id) {
+      const raw = String(series.id).trim();
+      if (/^\d+$/.test(raw)) id = raw;
+      else if (raw.startsWith('tmdb:')) id = raw.slice(5).trim();
+    }
+    if (!id && (imdb || (series && series.id)) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(imdb || series.id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+    if (!id || !/^\d+$/.test(id)) return null;
+    return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
   }
 
   if (server === 'server2' || server === 'vidsrc') {
@@ -209,7 +232,16 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
 
 /** NHDApi movie iframe embed URL */
 function getNhdApiMovieUrl(tmdbId) {
-  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  let id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) {
+    if (id.startsWith('tmdb:')) id = id.slice(5).trim();
+    else if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+  }
   if (!/^\d+$/.test(id)) return null;
   const apiKey = (typeof NHDApi !== 'undefined' && NHDApi.getApiKey) ? NHDApi.getApiKey() : '';
   const keyParam = apiKey ? `?key=${encodeURIComponent(apiKey)}` : '';
@@ -218,7 +250,16 @@ function getNhdApiMovieUrl(tmdbId) {
 
 /** NHDApi TV episode iframe embed URL */
 function getNhdApiEpisodeUrl(tmdbId, season, episode) {
-  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  let id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) {
+    if (id.startsWith('tmdb:')) id = id.slice(5).trim();
+    else if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+  }
   const s = toInt(season);
   const e = toInt(episode);
   if (!/^\d+$/.test(id) || !s || !e) return null;
