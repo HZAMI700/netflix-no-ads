@@ -91,6 +91,45 @@ async function runTests() {
     assert.strictEqual(finalUrl, original);
   });
 
+  console.log('\n--- 4. TMDB ID Validation & Empty ID Prevention (Rule 1) ---');
+  test('isValidStreamEmbedUrl rejects empty IDs like /movie?id= and /tv?id=', () => {
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/movie?id='), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/tv?id='), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/tv?id=&season=1&episode=3'), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://example.com/watch?kind=movie&id='), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/movie/'), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://vaplayer.ru/embed/tv//1/1'), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/movie?id=undefined'), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/movie?id=null'), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl(''), false);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl(null), false);
+  });
+
+  test('isValidStreamEmbedUrl accepts valid TMDB ID and embed URLs', () => {
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/movie/1101412'), true);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://nhdapi.com/tv/1396?season=1&episode=3'), true);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://vaplayer.ru/embed/tv/1396/1/3'), true);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://example.com/watch?kind=movie&id=1101412'), true);
+    assert.strictEqual(MediaLinks.isValidStreamEmbedUrl('https://vaplayer.ru/embed/movie/tt1375666'), true);
+  });
+
+  test('ensureValidStreamEmbedUrl fixes empty placeholder with valid TMDB ID', () => {
+    const fixedMovie = MediaLinks.ensureValidStreamEmbedUrl('https://nhdapi.com/movie?id=', 1101412);
+    assert.strictEqual(fixedMovie, 'https://nhdapi.com/movie?id=1101412');
+
+    const fixedWatch = MediaLinks.ensureValidStreamEmbedUrl('https://example.com/watch?kind=movie&id=', '1101412');
+    assert.strictEqual(fixedWatch, 'https://example.com/watch?kind=movie&id=1101412');
+
+    const emptyNoId = MediaLinks.ensureValidStreamEmbedUrl('https://nhdapi.com/movie?id=', null);
+    assert.strictEqual(emptyNoId, null);
+  });
+
+  test('app.js integrates ensureValidStreamEmbedUrl and isValidStreamEmbedUrl', () => {
+    assert.ok(appContent.includes('function isValidStreamEmbedUrl('));
+    assert.ok(appContent.includes('function ensureValidStreamEmbedUrl('));
+    assert.ok(appContent.includes('ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, o)'));
+  });
+
   console.log(`\nResults: ${passed} passed, ${failed} failed.`);
   if (failed > 0) process.exit(1);
 }

@@ -4777,6 +4777,117 @@ function getWorkerProxyUrl(originalUrl) {
   return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
 }
 
+/**
+ * Validates that an embed URL contains a valid non-empty identifier (TMDB ID or IMDb ID)
+ * and does NOT have an empty ID (e.g., rejects /movie?id=, /tv?id=, /watch?kind=movie&id=, /movie/).
+ */
+function isValidStreamEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  // Rule 1: Never load an empty ID like /movie?id=, /tv?id=, /watch?kind=movie&id=, or ?id=
+  if (/[?&]id=(?:&|#|$)/.test(trimmed)) return false;
+  if (/[?&]id=(?:undefined|null|nan)(?:&|#|$)/i.test(trimmed)) return false;
+
+  // Rule 1: Never load empty path ID like /movie/, /movie/? or /tv//
+  if (/\/(?:embed\/)?(?:movie|tv)\/(?:[?#]|$)/i.test(trimmed)) return false;
+  if (/\/(?:embed\/)?tv\/\//i.test(trimmed)) return false;
+
+  try {
+    const parsed = new URL(trimmed, 'https://streamnaro.local');
+    const path = parsed.pathname;
+
+    // Check query ID if present
+    if (parsed.searchParams.has('id')) {
+      const qId = parsed.searchParams.get('id');
+      if (!qId || !qId.trim()) return false;
+      const cleanQId = qId.trim();
+      if (cleanQId === 'undefined' || cleanQId === 'null' || cleanQId === 'NaN' || cleanQId === '0') return false;
+      if (!/^(?:tt\d+|\d+)$/.test(cleanQId)) return false;
+      return true;
+    }
+
+    // Check path ID
+    const pathMatch = path.match(/\/(?:embed\/)?(?:movie|tv)\/([^/?#]+)/i);
+    if (pathMatch) {
+      const pId = pathMatch[1].trim();
+      if (!pId || pId === 'undefined' || pId === 'null' || pId === 'NaN' || pId === '0') return false;
+      if (!/^(?:tt\d+|\d+)$/.test(pId)) return false;
+      return true;
+    }
+
+    // Check /watch?kind=movie&id=... or /watch?id=...
+    if (path.includes('/watch')) {
+      const wId = parsed.searchParams.get('id');
+      if (!wId || !/^(?:tt\d+|\d+)$/.test(wId.trim())) return false;
+      return true;
+    }
+
+    // Generic URL format: ensure valid ID exists somewhere in URL
+    if (/^(https?:)?\/\//.test(trimmed)) {
+      return /(?:tt\d+|\b\d{3,8}\b)/.test(trimmed);
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ensures originalStreamUrl contains a valid TMDB ID before loading.
+ * If URL has an empty ID placeholder (e.g., /movie?id=) and a valid tmdbId is provided,
+ * it populates the ID. Otherwise returns null if the URL remains invalid.
+ */
+function ensureValidStreamEmbedUrl(url, tmdbId, metadata = {}) {
+  if (!url || typeof url !== 'string') return null;
+  let cleanUrl = url.trim();
+  if (!cleanUrl) return null;
+
+  const validTmdb = (tmdbId != null && /^\d+$/.test(String(tmdbId).trim())) ? String(tmdbId).trim() : null;
+
+  // If URL has empty query id parameter like /movie?id= or /watch?kind=movie&id=
+  if (/[?&]id=(?:&|#|$)/.test(cleanUrl) || /[?&]id=(?:undefined|null|nan)(?:&|#|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/([?&]id=)(?:undefined|null|nan)?(?=&|#|$)/i, `$1${validTmdb}`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL has empty path like /movie/ or /movie/?
+  if (/\/(?:embed\/)?movie\/(?:[?#]|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?movie\/)(?=[?#]|$)/i, `$1${validTmdb}`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL has empty tv path like /tv//1/1 or /embed/tv//1/1
+  if (/\/(?:embed\/)?tv\/\/(?=\d+)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?tv\/)\/(?=\d+)/i, `$1${validTmdb}/`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL ends with /tv/ or /tv/?
+  if (/\/(?:embed\/)?tv\/(?:[?#]|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      const s = (metadata && metadata.season) || 1;
+      const ep = (metadata && metadata.episode) || 1;
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?tv\/)(?=[?#]|$)/i, `$1${validTmdb}?season=${s}&episode=${ep}`);
+    } else {
+      return null;
+    }
+  }
+
+  return isValidStreamEmbedUrl(cleanUrl) ? cleanUrl : null;
+}
+
 let _playerLoadSessionId = 0;
 
 async function checkWorkerStreamAvailability(workerUrl) {
@@ -4857,7 +4968,14 @@ async function switchPlayerServer(newServer) {
   }
 
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const originalStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
+  const rawStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
+  const originalStreamUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, currentEmbed);
+
+  if (!originalStreamUrl || !isValidStreamEmbedUrl(originalStreamUrl)) {
+    toast('Server switch unavailable (invalid or empty ID)');
+    return;
+  }
+
   currentEmbed.url = originalStreamUrl;
   currentEmbed.server = currentPlayerServer;
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
@@ -5018,7 +5136,20 @@ async function playEmbed(o) {
 
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const originalStreamUrl = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
+  const rawStreamUrl = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
+
+  // Ensure originalStreamUrl always contains a valid TMDB ID before loading (never load an empty ID like /movie?id=)
+  const tmdbId = o.tmdbId || (o.meta ? (o.meta.tmdbId || o.meta.moviedb_id) : null) ||
+    ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(o.id || o.imdb)?.moviedb_id : null);
+
+  const originalStreamUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, o);
+
+  if (!originalStreamUrl || !isValidStreamEmbedUrl(originalStreamUrl)) {
+    console.warn('[Player] Blocked invalid stream URL or missing/empty TMDB ID:', o.url);
+    showPlayerError('Streaming is unavailable for this title (invalid or empty ID).');
+    return;
+  }
+
   currentEmbed.url = originalStreamUrl;
 
   const oldIframe = $('playerView')?.querySelector('iframe');
