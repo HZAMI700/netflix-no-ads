@@ -1,3 +1,4 @@
+(function (global) {
 'use strict';
 
 /**
@@ -448,3 +449,7 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = NHDApi;
 }
+if (typeof global !== 'undefined') {
+  global.NHDApi = NHDApi;
+}
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

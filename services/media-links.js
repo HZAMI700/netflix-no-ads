@@ -1,3 +1,4 @@
+(function (global) {
 'use strict';
 
 /**
@@ -25,6 +26,12 @@ const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
 const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
 const NHDAPI_BASE = 'https://nhdapi.com';
+const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
+
+function getWorkerProxyUrl(originalUrl) {
+  if (!originalUrl) return '';
+  return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
+}
 
 const IMDB_RE = /^tt\d+$/;
 
@@ -256,6 +263,8 @@ const MediaLinks = {
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
   NHDAPI_BASE,
+  WORKER_PROXY_BASE,
+  getWorkerProxyUrl,
   getMovieStreamUrl,
   getEpisodeStreamUrl,
   getNhdApiMovieUrl,
@@ -274,3 +283,5 @@ const MediaLinks = {
   get02MovieDownloaderEpisodeUrl,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = MediaLinks;
+if (typeof global !== 'undefined') global.MediaLinks = MediaLinks;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

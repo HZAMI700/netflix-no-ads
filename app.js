@@ -4351,6 +4351,7 @@ const pBack = $('pBack');
 if (pBack) pBack.onclick = closePlayer;
 
 function closePlayer() {
+  _playerLoadSessionId++;
   _allowNavigation = true;
   stopFocusGuardian();
   disarmVidShield();
@@ -4769,12 +4770,49 @@ function updatePlayerServerUI() {
   }
 }
 
+const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
+
+function getWorkerProxyUrl(originalUrl) {
+  if (!originalUrl) return '';
+  return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
+}
+
+let _playerLoadSessionId = 0;
+
+async function checkWorkerStreamAvailability(workerUrl) {
+  try {
+    let signal = null;
+    let timer = null;
+    let controller = null;
+
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      signal = AbortSignal.timeout(3000);
+    } else if (typeof AbortController !== 'undefined') {
+      controller = new AbortController();
+      signal = controller.signal;
+      timer = setTimeout(() => {
+        try { controller.abort(); } catch {}
+      }, 3000);
+    }
+
+    const res = await fetch(workerUrl, {
+      method: 'GET',
+      signal
+    });
+    if (timer) clearTimeout(timer);
+    return !!(res && res.status === 200);
+  } catch (err) {
+    console.warn('[StreamProxy] Worker pre-check failed or timed out:', err?.message || err);
+    return false;
+  }
+}
+
 function togglePlayerServer() {
   const next = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') ? 'server1' : 'server2';
   switchPlayerServer(next);
 }
 
-function switchPlayerServer(newServer) {
+async function switchPlayerServer(newServer) {
   const isServer2 = (newServer === 'server2' || newServer === 'nhdapi');
   currentPlayerServer = isServer2 ? 'server2' : 'server1';
   store.set('nf_player_server', currentPlayerServer);
@@ -4819,11 +4857,10 @@ function switchPlayerServer(newServer) {
   }
 
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const finalUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
-  currentEmbed.url = finalUrl;
+  const originalStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
+  currentEmbed.url = originalStreamUrl;
   currentEmbed.server = currentPlayerServer;
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
-  iframe.src = finalUrl;
 
   toast(isServer2
     ? 'Watching Server: Server 2 (NHDApi Fast Stream)'
@@ -4831,6 +4868,24 @@ function switchPlayerServer(newServer) {
   );
 
   armVidShield();
+
+  const sessionId = ++_playerLoadSessionId;
+  const workerUrl = getWorkerProxyUrl(originalStreamUrl);
+  const isWorkerOk = await checkWorkerStreamAvailability(workerUrl);
+
+  if (sessionId !== _playerLoadSessionId || !$('playerView')?.classList.contains('show')) {
+    return;
+  }
+
+  const finalUrl = isWorkerOk ? workerUrl : originalStreamUrl;
+  iframe.src = finalUrl;
+  if (isWorkerOk) {
+    iframe.setAttribute('credentialless', '');
+    try { iframe.credentialless = true; } catch {}
+  } else {
+    iframe.removeAttribute('credentialless');
+  }
+  iframe.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
 
   if (isServer2) {
     startNhdApiSession({
@@ -4861,8 +4916,10 @@ function applySubtitleToActivePlayer(lang) {
   if (!isServer2) {
     const newUrl = updateSubtitleUrlParam(currentEmbed.url, targetSub);
     currentEmbed.url = newUrl;
-    if (iframe.src !== newUrl) {
-      iframe.src = newUrl;
+    const isCurrentlyProxied = iframe.hasAttribute('credentialless') || (iframe.src || '').includes('adsclear.yassine-hzami.workers.dev');
+    const finalUrl = isCurrentlyProxied ? getWorkerProxyUrl(newUrl) : newUrl;
+    if (iframe.src !== finalUrl) {
+      iframe.src = finalUrl;
     }
   }
   setTimeout(() => {
@@ -4935,7 +4992,7 @@ function dispatchSubtitlesToPlayer(lang) {
   } catch {}
 }
 
-function playEmbed(o) {
+async function playEmbed(o) {
   if (!o || !o.url) { showPlayerError('This title is unavailable.'); return; }
   currentEmbed = { ...o, server: currentPlayerServer };
   currentStream = o;
@@ -4961,14 +5018,33 @@ function playEmbed(o) {
 
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const embedUrlWithSub = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
-  currentEmbed.url = embedUrlWithSub;
+  const originalStreamUrl = isServer2 ? o.url : updateSubtitleUrlParam(o.url, targetSub);
+  currentEmbed.url = originalStreamUrl;
+
+  const oldIframe = $('playerView')?.querySelector('iframe');
+  if (oldIframe) oldIframe.remove();
+
+  const sessionId = ++_playerLoadSessionId;
+
+  // Automatic pre-check before rendering iframe: test Worker URL with 3-second timeout
+  const workerUrl = getWorkerProxyUrl(originalStreamUrl);
+  const isWorkerOk = await checkWorkerStreamAvailability(workerUrl);
+
+  if (sessionId !== _playerLoadSessionId || !$('playerView')?.classList.contains('show')) {
+    return;
+  }
+
+  const finalUrl = isWorkerOk ? workerUrl : originalStreamUrl;
 
   const f = document.createElement('iframe');
-  f.src = embedUrlWithSub;
+  f.src = finalUrl;
   f.allowFullscreen = true;
   f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
   f.setAttribute('referrerpolicy', 'origin');
+  if (isWorkerOk) {
+    f.setAttribute('credentialless', '');
+    try { f.credentialless = true; } catch {}
+  }
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
@@ -5058,7 +5134,7 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com', 'https://adsclear.yassine-hzami.workers.dev'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidsrcProgress') || localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
