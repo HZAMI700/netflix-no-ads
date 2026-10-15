@@ -144,6 +144,7 @@ document.querySelectorAll('[data-nav]').forEach(a => a.addEventListener('click',
   closeDetail(false);
   if (n === 'movies') openBrowse('movies');
   else if (n === 'series') openBrowse('series');
+  else if (n === 'anime') openBrowse('anime');
   else if (n === 'new') openBrowse('new');
   else {
     show(n === 'home' ? 'home' : n);
@@ -681,6 +682,7 @@ document.addEventListener('click', (e) => {
 });
 
 let currentSearchResults = [];
+let allRawSearchResults = [];
 let currentSearchOffset = 0;
 const SEARCH_PAGE_SIZE = 48;
 let currentActiveSearchQuery = '';
@@ -690,6 +692,108 @@ let searchHasMore = true;
 let seenSearchIds = new Set();
 let seenSearchTitles = new Set();
 let searchAbortCtrl = null;
+
+const searchFilters = { type: '', genre: '', year: '', rating: '' };
+
+function matchesFilters(item, filters) {
+  if (!item || !isCleanSafe(item)) return false;
+
+  // Type filter
+  if (filters.type) {
+    const isAnime = (item.genres || []).some(g => /anime|animation/i.test(g)) || /anime/i.test(item.name || '');
+    if (filters.type === 'anime') {
+      if (!isAnime) return false;
+    } else if (filters.type === 'movie') {
+      if (item.type !== 'movie') return false;
+    } else if (filters.type === 'series') {
+      if (item.type !== 'series') return false;
+    }
+  }
+
+  // Genre filter
+  if (filters.genre) {
+    const rawGenres = Array.isArray(item.genres) ? item.genres : [];
+    const targetG = filters.genre.toLowerCase();
+    const hasGenre = rawGenres.some(g => {
+      const gl = String(g).toLowerCase();
+      if (targetG === 'animation' && (gl.includes('animation') || gl.includes('anime'))) return true;
+      if (targetG === 'action' && (gl.includes('action') || gl.includes('adventure'))) return true;
+      return gl.includes(targetG);
+    });
+    if (!hasGenre) return false;
+  }
+
+  // Year filter
+  if (filters.year) {
+    const y = parseInt(item.year || item.releaseInfo || '0', 10);
+    if (filters.year === '2024' && y !== 2024) return false;
+    if (filters.year === '2023' && y !== 2023) return false;
+    if (filters.year === '2020-2022' && (y < 2020 || y > 2022)) return false;
+    if (filters.year === '2010s' && (y < 2010 || y > 2019)) return false;
+    if (filters.year === 'classic' && (y >= 2010 || y === 0)) return false;
+  }
+
+  // Rating filter
+  if (filters.rating) {
+    const minR = parseFloat(filters.rating);
+    const r = parseFloat(item.imdbRating || '0');
+    if (isNaN(r) || r < minR) return false;
+  }
+
+  return true;
+}
+
+function applySearchFilters() {
+  const t = $('searchFilterType')?.value || '';
+  const g = $('searchFilterGenre')?.value || '';
+  const y = $('searchFilterYear')?.value || '';
+  const r = $('searchFilterRating')?.value || '';
+  searchFilters.type = t;
+  searchFilters.genre = g;
+  searchFilters.year = y;
+  searchFilters.rating = r;
+
+  const hasFilter = !!(t || g || y || r);
+  const resetBtn = $('searchFilterReset');
+  if (resetBtn) resetBtn.style.display = hasFilter ? 'inline-block' : 'none';
+
+  let pool = allRawSearchResults;
+  if (!pool || !pool.length) {
+    if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA) {
+      pool = CuratedCatalog.CURATED_MEDIA.slice(0, 1000);
+    } else {
+      pool = [];
+    }
+  }
+
+  currentSearchResults = pool.filter(item => matchesFilters(item, searchFilters));
+  currentSearchOffset = 0;
+  const container = $('searchResults');
+  if (container) {
+    container.innerHTML = '';
+    if (currentSearchResults.length === 0) {
+      container.innerHTML = '<div class="empty" style="grid-column:1/-1"><h2>No matches found</h2><p>Try adjusting your search filters or keyword.</p></div>';
+    } else {
+      renderSearchChunk();
+    }
+  }
+}
+
+['searchFilterType', 'searchFilterGenre', 'searchFilterYear', 'searchFilterRating'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('change', applySearchFilters);
+});
+
+const filterResetBtn = $('searchFilterReset');
+if (filterResetBtn) {
+  filterResetBtn.addEventListener('click', () => {
+    ['searchFilterType', 'searchFilterGenre', 'searchFilterYear', 'searchFilterRating'].forEach(id => {
+      const el = $(id);
+      if (el) el.value = '';
+    });
+    applySearchFilters();
+  });
+}
 
 function renderSearchChunk() {
   const container = $('searchResults');
@@ -702,7 +806,15 @@ function renderSearchChunk() {
 
 async function doSearch(q) {
   q = (q || '').trim();
-  if (!q) return;
+  if (!q) {
+    // If empty query, show discovery catalog filtered by facets!
+    allRawSearchResults = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA) ? CuratedCatalog.CURATED_MEDIA.slice(0, 1000) : [];
+    show('search');
+    closeSearchDropdown();
+    if ($('searchTitle')) $('searchTitle').textContent = 'Explore All Media';
+    applySearchFilters();
+    return;
+  }
 
   if (searchAbortCtrl) {
     try { searchAbortCtrl.abort(); } catch {}
@@ -735,11 +847,9 @@ async function doSearch(q) {
   const initialCurated = curatedMatches.filter(isCleanSafe);
   initialCurated.forEach(m => recordCardSeen(m, seenSearchIds, seenSearchTitles));
 
+  allRawSearchResults = initialCurated;
   if (initialCurated.length > 0) {
-    currentSearchResults = initialCurated;
-    currentSearchOffset = 0;
-    $('searchResults').innerHTML = '';
-    renderSearchChunk();
+    applySearchFilters();
   } else {
     $('searchResults').innerHTML = skels(6);
   }
@@ -775,10 +885,8 @@ async function doSearch(q) {
       }
     });
 
-    currentSearchResults = [...initialCurated, ...freshCombined];
-    $('searchResults').innerHTML = '';
-    currentSearchOffset = 0;
-    renderSearchChunk();
+    allRawSearchResults = [...initialCurated, ...freshCombined];
+    applySearchFilters();
   } catch (err) {
     if (signal.aborted) return;
   }
@@ -1957,9 +2065,8 @@ function buildCard(m, badge, rank) {
       }
     }
 
-    const isSearchResult = !!el.closest('#searchResults');
-    if (isSearchResult) {
-      openDetail(id, tp, false, null, m);
+    if (isContinue && tp !== 'series') {
+      playEmbedEntry(m);
       return;
     }
 
@@ -1975,8 +2082,8 @@ function buildCard(m, badge, rank) {
       return;
     }
 
-    // Movie: start directly!
-    playEmbedEntry(m);
+    // Movie, Anime film, or general title: open dedicated title page
+    openDetail(id, 'movie', false, null, m);
   };
 
   return el;
@@ -2212,10 +2319,21 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   const detailViews = getTitleViewCount(m);
   const formattedDetailViews = formatViewCount(detailViews);
 
-  if ($('dBackdrop')) $('dBackdrop').src = backdrop(m);
+  if ($('dBackdrop')) {
+    $('dBackdrop').src = backdrop(m);
+    $('dBackdrop').onerror = function() {
+      this.onerror = null;
+      this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || '2024', m.imdbRating || '8.2', m.type || type, true);
+    };
+  }
   if ($('dTitle')) $('dTitle').textContent = m.name || m.title;
   if ($('dMeta')) $('dMeta').innerHTML = metaRowHTML(m);
   if ($('dDesc')) $('dDesc').textContent = m.description || '';
+
+  const dTrailer = $('dTrailer');
+  if (dTrailer) {
+    dTrailer.onclick = () => openTrailer(m);
+  }
 
   // Configure dedicated page Breadcrumb & Kicker
   if ($('crumbHome')) {
@@ -2225,18 +2343,20 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
     };
   }
   if ($('crumbType')) {
+    const isAnime = (m.genres || []).some(g => /anime/i.test(g));
     const isSeries = type === 'series';
-    $('crumbType').textContent = isSeries ? 'TV Shows' : 'Movies';
+    $('crumbType').textContent = isAnime ? 'Anime' : (isSeries ? 'TV Shows' : 'Movies');
     $('crumbType').onclick = (e) => {
       e.preventDefault();
-      openBrowse(isSeries ? 'series' : 'movies');
+      openBrowse(isAnime ? 'anime' : (isSeries ? 'series' : 'movies'));
     };
   }
   if ($('crumbTitle')) {
     $('crumbTitle').textContent = m.name || m.title;
   }
   if ($('dKickerType')) {
-    $('dKickerType').textContent = type === 'series' ? 'S E R I E S' : 'M O V I E';
+    const isAnime = (m.genres || []).some(g => /anime/i.test(g));
+    $('dKickerType').textContent = isAnime ? 'A N I M E' : (type === 'series' ? 'S E R I E S' : 'M O V I E');
   }
   if ($('dKickerViews')) {
     $('dKickerViews').innerHTML = `
@@ -2474,7 +2594,9 @@ async function openDetail(id, type, autoplay, continueTarget) {
     backdropEl.scrollTop = 0;
     backdropEl.classList.add('show');
   }
-  document.body.style.overflow = 'hidden';
+  show('detail', null, true);
+  window.scrollTo(0, 0);
+  document.body.style.overflow = '';
 
   // 1. Resolve from CuratedCatalog or preloadedMeta immediately (0ms)
   let m = (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(id) : null;
@@ -2623,11 +2745,12 @@ function closeDetail(syncUrl = true) {
   const bd = $('detailBackdrop');
   if (bd) bd.classList.remove('show');
   closeDownloadModal();
+  closeTrailer();
   document.body.style.overflow = '';
   if (currentRoute.page === 'detail') {
     currentRoute = { page: lastPage || 'home', id: null, type: null };
   }
-  if (syncUrl && (window.location.hash.startsWith('#/movie/') || window.location.hash.startsWith('#/series/'))) {
+  if (syncUrl && (window.location.hash.startsWith('#/movie/') || window.location.hash.startsWith('#/series/') || window.location.hash.startsWith('#/anime/'))) {
     if (window.history && window.history.pushState) {
       window.history.pushState(null, '', window.location.pathname + window.location.search);
     } else {
@@ -2637,6 +2760,8 @@ function closeDetail(syncUrl = true) {
   if (lastPage === 'home' || !lastPage) {
     if ($('homePage')) $('homePage').style.display = '';
     document.title = 'Streamnaro — Watch TV Shows Online, Watch Movies Online';
+  } else if (lastPage === 'movies' || lastPage === 'series' || lastPage === 'anime' || lastPage === 'new') {
+    openBrowse(lastPage);
   } else {
     const pageEl = pages[lastPage];
     if (pageEl && !pageEl.classList.contains('show')) {
@@ -2712,7 +2837,7 @@ async function openBrowse(kind) {
   closeDetail(false);
   show('browse', kind);
 
-  const titles = { movies: 'Movies', series: 'TV Shows', new: 'New & Popular' };
+  const titles = { movies: 'Movies', series: 'TV Shows', anime: 'Anime & Animation', new: 'New & Popular' };
   if ($('browseTitle')) $('browseTitle').textContent = titles[kind] || 'Browse';
   document.title = `${titles[kind] || 'Browse'} — Streamnaro`;
 
@@ -2775,6 +2900,15 @@ async function loadCategoryRows(kind) {
       { id: 'b_mov_doc', title: 'Documentary Films', url: ['movie/top/genre=Documentary', 'movie/top/genre=Documentary/skip=100'] },
       { id: 'b_mov_crime', title: 'Crime, Gangsters & Noir', url: ['movie/top/genre=Crime', 'movie/top/genre=Crime/skip=100'] },
       { id: 'b_mov_adventure', title: 'Epic Adventure & Quests', url: ['movie/top/genre=Adventure', 'movie/top/genre=Adventure/skip=100'] }
+    ];
+  } else if (kind === 'anime') {
+    categoryRows = [
+      { id: 'b_anime_top', title: 'Top Rated Anime Masterpieces', url: ['series/top/genre=Animation'], badge: 'TOP' },
+      { id: 'b_anime_series', title: 'Trending Anime Series', url: ['series/top/genre=Animation'] },
+      { id: 'b_anime_movies', title: 'Masterpiece Anime Movies', url: ['movie/top/genre=Animation'] },
+      { id: 'b_anime_action', title: 'Shonen & High-Octane Action Anime', url: ['series/top/genre=Action'] },
+      { id: 'b_anime_fantasy', title: 'Supernatural & Fantasy Anime', url: ['series/top/genre=Fantasy'] },
+      { id: 'b_anime_classics', title: 'Legendary Anime Classics', url: ['series/imdbRating/genre=Animation'] }
     ];
   } else if (kind === 'new') {
     categoryRows = [
@@ -3479,6 +3613,46 @@ const serverSelectBackdrop = $('serverSelectBackdrop');
 if (serverSelectBackdrop) {
   serverSelectBackdrop.onclick = (e) => {
     if (e.target === serverSelectBackdrop) closeDownloadModal();
+  };
+}
+
+function openTrailer(m) {
+  if (!m) return;
+  const tm = $('trailerModal');
+  const tf = $('trailerFrame');
+  const tt = $('trailerTitle');
+  if (!tm || !tf) return;
+  const titleName = m.name || m.title || 'Official Trailer';
+  if (tt) tt.textContent = `${titleName} — Official Trailer`;
+
+  let trailerUrl = '';
+  if (m.trailer && typeof m.trailer === 'string') {
+    if (m.trailer.startsWith('http')) trailerUrl = m.trailer;
+    else trailerUrl = `https://www.youtube-nocookie.com/embed/${m.trailer}?autoplay=1`;
+  } else if (Array.isArray(m.trailerStreams) && m.trailerStreams[0]?.ytId) {
+    trailerUrl = `https://www.youtube-nocookie.com/embed/${m.trailerStreams[0].ytId}?autoplay=1`;
+  } else {
+    trailerUrl = `https://www.youtube-nocookie.com/embed?listType=search&list=${encodeURIComponent(titleName + ' official trailer')}&autoplay=1`;
+  }
+
+  tf.src = trailerUrl;
+  tm.style.display = 'flex';
+}
+
+function closeTrailer() {
+  const tm = $('trailerModal');
+  const tf = $('trailerFrame');
+  if (tf) tf.src = '';
+  if (tm) tm.style.display = 'none';
+}
+
+const trailerClose = $('trailerClose');
+if (trailerClose) trailerClose.onclick = closeTrailer;
+
+const trailerModalEl = $('trailerModal');
+if (trailerModalEl) {
+  trailerModalEl.onclick = (e) => {
+    if (e.target === trailerModalEl) closeTrailer();
   };
 }
 
@@ -6215,9 +6389,20 @@ function parseRouteFromLocation() {
     return { type: 'media', kind: 'series', id, season, episode, isWatch: false };
   }
 
+  // /anime/:id or /anime
+  if (first === 'anime') {
+    const id = (segments[1] && segments[1] !== 'anime') ? segments[1] : qId;
+    if (id) {
+      const season = segments[2] ? parseInt(segments[2], 10) : (qSeason ? parseInt(qSeason, 10) : 1);
+      const episode = segments[3] ? parseInt(segments[3], 10) : (qEpisode ? parseInt(qEpisode, 10) : 1);
+      return { type: 'media', kind: 'anime', id, season, episode, isWatch: false };
+    }
+    return { type: 'browse', kind: 'anime' };
+  }
+
   // Direct ?id=... with or without kind/season/episode
   if (qId) {
-    const kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : 'movie';
+    const kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : (qKind === 'anime' ? 'anime' : 'movie');
     const season = qSeason ? parseInt(qSeason, 10) : 1;
     const episode = qEpisode ? parseInt(qEpisode, 10) : 1;
     return { type: 'media', kind, id: qId, season, episode, isWatch: false };
@@ -6229,6 +6414,9 @@ function parseRouteFromLocation() {
   }
   if (first === 'series' || (first === 'browse' && segments[1] === 'series')) {
     return { type: 'browse', kind: 'series' };
+  }
+  if (first === 'anime' || (first === 'browse' && segments[1] === 'anime')) {
+    return { type: 'browse', kind: 'anime' };
   }
   if (first === 'new' || (first === 'browse' && segments[1] === 'new')) {
     return { type: 'browse', kind: 'new' };
@@ -6255,13 +6443,18 @@ function handleRouteFromHash() {
   }
 
   if (route.type === 'media') {
-    const routeType = (route.kind === 'series' || route.kind === 'tv') ? 'series' : 'movie';
+    let routeType = (route.kind === 'series' || route.kind === 'tv') ? 'series' : (route.kind === 'anime' ? 'anime' : 'movie');
     const routeId = route.id ? String(route.id).trim() : null;
 
     if (!routeId || routeId === 'undefined' || routeId === 'null') {
       toast('No title to play: missing valid ID.');
       show('home');
       return;
+    }
+
+    if (routeType === 'anime') {
+      const match = typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById ? CuratedCatalog.getCuratedById(routeId) : null;
+      routeType = (match && match.type === 'movie') ? 'movie' : 'series';
     }
 
     if ((routeType === 'movie' || routeType === 'series') && routeId) {

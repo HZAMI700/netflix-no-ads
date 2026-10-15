@@ -5,8 +5,8 @@
  * Every title includes verified IMDb ID, TMDb ID, genres, rating, synopsis, and high-res art.
  */
 
-const SEXUAL_KEYWORDS_RE = /\b(erotic|erotica|porn|pornographic|pornography|softcore|hardcore|hentai|ecchi|sex tape|sex worker|threesome|gangbang|orgasm|sexually explicit|sensual massage|nude model|fetish|bdsm|swinger|swingers)\b/i;
-const ADULT_GENRES = new Set(['adult', 'erotica', 'erotic', 'hentai', 'porn']);
+const SEXUAL_KEYWORDS_RE = /\b(erotic|erotica|porn|pornographic|pornography|softcore|hardcore|hentai|ecchi|smut|nsfw|xxx|sex tape|sex worker|threesome|gangbang|orgasm|sexually explicit|sensual massage|nude model|fetish|bdsm|swinger|swingers)\b/i;
+const ADULT_GENRES = new Set(['adult', 'erotica', 'erotic', 'hentai', 'ecchi', 'porn', 'smut', 'nsfw']);
 const ADULT_BLOCKED_IDS = new Set([
   'tt21187592', // The Threesome
   'tt1826940',  // 365 Days
@@ -172,7 +172,26 @@ const CANONICAL_SERIES_METRICS = {
   'tt6763664': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 60 },   // The Haunting of Hill House
   'tt10574558': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 65 },   // Midnight Mass
   'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 },   // Hannibal
-  'tt1196946': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 43 }    // The Mentalist
+  'tt1196946': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 43 },   // The Mentalist
+  'tt1355642': { seasonsCount: 5, epsPerSeason: 13, baseRuntime: 24 },  // Fullmetal Alchemist: Brotherhood
+  'tt0877057': { seasonsCount: 1, epsPerSeason: 37, baseRuntime: 23 },  // Death Note
+  'tt9335498': { seasonsCount: 4, epsPerSeason: 14, baseRuntime: 24 },  // Demon Slayer: Kimetsu no Yaiba
+  'tt12343534': { seasonsCount: 2, epsPerSeason: 24, baseRuntime: 24 }, // Jujutsu Kaisen
+  'tt13706018': { seasonsCount: 2, epsPerSeason: 18, baseRuntime: 24 }, // Spy x Family
+  'tt22240974': { seasonsCount: 1, epsPerSeason: 28, baseRuntime: 24 }, // Frieren: Beyond Journey's End
+  'tt5626028': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 24 },  // My Hero Academia
+  'tt1910645': { seasonsCount: 1, epsPerSeason: 24, baseRuntime: 24 },  // Steins;Gate
+  'tt3587428': { seasonsCount: 4, epsPerSeason: 21, baseRuntime: 24 },  // Haikyuu!!
+  'tt5897304': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 24 },  // Mob Psycho 100
+  'tt7731720': { seasonsCount: 1, epsPerSeason: 13, baseRuntime: 24 },  // Violet Evergarden
+  'tt21609100': { seasonsCount: 1, epsPerSeason: 12, baseRuntime: 24 }, // Kaiju No. 8
+  'tt21644326': { seasonsCount: 1, epsPerSeason: 24, baseRuntime: 24 }, // Delicious in Dungeon
+  'tt0988824': { seasonsCount: 21, epsPerSeason: 24, baseRuntime: 23 }, // Naruto: Shippuden
+  'tt3741634': { seasonsCount: 2, epsPerSeason: 12, baseRuntime: 24 },  // Tokyo Ghoul
+  'tt2250192': { seasonsCount: 4, epsPerSeason: 24, baseRuntime: 24 },  // Sword Art Online
+  'tt4508902': { seasonsCount: 2, epsPerSeason: 12, baseRuntime: 24 },  // One-Punch Man
+  'tt9679542': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 24 },  // Dr. STONE
+  'tt7441658': { seasonsCount: 4, epsPerSeason: 42, baseRuntime: 24 }   // Black Clover
 };
 
 const RAW_CURATED_MEDIA = [
@@ -432,7 +451,29 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt6763664', name: 'The Haunting of Hill House', type: 'series', year: 2018, imdbRating: '8.6', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 72844, seasonsCount: 1, epsPerSeason: 10, description: 'Flashing between past and present, a fractured family confronts haunting memories of their old home and the terrifying events that drove them from it.' },
   { id: 'tt10574558', name: 'Midnight Mass', type: 'series', year: 2021, imdbRating: '7.7', genres: ['Drama', 'Fantasy', 'Horror', 'Mystery'], moviedb_id: 93812, seasonsCount: 1, epsPerSeason: 7, description: 'An isolated island community experiences miraculous events - and frightening omens - after the arrival of a charismatic, mysterious young priest.' },
   { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' },
-  { id: 'tt1196946', name: 'The Mentalist', type: 'series', year: 2008, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Mystery'], moviedb_id: 5920, seasonsCount: 7, epsPerSeason: 22, description: 'Patrick Jane, a former celebrity psychic medium, uses his razor-sharp observational skills and psychological trickery as an independent consultant for the California Bureau of Investigation to hunt down serial killer Red John and solve complex homicides.' }
+  { id: 'tt1196946', name: 'The Mentalist', type: 'series', year: 2008, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Mystery'], moviedb_id: 5920, seasonsCount: 7, epsPerSeason: 22, description: 'Patrick Jane, a former celebrity psychic medium, uses his razor-sharp observational skills and psychological trickery as an independent consultant for the California Bureau of Investigation to hunt down serial killer Red John and solve complex homicides.' },
+
+  // Extensive SFW Anime Collection (Series & Masterpiece Films)
+  { id: 'tt13706018', name: 'Spy x Family', type: 'series', year: 2022, imdbRating: '8.4', genres: ['Animation', 'Action', 'Comedy', 'Anime'], moviedb_id: 120089, seasonsCount: 2, epsPerSeason: 18, description: 'A spy known as Twilight must marry and adopt a girl as part of his undercover mission, unaware that his wife is an assassin and daughter is a telepath.' },
+  { id: 'tt22240974', name: 'Frieren: Beyond Journey\'s End', type: 'series', year: 2023, imdbRating: '8.9', genres: ['Animation', 'Adventure', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 209867, seasonsCount: 1, epsPerSeason: 28, description: 'An elven mage and her fellow adventurers have defeated the Demon King. As her former companions pass away, Frieren embarks on a journey to reflect upon the meaning of time.' },
+  { id: 'tt5626028', name: 'My Hero Academia', type: 'series', year: 2016, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Anime'], moviedb_id: 65930, seasonsCount: 7, epsPerSeason: 22, description: 'A superhero-loving boy born without any superpowers is determined to enroll in a prestigious hero academy and learn what it truly means to be a hero.' },
+  { id: 'tt1910645', name: 'Steins;Gate', type: 'series', year: 2011, imdbRating: '8.8', genres: ['Animation', 'Comedy', 'Drama', 'Sci-Fi', 'Anime'], moviedb_id: 40590, seasonsCount: 1, epsPerSeason: 24, description: 'After discovering time travel, an eccentric scientist and his colleagues must find a way to stop an evil organization and their evil plots.' },
+  { id: 'tt3587428', name: 'Haikyuu!!', type: 'series', year: 2014, imdbRating: '8.7', genres: ['Animation', 'Comedy', 'Drama', 'Sport', 'Anime'], moviedb_id: 60863, seasonsCount: 4, epsPerSeason: 21, description: 'Determined to be like the volleyball championship star the "Little Giant", small-statured Shoyo Hinata revives the volleyball club at his middle school.' },
+  { id: 'tt5897304', name: 'Mob Psycho 100', type: 'series', year: 2016, imdbRating: '8.6', genres: ['Animation', 'Action', 'Comedy', 'Anime'], moviedb_id: 67075, seasonsCount: 3, epsPerSeason: 12, description: 'A psychic middle school boy tries to live a normal life and keep his growing emotional capacity under control, but his power continually causes trouble.' },
+  { id: 'tt7731720', name: 'Violet Evergarden', type: 'series', year: 2018, imdbRating: '8.4', genres: ['Animation', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 73362, seasonsCount: 1, epsPerSeason: 13, description: 'In the aftermath of a great war, Violet Evergarden, a young former child soldier, undertakes a journey as an Auto Memory Doll to write letters and understand "I love you".' },
+  { id: 'tt21609100', name: 'Kaiju No. 8', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi', 'Anime'], moviedb_id: 207381, seasonsCount: 1, epsPerSeason: 12, description: 'In a world plagued by dangerous monsters called Kaiju, Kafka Hibino works as a cleanup worker until a small Kaiju gives him immense superhuman abilities.' },
+  { id: 'tt21644326', name: 'Delicious in Dungeon', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Animation', 'Adventure', 'Comedy', 'Fantasy', 'Anime'], moviedb_id: 208249, seasonsCount: 1, epsPerSeason: 24, description: 'When dungeon adventurer Laios and his party run out of rations while trying to rescue his sister, they decide to cook and eat monsters found along their descent.' },
+  { id: 'tt0988824', name: 'Naruto: Shippuden', type: 'series', year: 2007, imdbRating: '8.7', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 31910, seasonsCount: 21, epsPerSeason: 24, description: 'Naruto Uzumaki is a loud, hyperactive, adolescent ninja who constantly searches for approval and recognition, as well as to become Hokage.' },
+  { id: 'tt3741634', name: 'Tokyo Ghoul', type: 'series', year: 2014, imdbRating: '7.8', genres: ['Animation', 'Action', 'Drama', 'Horror', 'Anime'], moviedb_id: 61374, seasonsCount: 2, epsPerSeason: 12, description: 'A Tokyo college student is attacked by a ghoul, a superpowered human who feeds on human flesh. He survives, but has become part ghoul and becomes a fugitive.' },
+  { id: 'tt2250192', name: 'Sword Art Online', type: 'series', year: 2012, imdbRating: '7.5', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 45782, seasonsCount: 4, epsPerSeason: 24, description: 'Players trapped in a virtual reality MMORPG discover that if they die in the game, they die in real life. Kirito fights to clear all 100 floors.' },
+  { id: 'tt4508902', name: 'One-Punch Man', type: 'series', year: 2015, imdbRating: '8.7', genres: ['Animation', 'Action', 'Comedy', 'Sci-Fi', 'Anime'], moviedb_id: 63926, seasonsCount: 2, epsPerSeason: 12, description: 'The story of Saitama, a superhero who can defeat any opponent with a single punch but seeks to find a worthy opponent after growing bored by a lack of challenge.' },
+  { id: 'tt9679542', name: 'Dr. STONE', type: 'series', year: 2019, imdbRating: '8.1', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi', 'Anime'], moviedb_id: 86031, seasonsCount: 3, epsPerSeason: 12, description: 'Awakened into a world where all humanity has been petrified into stone for millennia, genius boy Senku uses science to rebuild human civilization.' },
+  { id: 'tt7441658', name: 'Black Clover', type: 'series', year: 2017, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 73223, seasonsCount: 4, epsPerSeason: 42, description: 'Asta and Yuno were abandoned at the same church in the Clover Kingdom. Born without magic in a world where magic is everything, Asta vows to become Wizard King.' },
+  { id: 'tt5323662', name: 'A Silent Voice', type: 'movie', year: 2016, imdbRating: '8.1', genres: ['Animation', 'Drama', 'Romance', 'Anime'], moviedb_id: 378064, description: 'A young man is ostracized by his classmates after he bullies a deaf girl to the point he decides to make amends years later.' },
+  { id: 'tt9426210', name: 'Weathering With You', type: 'movie', year: 2019, imdbRating: '7.5', genres: ['Animation', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 568160, description: 'A high-school boy who has run away to Tokyo befriends a girl who appears to be able to manipulate the weather.' },
+  { id: 'tt16428256', name: 'Suzume', type: 'movie', year: 2022, imdbRating: '7.6', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 923936, description: 'A modern action adventure road story where a 17-year-old girl named Suzume helps a mysterious young man close mystical doors unleashing devastation across Japan.' },
+  { id: 'tt6587046', name: 'The Boy and the Heron', type: 'movie', year: 2023, imdbRating: '7.5', genres: ['Animation', 'Adventure', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 508883, description: 'In the wake of his mother\'s death during the Pacific War, a young boy named Mahito ventures into a world shared by the living and the dead.' },
+  { id: 'tt0094625', name: 'Akira', type: 'movie', year: 1988, imdbRating: '8.0', genres: ['Animation', 'Action', 'Sci-Fi', 'Anime'], moviedb_id: 149, description: 'A secret military project endangers Neo-Tokyo when it turns a biker gang member into a rampaging psychic psychopath that only two kids and a group of psychics can stop.' }
 ];
 
 // Core Curated Media enriched with posters/backdrops
@@ -1309,6 +1350,23 @@ function getCuratedForCategory(catId) {
       return pick(movies, m => m.genres && m.genres.includes('Action') && m.year >= 2021, 60);
     case 'b_new_scifi':
       return pick(movies, m => m.genres && m.genres.includes('Sci-Fi') && m.year >= 2021, 60);
+
+    // Browse categories: Anime
+    case 'b_anime_top':
+      return [
+        ...series.filter(s => !s._isProcedural && (s.genres || []).some(g => /anime|animation/i.test(g))).slice(0, 20),
+        ...movies.filter(m => !m._isProcedural && (m.genres || []).some(g => /anime|animation/i.test(g))).slice(0, 20)
+      ];
+    case 'b_anime_series':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)), 60);
+    case 'b_anime_movies':
+      return pick(movies, m => (m.genres || []).some(g => /anime|animation/i.test(g)), 60);
+    case 'b_anime_action':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)) && (s.genres.includes('Action') || s.genres.includes('Adventure')), 60);
+    case 'b_anime_fantasy':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)) && (s.genres.includes('Fantasy') || s.genres.includes('Sci-Fi')), 60);
+    case 'b_anime_classics':
+      return pick([...movies, ...series], x => (x.genres || []).some(g => /anime|animation/i.test(g)) && parseFloat(x.imdbRating) >= 8.5, 60);
 
     default:
       return [];

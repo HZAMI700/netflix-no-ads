@@ -1392,57 +1392,36 @@ body.is-scrolling #cardPortal {
   to { opacity: 1; }
 }
 
-/* Compatibility signatures:
-#detailBackdrop { min-height: 100vh; background: var(--nf-bg, #141414); scroll-behavior: smooth; }
-#detailModal { background: transparent; width: 100%; }
-*/
 #detailBackdrop {
   display: none;
-  position: fixed;
-  inset: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  padding: 30px 16px 60px;
+  min-height: 100vh;
+  background: var(--nf-bg, #141414);
+  padding: 0 0 60px 0;
   margin: 0;
-  z-index: 2000;
-  overflow-y: auto;
+  z-index: 100;
+  overflow-y: visible;
   overflow-x: hidden;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   scroll-behavior: smooth;
   box-sizing: border-box;
-  align-items: flex-start;
-  justify-content: center;
 }
 #detailBackdrop.show {
-  display: flex !important;
-  animation: fadeIn 0.25s ease-out;
+  display: block !important;
+  animation: fadeIn 0.2s ease-out;
 }
 
 #detailModal {
   position: relative;
-  width: min(940px, 94vw);
-  max-width: 940px;
-  background: var(--nf-surface, #181818);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.95);
-  margin: 16px auto 36px;
-  overflow: hidden;
-  animation: modalPopIn 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100%;
+  max-width: 100%;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  overflow: visible;
 }
-@keyframes modalPopIn {
-  from {
-    opacity: 0;
-    transform: scale(0.94) translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-@keyframes pop {
   from { transform: scale(0.93) translateY(14px); opacity: 0; }
   to { transform: scale(1) translateY(0); opacity: 1; }
 }
@@ -2341,6 +2320,138 @@ body.is-scrolling #cardPortal {
   font-size: 14px;
   flex: 1;
   padding: 8px 0;
+}
+
+/* Search Facet Filter Toolbar */
+.search-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  width: 100%;
+}
+.search-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  padding: 5px 12px;
+  transition: all 0.2s ease;
+}
+.search-filter-group:hover, .search-filter-group:focus-within {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.search-filter-group .filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #999;
+}
+.search-filter-select {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+.search-filter-select option {
+  background: #181818;
+  color: #fff;
+}
+.search-filter-reset-btn {
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid var(--nf-red);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.search-filter-reset-btn:hover {
+  background: var(--nf-red);
+}
+
+/* Trailer Button & Modal */
+.btn-trailer-pill {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  color: #ffffff !important;
+  padding: 8px 18px !important;
+  border-radius: 4px;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: auto !important;
+  height: auto !important;
+}
+.btn-trailer-pill:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: #ffffff !important;
+  transform: scale(1.04);
+}
+.trailer-modal-content {
+  position: relative;
+  width: min(960px, 92vw);
+  background: #111;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.95);
+  overflow: hidden;
+  margin: auto;
+}
+.trailer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.trailer-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trailer-badge {
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--nf-red);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+.trailer-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #fff;
+}
+.trailer-frame-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+}
+.trailer-frame-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
 }
 
 .grid6 {
