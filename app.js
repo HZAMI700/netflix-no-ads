@@ -75,7 +75,7 @@ let heroItems = [], heroIdx = 0, heroTimer = null;
 let currentDetail = null;
 let currentStream = null;
 let currentEmbed = null;
-let currentPlayerServer = store.get('nf_player_server', 'server1');
+let currentPlayerServer = store.get('nf_player_server', 'server2');
 
 const PROFILES = [
   { id: 'Z', name: 'You', avatar: 'assets/profiles/profile_red.png', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
@@ -4766,13 +4766,13 @@ function updatePlayerServerUI() {
   const sel = $('playerServerSelect');
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Server 2 (Fast)' : 'Server 1 (HD)';
+    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : 'Server 1 (HD)';
   }
   if (btn) {
     btn.setAttribute('data-server', isServer2 ? 'server2' : 'server1');
     btn.title = isServer2
-      ? 'Watching Server: Server 2: Fast Mirror Stream (NHDApi)'
-      : 'Watching Server: Server 1: High Definition Stream (Vidapi)';
+      ? 'Watching Server: Ultra HD Fast Server'
+      : 'Watching Server: Server 1: High Definition Stream';
   }
   if (sel) {
     sel.value = isServer2 ? 'server2' : 'server1';
@@ -4924,7 +4924,7 @@ async function switchPlayerServer(newServer) {
 
   if (isServer2) {
     if (!tmdbId) {
-      toast('Server 2 (NHDApi) unavailable for this title (requires TMDB ID)');
+      toast('Ultra HD Fast Server unavailable for this title (requires TMDB ID)');
       return;
     }
     if (isSeries) {
@@ -4963,7 +4963,7 @@ async function switchPlayerServer(newServer) {
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
 
   toast(isServer2
-    ? 'Watching Server: Server 2 (NHDApi Fast Stream)'
+    ? 'Watching Server: Ultra HD Fast Server'
     : 'Watching Server: Server 1 (High Definition Stream)'
   );
 

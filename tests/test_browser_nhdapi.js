@@ -143,7 +143,7 @@ async function runBrowserTests() {
 
   const initialServer = await evaluate(`currentPlayerServer`);
   console.log('Initial default player server:', initialServer);
-  if (initialServer !== 'server1') throw new Error(`Default server should be server1, got ${initialServer}`);
+  if (initialServer !== 'server2') throw new Error(`Default server should be server2, got ${initialServer}`);
 
   // Verify Telegram links in footer and top player control bar
   const footerTg = await evaluate(`document.querySelector('.ficons a[href="https://t.me/blackroner"]')?.href`);
@@ -164,51 +164,51 @@ async function runBrowserTests() {
     return await evaluate(`$('playerView').querySelector('iframe')?.src`);
   }
 
-  console.log('\n--- 2. Movie Playback on Server 1 (Default) ---');
+  console.log('\n--- 2. Movie Playback on Ultra HD Fast Server (Default) ---');
   // Open Inception (TMDB ID 27205, IMDb tt1375666)
   await evaluate(`
     const cur = CuratedCatalog.getCuratedById('tt1375666');
     openDetail(cur ? cur.id : 'tt1375666', 'movie', true);
   `);
-  const s1IframeSrc = await waitForIframeSrc('vaplayer.ru');
-
-  const pViewShow = await evaluate(`$('playerView').classList.contains('show')`);
-  const s1Label = await evaluate(`$('pServerLabel')?.textContent`);
-  const s1Credless = await evaluate(`$('playerView').querySelector('iframe')?.hasAttribute('credentialless')`);
-  console.log('Player active:', pViewShow);
-  console.log('Server 1 Iframe Src:', s1IframeSrc);
-  console.log('Server Label:', s1Label);
-  console.log('Server 1 has credentialless attribute:', s1Credless);
-
-  if (!pViewShow) throw new Error('PlayerView did not open');
-  if (!s1IframeSrc || !s1IframeSrc.includes('vaplayer.ru')) throw new Error('Server 1 should use vaplayer');
-  if (s1Label !== 'Server 1 (HD)') throw new Error(`Expected Server 1 (HD), got ${s1Label}`);
-
-  await captureScreenshot('shot_server1_movie.png');
-
-  console.log('\n--- 3. Switching to Server 2 (NHDApi) on Movie ---');
-  // Click switch server button #pServerTop
-  await evaluate(`$('pServerTop').click();`);
   const s2IframeSrc = await waitForIframeSrc('nhdapi.com');
 
-  const currentServerAfterSwitch = await evaluate(`currentPlayerServer`);
+  const pViewShow = await evaluate(`$('playerView').classList.contains('show')`);
   const s2Label = await evaluate(`$('pServerLabel')?.textContent`);
-  const toastText = await evaluate(`$('toast')?.textContent`);
   const s2Credless = await evaluate(`$('playerView').querySelector('iframe')?.hasAttribute('credentialless')`);
-  console.log('Current server after switch:', currentServerAfterSwitch);
-  console.log('Server 2 Iframe Src:', s2IframeSrc);
+  console.log('Player active:', pViewShow);
+  console.log('Ultra HD Fast Server Iframe Src:', s2IframeSrc);
   console.log('Server Label:', s2Label);
-  console.log('Toast notification:', toastText);
-  console.log('Server 2 has credentialless attribute:', s2Credless);
+  console.log('Ultra HD Fast Server has credentialless attribute:', s2Credless);
 
-  if (currentServerAfterSwitch !== 'server2') throw new Error('Server was not switched to server2');
-  const isNhdMovie = s2IframeSrc && (s2IframeSrc.includes('nhdapi.com/movie/') || s2IframeSrc.includes('nhdapi.com%2Fmovie%2F'));
-  if (!isNhdMovie) {
-    throw new Error(`Expected NHDApi movie iframe, got: ${s2IframeSrc}`);
-  }
-  if (!s2Label.includes('Server 2')) throw new Error(`Expected Server 2 label, got: ${s2Label}`);
+  if (!pViewShow) throw new Error('PlayerView did not open');
+  if (!s2IframeSrc || !s2IframeSrc.includes('nhdapi.com')) throw new Error('Default server should use nhdapi.com');
+  if (s2Label !== 'Ultra HD (Fast)') throw new Error(`Expected Ultra HD (Fast), got ${s2Label}`);
 
   await captureScreenshot('shot_nhdapi_movie.png');
+
+  console.log('\n--- 3. Switching to Server 1 on Movie ---');
+  // Click switch server button #pServerTop
+  await evaluate(`$('pServerTop').click();`);
+  const s1IframeSrc = await waitForIframeSrc('vaplayer.ru');
+
+  const currentServerAfterSwitch = await evaluate(`currentPlayerServer`);
+  const s1Label = await evaluate(`$('pServerLabel')?.textContent`);
+  const toastText = await evaluate(`$('toast')?.textContent`);
+  const s1Credless = await evaluate(`$('playerView').querySelector('iframe')?.hasAttribute('credentialless')`);
+  console.log('Current server after switch:', currentServerAfterSwitch);
+  console.log('Server 1 Iframe Src:', s1IframeSrc);
+  console.log('Server Label:', s1Label);
+  console.log('Toast notification:', toastText);
+  console.log('Server 1 has credentialless attribute:', s1Credless);
+
+  if (currentServerAfterSwitch !== 'server1') throw new Error('Server was not switched to server1');
+  const isVaplayerMovie = s1IframeSrc && s1IframeSrc.includes('vaplayer.ru/embed/movie');
+  if (!isVaplayerMovie) {
+    throw new Error(`Expected Vaplayer movie iframe, got: ${s1IframeSrc}`);
+  }
+  if (!s1Label.includes('Server 1')) throw new Error(`Expected Server 1 label, got: ${s1Label}`);
+
+  await captureScreenshot('shot_server1_movie.png');
 
   console.log('\n--- 4. Pop-Under & Ad Prevention on NHDApi ---');
   // Test 1: window.open attempt
@@ -255,8 +255,11 @@ async function runBrowserTests() {
   await evaluate(`applySubtitleToActivePlayer('ar')`);
 
   console.log('\n--- 6. TV Series Playback on NHDApi & Next Episode ---');
-  // Close player
-  await evaluate(`closePlayer()`);
+  // Close player and set server2 (Ultra HD Fast Server)
+  await evaluate(`
+    closePlayer();
+    switchPlayerServer('server2');
+  `);
   await new Promise(r => setTimeout(r, 500));
 
   // Open Breaking Bad (TMDB ID 1396) Season 1 Episode 1
