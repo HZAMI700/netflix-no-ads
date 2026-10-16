@@ -1405,6 +1405,36 @@ function auditCatalog(extraList = []) {
   };
 }
 
+function registerExternalMedia(m) {
+  if (!m || !isSafeContent(m)) return;
+  const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null);
+  if (!id) return;
+  if (!CURATED_MAP.has(id)) {
+    CURATED_MEDIA.push(m);
+    if (m.type === 'series') CURATED_SERIES.push(m);
+    else CURATED_MOVIES.push(m);
+  }
+  CURATED_MAP.set(id, m);
+  if (m.imdb_id) CURATED_MAP.set(m.imdb_id, m);
+  if (m.imdb) CURATED_MAP.set(m.imdb, m);
+  if (m.moviedb_id) {
+    CURATED_MAP.set(String(m.moviedb_id), m);
+    CURATED_MAP.set(`tmdb:${m.moviedb_id}`, m);
+  }
+  if (m.tmdbId) {
+    CURATED_MAP.set(String(m.tmdbId), m);
+    CURATED_MAP.set(`tmdb:${m.tmdbId}`, m);
+  }
+  if (m.name) {
+    const n = m.name.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
+  }
+  if (m.title) {
+    const t = m.title.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
+  }
+}
+
 const CuratedCatalog = {
   CURATED_MEDIA,
   CURATED_MAP,
@@ -1420,6 +1450,7 @@ const CuratedCatalog = {
   getSeriesVideos: generateSeriesVideos,
   getCuratedMovies,
   getCuratedSeries,
+  registerExternalMedia,
   auditCatalog
 };
 

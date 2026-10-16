@@ -26,6 +26,7 @@ const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
 const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
 const NHDAPI_BASE = 'https://nhdapi.com';
+const TWOEMBED_BASE = 'https://www.2embed.online';
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
 
 function getWorkerProxyUrl(originalUrl) {
@@ -173,6 +174,24 @@ function getMovieStreamUrl(movie, server = 'server1') {
     return `${NHDAPI_BASE}/movie/${id}`;
   }
 
+  if (server === '2embed' || server === '2embed-tmdb') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/movie/${id}`;
+  }
+
+  if (server === '2embed-imdb') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/movie/${id}`;
+  }
+
+  if (server === '2embed-iframe') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/iframe.php?id=${id}`;
+  }
+
   if (server === 'server2' || server === 'vidsrc') {
     const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
     if (!id) return null;
@@ -215,6 +234,24 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
     return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
   }
 
+  if (server === '2embed' || server === '2embed-tmdb') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/tv/${id}/${s}/${e}`;
+  }
+
+  if (server === '2embed-imdb') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/tv/${id}/${s}/${e}`;
+  }
+
+  if (server === '2embed-iframe') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/iframe.php?id=${id}`;
+  }
+
   if (server === 'server2' || server === 'vidsrc') {
     const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
     if (!id) return null;
@@ -228,6 +265,32 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   }
 
   return `${VAPLAYER_BASE}/tv/${tmdb}/${s}/${e}`;
+}
+
+/** 2Embed movie iframe embed URL */
+function get2EmbedMovieUrl(id) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  if (!/^(?:tt\d+|\d+)$/.test(clean)) return null;
+  return `${TWOEMBED_BASE}/embed/movie/${clean}`;
+}
+
+/** 2Embed TV episode iframe embed URL */
+function get2EmbedEpisodeUrl(id, season, episode) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^(?:tt\d+|\d+)$/.test(clean) || !s || !e) return null;
+  return `${TWOEMBED_BASE}/embed/tv/${clean}/${s}/${e}`;
+}
+
+/** 2Embed alternative auto-detect iframe.php endpoint (Backup) */
+function get2EmbedIframePhpUrl(id) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  if (!/^(?:tt\d+|\d+)$/.test(clean)) return null;
+  return `${TWOEMBED_BASE}/iframe.php?id=${clean}`;
 }
 
 /** NHDApi movie iframe embed URL */
@@ -415,12 +478,16 @@ const MediaLinks = {
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
   NHDAPI_BASE,
+  TWOEMBED_BASE,
   WORKER_PROXY_BASE,
   getWorkerProxyUrl,
   isValidStreamEmbedUrl,
   ensureValidStreamEmbedUrl,
   getMovieStreamUrl,
   getEpisodeStreamUrl,
+  get2EmbedMovieUrl,
+  get2EmbedEpisodeUrl,
+  get2EmbedIframePhpUrl,
   getNhdApiMovieUrl,
   getNhdApiEpisodeUrl,
   getNhdApiMovieApiUrl,

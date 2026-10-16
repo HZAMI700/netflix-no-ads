@@ -75,6 +75,10 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https: http:; object-src 'none'; base-uri 'self';">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23141414%22/><text x=%2250%25%22 y=%2274%25%22 font-family=%22Impact,sans-serif%22 font-size=%2226%22 font-weight=%22bold%22 fill=%22%23E50914%22 text-anchor=%22middle%22>S</text></svg>">
 <link rel="preconnect" href="https://v3-cinemeta.strem.io">
+<link rel="preconnect" href="https://api.themoviedb.org">
+<link rel="preconnect" href="https://image.tmdb.org">
+<link rel="preconnect" href="https://www.2embed.online">
+<link rel="preconnect" href="https://nhdapi.com">
 <link rel="preconnect" href="https://adsclear.yassine-hzami.workers.dev">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -708,21 +712,25 @@
               Servers:
             </span>
             <div class="yt-server-pills-row">
-              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
-                <span class="yt-pill-dot"></span>
-                <span>Vid API (HD)</span>
-              </button>
-              <button class="yt-server-pill" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)">
-                <span class="yt-pill-dot"></span>
+              <button class="yt-server-pill active" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)">
+                <span class="yt-pill-dot" id="statusDotNhd"></span>
                 <span>NHD API (Ultra HD)</span>
               </button>
+              <button class="yt-server-pill" id="ytServer2embed" data-server="2embed" title="2Embed (Auto-Failover Multi-Stream Mirror)">
+                <span class="yt-pill-dot" id="statusDot2embed"></span>
+                <span>2Embed</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
+                <span class="yt-pill-dot" id="statusDotVid"></span>
+                <span>Vid API (HD)</span>
+              </button>
               <button class="yt-server-pill" id="ytServerBackup" data-server="backup" title="Backup Stream Mirrors">
-                <span class="yt-pill-dot alt"></span>
+                <span class="yt-pill-dot alt" id="statusDotBackup"></span>
                 <span>Backup Server</span>
               </button>
-              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Force Next Server">
+              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Try Next Server (Auto-Failover)">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
-                <span>Force Next Server</span>
+                <span>Try Next Server</span>
               </button>
             </div>
           </div>
@@ -1144,6 +1152,7 @@
 <script src="services/media-links.js"></script>
 <script src="services/nhdapi.js"></script>
 <script src="services/curated-catalog.js"></script>
+<script src="services/tmdb.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

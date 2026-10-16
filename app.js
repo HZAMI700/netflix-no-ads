@@ -494,17 +494,19 @@ async function updateSearchDropdown(query) {
     renderDropdownItems(initialMatches.slice(0, 8), q);
   }
 
-  // Phase 2: Remote fetch from Cinemeta
+  // Phase 2: Remote fetch from Cinemeta and TMDB live multi-search
   try {
-    const [mRes, sRes] = await Promise.all([
+    const [mRes, sRes, tmdbHits] = await Promise.all([
       fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] }))
+      fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      (typeof TMDB !== 'undefined' && TMDB.searchMulti) ? TMDB.searchMulti(q).catch(() => []) : Promise.resolve([])
     ]);
     if (signal.aborted) return;
 
     const remoteItems = [
       ...(mRes.metas || []).map(x => ({ ...x, type: 'movie' })),
-      ...(sRes.metas || []).map(x => ({ ...x, type: 'series' }))
+      ...(sRes.metas || []).map(x => ({ ...x, type: 'series' })),
+      ...(Array.isArray(tmdbHits) ? tmdbHits : [])
     ].filter(item => isCleanSafe(item) && isSearchRelevant(item, q));
 
     const combined = dedupeMetas([...initialMatches, ...remoteItems]);
@@ -859,13 +861,14 @@ async function doSearch(q) {
     $('searchResults').innerHTML = skels(6);
   }
 
-  // Phase 2: Asynchronous background enrichment from Cinemeta
+  // Phase 2: Asynchronous background enrichment from Cinemeta & TMDB live search
   try {
-    const [m1, m2, s1, s2] = await Promise.all([
+    const [m1, m2, s1, s2, tmdbHits] = await Promise.all([
       fetch(`${CINEMETA}/catalog/movie/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
       fetch(`${CINEMETA}/catalog/movie/imdbRating/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
       fetch(`${CINEMETA}/catalog/series/top/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
-      fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] }))
+      fetch(`${CINEMETA}/catalog/series/imdbRating/search=${encodeURIComponent(q)}.json`, { signal }).then(r => r.json()).catch(() => ({ metas: [] })),
+      (typeof TMDB !== 'undefined' && TMDB.searchMulti) ? TMDB.searchMulti(q).catch(() => []) : Promise.resolve([])
     ]);
     if (signal.aborted) return;
 
@@ -874,7 +877,8 @@ async function doSearch(q) {
       ...(m1.metas || []).map(x => ({ ...x, type: 'movie' })),
       ...(m2.metas || []).map(x => ({ ...x, type: 'movie' })),
       ...(s1.metas || []).map(x => ({ ...x, type: 'series' })),
-      ...(s2.metas || []).map(x => ({ ...x, type: 'series' }))
+      ...(s2.metas || []).map(x => ({ ...x, type: 'series' })),
+      ...(Array.isArray(tmdbHits) ? tmdbHits : [])
     ];
 
     const relevantRemote = rawRemote.filter(item => isCleanSafe(item) && isSearchRelevant(item, q));
@@ -1456,6 +1460,11 @@ async function buildHome() {
   const seenHomeTitles = new Set();
   if (heroItems && heroItems.length && heroItems[0]) {
     recordCardSeen(heroItems[0], seenHomeIds, seenHomeTitles);
+  }
+
+  // Trigger background discovery sync from TMDB discovery endpoints
+  if (typeof TMDB !== 'undefined' && TMDB.syncCoreDiscovery) {
+    TMDB.syncCoreDiscovery(2).catch(() => {});
   }
 
   // Phase 1: Instant synchronous population from CuratedCatalog (0ms)
@@ -2552,7 +2561,13 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
           }, 300);
         }
       };
-      $('seasonSel').onchange = renderEps;
+      $('seasonSel').onchange = () => {
+        renderEps();
+        const newSeason = Math.max(1, +$('seasonSel').value || 1);
+        if ($('playerView')?.classList.contains('show') && currentEmbed?.type === 'series') {
+          playEpisode(newSeason, 1);
+        }
+      };
       $('seasonSel').value = String(targetSeason);
       renderEps();
     }
@@ -2609,11 +2624,13 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   // Wire interactive YouTube Server Switcher Pills
   const pillVid = $('ytServerVidapi');
   const pillNhd = $('ytServerNhdapi');
+  const pill2embed = $('ytServer2embed');
   const pillBackup = $('ytServerBackup');
   const btnForceNext = $('ytForceNextServer');
 
   if (pillVid) pillVid.onclick = () => switchPlayerServer('server1');
   if (pillNhd) pillNhd.onclick = () => switchPlayerServer('server2');
+  if (pill2embed) pill2embed.onclick = () => switchPlayerServer('2embed');
   if (pillBackup) pillBackup.onclick = () => switchPlayerServer('backup');
   if (btnForceNext) btnForceNext.onclick = () => togglePlayerServer();
 
@@ -2720,6 +2737,22 @@ async function openDetail(id, type, autoplay, continueTarget) {
     }
   } catch (err) {
     console.warn('Cinemeta metadata fetch failed:', err);
+  }
+
+  // 2.5 Live On-Demand Fallback via TMDB
+  if (typeof TMDB !== 'undefined' && TMDB.getDetails) {
+    try {
+      const tmdbMeta = await TMDB.getDetails(id, type);
+      if (tmdbMeta) {
+        m = tmdbMeta;
+        if (m.type === 'series' || m.type === 'tv') type = 'series';
+        else if (m.type === 'movie') type = 'movie';
+        renderDetailUI(m, type, autoplay, continueTarget);
+        return;
+      }
+    } catch (tErr) {
+      console.warn('[TMDB] On-demand details fetch failed:', tErr);
+    }
   }
 
   // 3. Resilient fallback: ensure title is playable even if network is offline
@@ -4629,6 +4662,7 @@ function closePlayer() {
   _allowNavigation = true;
   stopFocusGuardian();
   disarmVidShield();
+  cancelFailoverWatchdog();
   if (typeof NHDApi !== 'undefined' && NHDApi.cancelActiveStream) {
     NHDApi.cancelActiveStream();
   }
@@ -4782,6 +4816,11 @@ function playStream() {
     } else {
       url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
     }
+  } else if (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback') {
+    const anyId = tmdbId || imdb;
+    url = (currentPlayerServer === '2embed-fallback' && !tmdbId && imdb)
+      ? (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(imdb) : `https://www.2embed.online/embed/movie/${imdb}`)
+      : (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(anyId) : `https://www.2embed.online/embed/movie/${anyId}`);
   } else {
     url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
   }
@@ -4815,6 +4854,7 @@ function playEpisode(season, episode) {
   const imdb = ids.imdb || m.imdb || m.imdb_id;
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   const isBackup = (currentPlayerServer === 'backup');
+  const is2embed = (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback');
   let url = null;
   if (isBackup) {
     url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server2');
@@ -4824,6 +4864,11 @@ function playEpisode(season, episode) {
     } else {
       url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server1');
     }
+  } else if (is2embed) {
+    const anyId = tmdbId || imdb;
+    url = (currentPlayerServer === '2embed-fallback' && !tmdbId && imdb)
+      ? (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(imdb, s, ep) : `https://www.2embed.online/embed/tv/${imdb}/${s}/${ep}`)
+      : (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(anyId, s, ep) : `https://www.2embed.online/embed/tv/${anyId}/${s}/${ep}`);
   } else {
     url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
   }
@@ -5063,12 +5108,13 @@ function updatePlayerServerUI() {
   const btn = $('pServerTop');
   const sel = $('playerServerSelect');
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  const is2embed = (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback');
   const isBackup = (currentPlayerServer === 'backup');
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : (isBackup ? 'Backup Mirror' : 'Server 1 (HD)');
+    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : (is2embed ? '2Embed (Fast)' : (isBackup ? 'Backup Mirror' : 'Server 1 (HD)'));
   }
   if (btn) {
-    btn.setAttribute('data-server', isServer2 ? 'server2' : (isBackup ? 'backup' : 'server1'));
+    btn.setAttribute('data-server', isServer2 ? 'server2' : (is2embed ? '2embed' : (isBackup ? 'backup' : 'server1')));
     btn.title = isServer2
       ? 'Watching Server: Ultra HD Fast Server'
       : (isBackup ? 'Watching Server: Backup Stream Mirror' : 'Watching Server: Server 1: High Definition Stream');
@@ -5080,9 +5126,11 @@ function updatePlayerServerUI() {
   // Synchronize YouTube-style server switcher pills
   const pillVid = $('ytServerVidapi');
   const pillNhd = $('ytServerNhdapi');
+  const pill2embed = $('ytServer2embed');
   const pillBackup = $('ytServerBackup');
   if (pillVid) pillVid.classList.toggle('active', currentPlayerServer === 'server1');
   if (pillNhd) pillNhd.classList.toggle('active', isServer2);
+  if (pill2embed) pill2embed.classList.toggle('active', is2embed);
   if (pillBackup) pillBackup.classList.toggle('active', isBackup);
 }
 
@@ -5205,12 +5253,89 @@ function ensureValidStreamEmbedUrl(url, tmdbId, metadata = {}) {
 }
 
 let _playerLoadSessionId = 0;
+let failoverWatchdogTimer = null;
+
+function cancelFailoverWatchdog() {
+  if (failoverWatchdogTimer) {
+    clearTimeout(failoverWatchdogTimer);
+    failoverWatchdogTimer = null;
+  }
+}
+
+function updateServerStatusDot(serverKey, status) {
+  const normKey = (serverKey === 'server2') ? 'nhdapi' : (serverKey === 'server1' ? 'vidapi' : serverKey);
+  const dotMap = {
+    nhdapi: 'statusDotNhd',
+    '2embed': 'statusDot2embed',
+    '2embed-fallback': 'statusDot2embed',
+    vidapi: 'statusDotVid',
+    server1: 'statusDotVid',
+    backup: 'statusDotBackup'
+  };
+  const dotId = dotMap[normKey];
+  if (dotId && $(dotId)) {
+    $(dotId).className = 'yt-pill-dot ' + (status === 'online' ? 'online' : (status === 'unresponsive' ? 'offline' : 'alt'));
+  }
+}
+
+function triggerAutoFailover(currentServerKey) {
+  cancelFailoverWatchdog();
+  const queue = ['nhdapi', '2embed', '2embed-fallback', 'server1', 'backup'];
+  const normKey = (currentServerKey === 'server2') ? 'nhdapi' : (currentServerKey === 'server1' ? 'server1' : currentServerKey);
+  const currentIdx = queue.indexOf(normKey);
+  if (currentIdx === -1 || currentIdx >= queue.length - 1) return;
+
+  const nextServerKey = queue[currentIdx + 1];
+  const serverNames = {
+    nhdapi: 'NHD API',
+    '2embed': '2Embed',
+    '2embed-fallback': '2Embed (Backup)',
+    server1: 'Vid API',
+    backup: 'Backup Server'
+  };
+
+  const fromName = serverNames[normKey] || normKey;
+  const toName = serverNames[nextServerKey] || nextServerKey;
+  updateServerStatusDot(normKey, 'unresponsive');
+  toast(`${fromName} unresponsive, automatically switching to ${toName}...`);
+  switchPlayerServer(nextServerKey, true);
+}
+
+function startFailoverWatchdog(currentServerKey) {
+  cancelFailoverWatchdog();
+  const queue = ['nhdapi', '2embed', '2embed-fallback', 'server1', 'backup'];
+  const normKey = (currentServerKey === 'server2') ? 'nhdapi' : (currentServerKey === 'server1' ? 'server1' : currentServerKey);
+  const currentIdx = queue.indexOf(normKey);
+  if (currentIdx === -1 || currentIdx >= queue.length - 1) return;
+
+  const nextServerKey = queue[currentIdx + 1];
+  const serverNames = {
+    nhdapi: 'NHD API',
+    '2embed': '2Embed',
+    '2embed-fallback': '2Embed (Backup)',
+    server1: 'Vid API',
+    backup: 'Backup Server'
+  };
+
+  failoverWatchdogTimer = setTimeout(() => {
+    if ($('playerView') && $('playerView').classList.contains('show')) {
+      const fromName = serverNames[normKey] || normKey;
+      const toName = serverNames[nextServerKey] || nextServerKey;
+      console.warn(`[Failover] ${fromName} unresponsive after 8s, automatically switching to ${toName}...`);
+      updateServerStatusDot(normKey, 'unresponsive');
+      toast(`${fromName} unresponsive, automatically switching to ${toName}...`);
+      switchPlayerServer(nextServerKey, true);
+    }
+  }, 8000);
+}
 
 function togglePlayerServer() {
   let next = 'server1';
   if (currentPlayerServer === 'server1') {
     next = 'server2';
   } else if (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') {
+    next = '2embed';
+  } else if (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback') {
     next = 'backup';
   } else {
     next = 'server1';
@@ -5218,13 +5343,17 @@ function togglePlayerServer() {
   switchPlayerServer(next);
 }
 
-async function switchPlayerServer(newServer) {
+async function switchPlayerServer(newServer, isAutoFailover = false) {
   const isServer2 = (newServer === 'server2' || newServer === 'nhdapi');
   const isBackup = (newServer === 'backup');
+  const is2embed = (newServer === '2embed' || newServer === '2embed-fallback');
+
   if (isBackup) {
     currentPlayerServer = 'backup';
   } else if (isServer2) {
     currentPlayerServer = 'server2';
+  } else if (is2embed) {
+    currentPlayerServer = newServer;
   } else {
     currentPlayerServer = 'server1';
   }
@@ -5263,6 +5392,24 @@ async function switchPlayerServer(newServer) {
     } else {
       newBaseUrl = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
     }
+  } else if (is2embed) {
+    const s = currentEmbed.season || 1;
+    const ep = currentEmbed.episode || 1;
+    if (newServer === '2embed-fallback') {
+      if (imdb) {
+        newBaseUrl = isSeries
+          ? (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(imdb, s, ep) : `https://www.2embed.online/embed/tv/${imdb}/${s}/${ep}`)
+          : (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(imdb) : `https://www.2embed.online/embed/movie/${imdb}`);
+      } else {
+        const anyId = tmdbId || imdb;
+        newBaseUrl = MediaLinks.get2EmbedIframePhpUrl ? MediaLinks.get2EmbedIframePhpUrl(anyId) : `https://www.2embed.online/iframe.php?id=${anyId}`;
+      }
+    } else {
+      const anyId = tmdbId || imdb;
+      newBaseUrl = isSeries
+        ? (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(anyId, s, ep) : `https://www.2embed.online/embed/tv/${anyId}/${s}/${ep}`)
+        : (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(anyId) : `https://www.2embed.online/embed/movie/${anyId}`);
+    }
   } else {
     // Server 1
     if (isSeries) {
@@ -5278,7 +5425,7 @@ async function switchPlayerServer(newServer) {
   }
 
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const rawStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
+  const rawStreamUrl = (isServer2 || is2embed) ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
   const fullOriginalEmbedUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, currentEmbed);
 
   // 1. Only render/switch iframe when a valid movie/TV id exists (never render an empty URL like /movie?id=)
@@ -5291,21 +5438,36 @@ async function switchPlayerServer(newServer) {
   currentEmbed.server = currentPlayerServer;
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
 
-  toast(isBackup
-    ? 'Watching Server: Backup Stream Mirror'
-    : (isServer2
-        ? 'Watching Server: Ultra HD Fast Server'
-        : 'Watching Server: Server 1 (High Definition Stream)')
-  );
+  if (!isAutoFailover) {
+    toast(isBackup
+      ? 'Watching Server: Backup Stream Mirror'
+      : (isServer2
+          ? 'Watching Server: Ultra HD Fast Server'
+          : (is2embed
+              ? 'Watching Server: 2Embed Multi-Stream Mirror'
+              : 'Watching Server: Server 1 (High Definition Stream)'))
+    );
+  }
 
   armVidShield();
+  startFailoverWatchdog(newServer);
 
   iframe.src = fullOriginalEmbedUrl;
   iframe.allowFullscreen = true;
   iframe.setAttribute('allowfullscreen', '');
+  iframe.setAttribute('frameborder', '0');
   iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   iframe.setAttribute('credentialless', '');
   try { iframe.credentialless = true; } catch {}
+
+  iframe.onload = () => {
+    cancelFailoverWatchdog();
+    updateServerStatusDot(newServer, 'online');
+  };
+  iframe.onerror = () => {
+    cancelFailoverWatchdog();
+    triggerAutoFailover(newServer);
+  };
 
   if (isServer2) {
     startNhdApiSession({
@@ -5461,6 +5623,7 @@ async function playEmbed(o) {
   f.src = fullOriginalEmbedUrl;
   f.allowFullscreen = true;
   f.setAttribute('allowfullscreen', '');
+  f.setAttribute('frameborder', '0');
   f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   f.setAttribute('referrerpolicy', 'origin');
   f.setAttribute('credentialless', '');
@@ -5468,6 +5631,7 @@ async function playEmbed(o) {
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
+  startFailoverWatchdog(currentPlayerServer);
 
   if (isServer2) {
     const tmdbId = o.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(o.id || o.imdb)?.moviedb_id : null);
@@ -5479,26 +5643,36 @@ async function playEmbed(o) {
         episode: o.episode
       });
     }
-  } else {
-    const sendSubCmd = () => {
-      dispatchSubtitlesToPlayer(targetSub);
-    };
-    sendSubCmd();
-    f.onload = () => {
+  }
+
+  const sendSubCmd = () => {
+    dispatchSubtitlesToPlayer(targetSub);
+  };
+  if (!isServer2) sendSubCmd();
+
+  f.onload = () => {
+    cancelFailoverWatchdog();
+    updateServerStatusDot(currentPlayerServer, 'online');
+    if (!isServer2) {
       sendSubCmd();
       setTimeout(sendSubCmd, 250);
       setTimeout(sendSubCmd, 600);
       setTimeout(sendSubCmd, 1200);
       setTimeout(sendSubCmd, 2500);
       setTimeout(sendSubCmd, 4000);
-    };
-  }
+    }
+  };
+  f.onerror = () => {
+    cancelFailoverWatchdog();
+    triggerAutoFailover(currentPlayerServer);
+  };
 }
 
 function playEmbedEntry(m) {
   const ids = resolveMediaIdentifiers(m);
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
   const isBackup = (currentPlayerServer === 'backup');
+  const is2embed = (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback');
   if (m.type === 'series') {
     const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
     const imdb = ids.imdb || m.imdb;
@@ -5514,6 +5688,11 @@ function playEmbedEntry(m) {
       } else {
         url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server1');
       }
+    } else if (is2embed) {
+      const anyId = tmdbId || imdb;
+      url = (currentPlayerServer === '2embed-fallback' && !tmdbId && imdb)
+        ? (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(imdb, s, ep) : `https://www.2embed.online/embed/tv/${imdb}/${s}/${ep}`)
+        : (MediaLinks.get2EmbedEpisodeUrl ? MediaLinks.get2EmbedEpisodeUrl(anyId, s, ep) : `https://www.2embed.online/embed/tv/${anyId}/${s}/${ep}`);
     } else {
       url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, currentPlayerServer);
     }
@@ -5543,6 +5722,11 @@ function playEmbedEntry(m) {
     } else {
       url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server1');
     }
+  } else if (is2embed) {
+    const anyId = tmdbId || imdb;
+    url = (currentPlayerServer === '2embed-fallback' && !tmdbId && imdb)
+      ? (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(imdb) : `https://www.2embed.online/embed/movie/${imdb}`)
+      : (MediaLinks.get2EmbedMovieUrl ? MediaLinks.get2EmbedMovieUrl(anyId) : `https://www.2embed.online/embed/movie/${anyId}`);
   } else {
     url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, currentPlayerServer);
   }
@@ -5559,7 +5743,7 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com', 'https://adsclear.yassine-hzami.workers.dev'];
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com', 'https://www.2embed.online', 'https://2embed.online', 'https://adsclear.yassine-hzami.workers.dev'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidsrcProgress') || localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
