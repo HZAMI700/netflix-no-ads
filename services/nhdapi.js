@@ -417,6 +417,11 @@ async function fetchSubtitles(options = {}) {
           source: item.source || 'nhdapi',
           lang: langCode
         };
+      })
+      .sort((a, b) => {
+        if (a.lang === 'ar' && b.lang !== 'ar') return -1;
+        if (b.lang === 'ar' && a.lang !== 'ar') return 1;
+        return 0;
       });
   } catch {
     clearTimeout(timer);

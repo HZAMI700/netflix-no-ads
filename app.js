@@ -82,6 +82,31 @@ if (!store.get('nf_vidapi_default_active')) {
   store.set('nf_vidapi_default_active', '1');
 }
 
+// Ensure Arabic captions / subtitles by default across the entire application
+if (!store.get('nf_caption_arabic_default_v1')) {
+  store.set('nf_sub_lang', 'ar');
+  store.set('nf_caption_arabic_default_v1', '1');
+}
+if (!store.get('nf_sub_lang')) {
+  store.set('nf_sub_lang', 'ar');
+}
+try {
+  localStorage.setItem('subtitleLang', 'ar');
+  localStorage.setItem('va_subtitle_lang', 'ar');
+  localStorage.setItem('va_sub', 'ar');
+  localStorage.setItem('va_caption', 'ar');
+  localStorage.setItem('player_subtitle', 'ar');
+  localStorage.setItem('player_sub_lang', 'ar');
+  localStorage.setItem('player_caption', 'ar');
+  localStorage.setItem('player_captions', 'ar');
+  localStorage.setItem('caption', 'ar');
+  localStorage.setItem('captions', 'ar');
+  localStorage.setItem('default_sub', 'ar');
+  localStorage.setItem('default_caption', 'ar');
+  localStorage.setItem('cc', '1');
+  localStorage.setItem('cc_load_policy', '1');
+} catch {}
+
 const PROFILES = [
   { id: 'Z', name: 'You', avatar: 'assets/profiles/profile_red.png', color: 'linear-gradient(135deg, #E50914 0%, #B81D24 100%)' },
   { id: 'K', name: 'Kids', avatar: 'assets/profiles/profile_blue.png', color: 'linear-gradient(135deg, #1f6feb 0%, #0d419d 100%)' },
@@ -3855,9 +3880,8 @@ function updateSubPreview() {
 }
 
 const SUBTITLE_LANGUAGES = [
-  { code: 'off', label: 'Off', sub: 'Subtitles Disabled' },
+  { code: 'ar', label: 'Arabic', sub: 'العربية (Default)' },
   { code: 'en', label: 'English', sub: 'English' },
-  { code: 'ar', label: 'Arabic', sub: 'العربية' },
   { code: 'es', label: 'Spanish', sub: 'Español' },
   { code: 'fr', label: 'French', sub: 'Français' },
   { code: 'de', label: 'German', sub: 'Deutsch' },
@@ -3876,7 +3900,8 @@ const SUBTITLE_LANGUAGES = [
   { code: 'vi', label: 'Vietnamese', sub: 'Tiếng Việt' },
   { code: 'el', label: 'Greek', sub: 'Ελληνικά' },
   { code: 'fa', label: 'Persian', sub: 'فارسی' },
-  { code: 'he', label: 'Hebrew', sub: 'עברית' }
+  { code: 'he', label: 'Hebrew', sub: 'עברית' },
+  { code: 'off', label: 'Off', sub: 'Subtitles Disabled' }
 ];
 
 function renderCaptionLangPills(filter = '') {
@@ -4727,7 +4752,7 @@ function openPlayerShell(title, subTitle) {
     bd.classList.add('show');
   }
   if ($('pTitle')) $('pTitle').textContent = title || 'Now Playing';
-  if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • OpenSubtitles v3';
+  if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • Arabic Subtitles';
 
   if ($('playerVideo')) $('playerVideo').style.display = 'none';
   if ($('pBottom')) $('pBottom').style.display = 'none';
@@ -4954,9 +4979,10 @@ function updateSubtitleUrlParam(url, lang) {
   try {
     const u = new URL(url, window.location.href);
     if (!lang || lang === 'off') {
-      ['sub', 'subtitles', 'sub_lang', 'lang', 'default_sub', 'default_subtitle', 'default_subtitles', 'caption', 'captions', 'caption_lang', 'sub_language', 'sub_lang_label', 'srclang', 'c_lang', 'auto_sub', 'auto_subtitles', 'subtitle_lang', 'va_sub', 'ds_lang'].forEach(p => u.searchParams.delete(p));
+      ['sub', 'subtitles', 'sub_lang', 'lang', 'default_sub', 'default_subtitle', 'default_subtitles', 'caption', 'captions', 'caption_lang', 'captions_lang', 'default_caption', 'default_captions', 'sub_language', 'sub_lang_label', 'srclang', 'c_lang', 'auto_sub', 'auto_subtitles', 'auto_caption', 'enable_captions', 'enable_subtitles', 'subtitle', 'subtitle_lang', 'va_sub', 'va_caption', 'ds_lang', 'cc', 'cc_lang', 'cc_load_policy', 'vidsrc_sub', 'track'].forEach(p => u.searchParams.delete(p));
       u.searchParams.set('sub', 'off');
       u.searchParams.set('cc', '0');
+      u.searchParams.set('cc_load_policy', '0');
     } else {
       u.searchParams.set('sub', target);
       u.searchParams.set('subtitles', target);
@@ -4968,13 +4994,21 @@ function updateSubtitleUrlParam(url, lang) {
       u.searchParams.set('caption', target);
       u.searchParams.set('captions', target);
       u.searchParams.set('caption_lang', target);
+      u.searchParams.set('captions_lang', target);
+      u.searchParams.set('default_caption', target);
+      u.searchParams.set('default_captions', target);
       u.searchParams.set('cc', '1');
       u.searchParams.set('cc_lang', target);
+      u.searchParams.set('cc_load_policy', '1');
       u.searchParams.set('sub_language', label);
       u.searchParams.set('sub_lang_label', label);
       u.searchParams.set('srclang', target);
+      u.searchParams.set('subtitle', target);
       u.searchParams.set('auto_sub', target);
       u.searchParams.set('auto_subtitles', '1');
+      u.searchParams.set('auto_caption', '1');
+      u.searchParams.set('enable_captions', '1');
+      u.searchParams.set('enable_subtitles', '1');
       u.searchParams.set('subtitle_lang', target);
       u.searchParams.set('va_sub', target);
       u.searchParams.set('va_subtitle_lang', target);
@@ -4983,8 +5017,12 @@ function updateSubtitleUrlParam(url, lang) {
       u.searchParams.set('player_sub_lang', target);
       u.searchParams.set('player_subtitle', target);
       u.searchParams.set('player_subtitles', target);
+      u.searchParams.set('player_caption', target);
+      u.searchParams.set('player_captions', target);
       u.searchParams.set('player_lang', target);
       u.searchParams.set('ds_lang', target);
+      u.searchParams.set('vidsrc_sub', target);
+      u.searchParams.set('track', target);
       u.searchParams.set('autoplay', '1');
       if (url.includes('/tv/') || (currentEmbed && currentEmbed.type === 'series')) {
         u.searchParams.set('autonext', '1');
@@ -4995,7 +5033,7 @@ function updateSubtitleUrlParam(url, lang) {
     if (!lang || lang === 'off') return url;
     const isTv = url.includes('/tv/') || (currentEmbed && currentEmbed.type === 'series');
     const sep = url.includes('?') ? '&' : '?';
-    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&cc=1&sub_language=${encodeURIComponent(label)}&ds_lang=${encodeURIComponent(target)}&autoplay=1${isTv ? '&autonext=1' : ''}`;
+    return `${url}${sep}sub=${encodeURIComponent(target)}&subtitles=${encodeURIComponent(target)}&sub_lang=${encodeURIComponent(target)}&lang=${encodeURIComponent(target)}&default_sub=${encodeURIComponent(target)}&caption=${encodeURIComponent(target)}&captions=${encodeURIComponent(target)}&caption_lang=${encodeURIComponent(target)}&cc=1&cc_load_policy=1&sub_language=${encodeURIComponent(label)}&ds_lang=${encodeURIComponent(target)}&autoplay=1${isTv ? '&autonext=1' : ''}`;
   }
 }
 
@@ -5461,7 +5499,7 @@ async function switchPlayerServer(newServer, isAutoFailover = false) {
   }
 
   const targetSub = store.get('nf_sub_lang', 'ar');
-  const rawStreamUrl = (isServer2 || is2embed) ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
+  const rawStreamUrl = isServer2 ? newBaseUrl : updateSubtitleUrlParam(newBaseUrl, targetSub);
   const fullOriginalEmbedUrl = ensureValidStreamEmbedUrl(rawStreamUrl, tmdbId, currentEmbed);
 
   // 1. Only render/switch iframe when a valid movie/TV id exists (never render an empty URL like /movie?id=)
@@ -5559,13 +5597,23 @@ function dispatchSubtitlesToPlayer(lang) {
     hi: 'Hindi'
   };
   const label = langNames[targetSub] || targetSub;
+  const ccEnabled = targetSub !== 'off';
 
   try {
     localStorage.setItem('subtitleLang', targetSub);
     localStorage.setItem('va_subtitle_lang', targetSub);
     localStorage.setItem('va_sub', targetSub);
+    localStorage.setItem('va_caption', targetSub);
     localStorage.setItem('player_subtitle', targetSub);
     localStorage.setItem('player_sub_lang', targetSub);
+    localStorage.setItem('player_caption', targetSub);
+    localStorage.setItem('player_captions', targetSub);
+    localStorage.setItem('caption', targetSub);
+    localStorage.setItem('captions', targetSub);
+    localStorage.setItem('default_sub', targetSub);
+    localStorage.setItem('default_caption', targetSub);
+    localStorage.setItem('cc', ccEnabled ? '1' : '0');
+    localStorage.setItem('cc_load_policy', ccEnabled ? '1' : '0');
   } catch {}
 
   const storageData = {
@@ -5573,13 +5621,32 @@ function dispatchSubtitlesToPlayer(lang) {
     va_subtitle_lang: targetSub,
     va_sub: targetSub,
     va_caption: targetSub,
+    caption: targetSub,
+    captions: targetSub,
+    caption_lang: targetSub,
+    captions_lang: targetSub,
+    default_caption: targetSub,
+    default_captions: targetSub,
     player_subtitle: targetSub,
     player_sub: targetSub,
     player_subtitles: targetSub,
+    player_caption: targetSub,
+    player_captions: targetSub,
     player_lang: targetSub,
     player_sub_lang: targetSub,
     default_sub: targetSub,
-    sub_lang: targetSub
+    default_subtitle: targetSub,
+    default_subtitles: targetSub,
+    sub_lang: targetSub,
+    sub_language: label,
+    cc: ccEnabled ? '1' : '0',
+    cc_lang: targetSub,
+    cc_load_policy: ccEnabled ? '1' : '0',
+    auto_sub: targetSub,
+    auto_subtitles: ccEnabled ? '1' : '0',
+    auto_caption: ccEnabled ? '1' : '0',
+    enable_captions: ccEnabled ? '1' : '0',
+    enable_subtitles: ccEnabled ? '1' : '0'
   };
 
   try { f.contentWindow?.postMessage({ type: 'STORAGE_INIT', data: storageData }, '*'); } catch {}
@@ -5589,6 +5656,12 @@ function dispatchSubtitlesToPlayer(lang) {
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_subtitle', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_sub_lang', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'player_caption', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'caption', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'captions', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'caption_lang', value: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'cc', value: ccEnabled ? '1' : '0' }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'cc_load_policy', value: ccEnabled ? '1' : '0' }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'STORAGE_SET', key: 'va_sub', value: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ type: 'SET_SUBTITLES', lang: targetSub, language: label }, '*'); } catch {}
@@ -5599,16 +5672,36 @@ function dispatchSubtitlesToPlayer(lang) {
   try { f.contentWindow?.postMessage({ type: 'PLAYER_SET_SUBTITLE', lang: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ action: 'setSubtitle', language: targetSub }, '*'); } catch {}
   try { f.contentWindow?.postMessage({ command: 'set_subtitle', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_CAPTIONS', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_CAPTION', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'setCaption', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'setCaptions', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ event: 'setCaption', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ event: 'setCaptions', lang: targetSub, language: label }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ action: 'setCaption', language: targetSub, lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ action: 'setCaptions', language: targetSub, lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ command: 'set_caption', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ command: 'set_captions', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'SET_CC', lang: targetSub, value: ccEnabled }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'setCC', lang: targetSub, value: ccEnabled }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'ENABLE_CAPTIONS', lang: targetSub }, '*'); } catch {}
+  try { f.contentWindow?.postMessage({ type: 'enableCaptions', lang: targetSub }, '*'); } catch {}
 
   try {
     for (let i = 0; i < window.frames.length; i++) {
       try { window.frames[i].postMessage({ type: 'STORAGE_INIT', data: storageData }, '*'); } catch {}
       try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'subtitleLang', value: targetSub }, '*'); } catch {}
       try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'va_subtitle_lang', value: targetSub }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'caption', value: targetSub }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'STORAGE_SET', key: 'captions', value: targetSub }, '*'); } catch {}
       try { window.frames[i].postMessage({ type: 'SUBTITLE_SET', lang: targetSub, language: label, code: targetSub, label }, '*'); } catch {}
       try { window.frames[i].postMessage({ type: 'SET_SUBTITLES', lang: targetSub, language: label }, '*'); } catch {}
       try { window.frames[i].postMessage({ type: 'SET_SUBTITLE', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SET_CAPTIONS', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SET_CAPTION', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ type: 'SET_CC', lang: targetSub, value: ccEnabled }, '*'); } catch {}
       try { window.frames[i].postMessage({ event: 'setSubtitle', lang: targetSub, language: label }, '*'); } catch {}
+      try { window.frames[i].postMessage({ event: 'setCaption', lang: targetSub, language: label }, '*'); } catch {}
     }
   } catch {}
 }
@@ -5699,19 +5792,18 @@ async function playEmbed(o) {
   const sendSubCmd = () => {
     dispatchSubtitlesToPlayer(targetSub);
   };
-  if (!isServer2) sendSubCmd();
+  sendSubCmd();
+  setTimeout(sendSubCmd, 120);
 
   f.onload = () => {
     cancelFailoverWatchdog();
     updateServerStatusDot(currentPlayerServer, 'online');
-    if (!isServer2) {
-      sendSubCmd();
-      setTimeout(sendSubCmd, 250);
-      setTimeout(sendSubCmd, 600);
-      setTimeout(sendSubCmd, 1200);
-      setTimeout(sendSubCmd, 2500);
-      setTimeout(sendSubCmd, 4000);
-    }
+    sendSubCmd();
+    setTimeout(sendSubCmd, 250);
+    setTimeout(sendSubCmd, 600);
+    setTimeout(sendSubCmd, 1200);
+    setTimeout(sendSubCmd, 2500);
+    setTimeout(sendSubCmd, 4000);
   };
   f.onerror = () => {
     cancelFailoverWatchdog();
