@@ -5456,9 +5456,12 @@ async function switchPlayerServer(newServer, isAutoFailover = false) {
   iframe.allowFullscreen = true;
   iframe.setAttribute('allowfullscreen', '');
   iframe.setAttribute('frameborder', '0');
-  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
+  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'");
+  iframe.setAttribute('referrerpolicy', 'origin');
   iframe.setAttribute('credentialless', '');
   try { iframe.credentialless = true; } catch {}
+  iframe.removeAttribute('sandbox');
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
 
   iframe.onload = () => {
     cancelFailoverWatchdog();
@@ -5624,10 +5627,11 @@ async function playEmbed(o) {
   f.allowFullscreen = true;
   f.setAttribute('allowfullscreen', '');
   f.setAttribute('frameborder', '0');
-  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
+  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'");
   f.setAttribute('referrerpolicy', 'origin');
   f.setAttribute('credentialless', '');
   try { f.credentialless = true; } catch {}
+  f.removeAttribute('sandbox');
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   $('playerView').insertBefore(f, $('pTop'));
   armVidShield();
@@ -6224,14 +6228,37 @@ window.addEventListener('blur', () => {
   const iframe = $('playerView')?.querySelector('iframe');
   if (iframe && document.activeElement === iframe) {
     try { iframe.blur(); } catch {}
-    const trap = $('pFocusTrap');
+    let trap = $('pFocusTrap');
+    if (!trap) {
+      trap = document.createElement('button');
+      trap.id = 'pFocusTrap';
+      trap.setAttribute('tabindex', '-1');
+      trap.setAttribute('aria-hidden', 'true');
+      trap.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;margin:0;overflow:hidden;outline:none;';
+      $('playerView')?.appendChild(trap);
+    }
     if (trap) {
       try { trap.focus(); } catch {}
     }
+    try { window.focus(); } catch {}
+    try { window.top?.focus(); } catch {}
+    try { self.focus(); } catch {}
+
     setTimeout(() => {
       try { window.focus(); } catch {}
       try { window.top?.focus(); } catch {}
+      try { self.focus(); } catch {}
     }, 50);
+
+    // If this was the user's first click on the video player area / iframe to start playback,
+    // trigger the 1.5-second auto-lock countdown to shield against all subsequent ad popups!
+    if (!_firstClickDone && $('playerView')?.classList.contains('show')) {
+      _firstClickDone = true;
+      clearTimeout(_shieldActivateTimer);
+      _shieldActivateTimer = setTimeout(() => {
+        activateVidShield();
+      }, 1500);
+    }
   }
 }, true);
 
@@ -6241,6 +6268,9 @@ const _pvHover = $('playerView');
 if (_pvHover) {
   _pvHover.addEventListener('mouseenter', () => { _playerHovered = true; });
   _pvHover.addEventListener('mouseleave', () => { _playerHovered = false; });
+  _pvHover.addEventListener('touchstart', () => { _playerHovered = true; }, { passive: true });
+  _pvHover.addEventListener('touchend', () => { _playerHovered = false; }, { passive: true });
+  _pvHover.addEventListener('touchcancel', () => { _playerHovered = false; }, { passive: true });
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -6256,6 +6286,19 @@ let _shieldActivateTimer = null;
 let _shieldUnlockTimer = null;
 let _shieldCountdownInterval = null;
 let _shieldActive = false;
+
+function _onPlayerFirstInteraction(e) {
+  if (_firstClickDone) return;
+  // If user clicked inside header controls or shield controls (server switcher, back, unlock, fullscreen), don't consume the video first click
+  if (e && e.target && (e.target.closest('#pTop') || e.target.closest('#pShieldControls'))) {
+    return;
+  }
+  _firstClickDone = true;
+  clearTimeout(_shieldActivateTimer);
+  _shieldActivateTimer = setTimeout(() => {
+    activateVidShield();
+  }, 1500);
+}
 
 function disarmVidShield(seconds) {
   clearTimeout(_shieldActivateTimer);
@@ -6315,8 +6358,16 @@ function activateVidShield() {
     $('playerView')?.insertBefore(shield, $('pTop'));
   }
   if (shield) {
+    shield.style.position = 'absolute';
+    shield.style.inset = '0';
+    shield.style.width = '100%';
+    shield.style.height = '100%';
+    shield.style.zIndex = '20';
     shield.style.display = 'block';
     shield.style.pointerEvents = 'auto';
+    shield.style.background = 'transparent';
+    shield.style.cursor = 'pointer';
+
     const handleShieldTap = (e) => {
       if (e) {
         try { e.preventDefault(); } catch {}
@@ -6330,6 +6381,7 @@ function activateVidShield() {
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
+    controls.style.zIndex = '30';
   }
   const label = $('pUnlockShieldLabel');
   if (label) label.textContent = 'Unlock Controls (3s)';
@@ -6352,12 +6404,20 @@ function armVidShield() {
     $('playerView')?.insertBefore(shield, $('pTop'));
   }
   if (shield) {
+    shield.style.position = 'absolute';
+    shield.style.inset = '0';
+    shield.style.width = '100%';
+    shield.style.height = '100%';
+    shield.style.zIndex = '20';
     shield.style.display = 'none';
     shield.style.pointerEvents = 'none';
+    shield.style.background = 'transparent';
+    shield.style.cursor = 'pointer';
   }
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
+    controls.style.zIndex = '30';
   }
   const label = $('pUnlockShieldLabel');
   if (label) label.textContent = 'Unlock Controls (3s)';
@@ -6365,18 +6425,13 @@ function armVidShield() {
   // Hook first user interaction on playerView to schedule activation 1.5 seconds later
   const pv = $('playerView');
   if (pv) {
-    const handleFirstTap = () => {
-      if (_firstClickDone) return;
-      _firstClickDone = true;
-      pv.removeEventListener('pointerdown', handleFirstTap, true);
-      pv.removeEventListener('click', handleFirstTap, true);
-      clearTimeout(_shieldActivateTimer);
-      _shieldActivateTimer = setTimeout(() => {
-        activateVidShield();
-      }, 1500);
-    };
-    pv.addEventListener('pointerdown', handleFirstTap, true);
-    pv.addEventListener('click', handleFirstTap, true);
+    pv.removeEventListener('pointerdown', _onPlayerFirstInteraction, true);
+    pv.removeEventListener('touchstart', _onPlayerFirstInteraction, true);
+    pv.removeEventListener('click', _onPlayerFirstInteraction, true);
+
+    pv.addEventListener('pointerdown', _onPlayerFirstInteraction, true);
+    pv.addEventListener('touchstart', _onPlayerFirstInteraction, { passive: true, capture: true });
+    pv.addEventListener('click', _onPlayerFirstInteraction, true);
   }
 }
 

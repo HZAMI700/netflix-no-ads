@@ -126,8 +126,8 @@ test('Strict rule: player iframe has NO sandbox attribute in app.js', () => {
   assert.strictEqual(appContent.includes("iframe.setAttribute('sandbox'"), false);
 });
 
-test('Iframe has credentialless and allow="autoplay; fullscreen; encrypted-media; window-management \'none\'"', () => {
-  assert.ok(appContent.includes('autoplay; fullscreen; encrypted-media; window-management \'none\''));
+test('Iframe has credentialless and allow="autoplay; fullscreen; encrypted-media; picture-in-picture; window-management \'none\'"', () => {
+  assert.ok(appContent.includes("autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'"));
   assert.ok(appContent.includes("f.setAttribute('credentialless', '')"));
   assert.ok(appContent.includes("iframe.setAttribute('credentialless', '')"));
 });
@@ -146,10 +146,12 @@ test('High-Frequency Focus Trap: hidden button pFocusTrap outside iframe in inde
   assert.ok(appContent.includes('window.focus()'));
 });
 
-test('beforeunload redirect lock active ONLY while mouse hovers over player container', () => {
+test('beforeunload redirect lock active while mouse hovers or mobile touch interacts with player container', () => {
   assert.ok(appContent.includes('_playerHovered'));
   assert.ok(appContent.includes('_playerHovered = true'));
   assert.ok(appContent.includes('_playerHovered = false'));
+  assert.ok(appContent.includes("'touchstart'"));
+  assert.ok(appContent.includes("'touchend'"));
   assert.ok(appContent.includes("if (_playerHovered && $('playerView')?.classList.contains('show') && !_allowNavigation)"));
 });
 
