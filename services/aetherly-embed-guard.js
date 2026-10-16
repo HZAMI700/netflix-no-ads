@@ -233,8 +233,13 @@
         shield.className = 'aetherly-shield-overlay';
         const container = this.getContainer();
         const pTop = document.getElementById('pTop');
+        const refNode = (pTop && pTop.parentNode === container) ? pTop : container?.firstChild;
         if (container) {
-          container.insertBefore(shield, pTop || container.firstChild);
+          if (refNode) {
+            container.insertBefore(shield, refNode);
+          } else {
+            container.appendChild(shield);
+          }
         }
       }
       return shield;

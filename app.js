@@ -5672,7 +5672,15 @@ async function playEmbed(o) {
   f.removeAttribute('sandbox');
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
   const guardWrap = $('aetherlyEmbedGuard') || $('playerView');
-  guardWrap.insertBefore(f, $('pTop') || guardWrap.firstChild);
+  const pTop = $('pTop');
+  const refNode = (pTop && pTop.parentNode === guardWrap) ? pTop : guardWrap?.firstChild;
+  if (guardWrap) {
+    if (refNode) {
+      guardWrap.insertBefore(f, refNode);
+    } else {
+      guardWrap.appendChild(f);
+    }
+  }
   armVidShield();
   startFailoverWatchdog(currentPlayerServer);
 
@@ -6475,7 +6483,16 @@ function activateVidShield() {
     shield = document.createElement('div');
     shield.id = 'vidShield';
     shield.className = 'aetherly-shield-overlay';
-    ($('aetherlyEmbedGuard') || $('playerView'))?.insertBefore(shield, $('pTop'));
+    const targetWrap = $('aetherlyEmbedGuard') || $('playerView');
+    const pTop = $('pTop');
+    const refNode = (pTop && pTop.parentNode === targetWrap) ? pTop : targetWrap?.firstChild;
+    if (targetWrap) {
+      if (refNode) {
+        targetWrap.insertBefore(shield, refNode);
+      } else {
+        targetWrap.appendChild(shield);
+      }
+    }
   }
   if (shield) {
     shield.style.position = 'absolute';
@@ -6523,7 +6540,16 @@ function armVidShield() {
     shield = document.createElement('div');
     shield.id = 'vidShield';
     shield.className = 'aetherly-shield-overlay';
-    ($('aetherlyEmbedGuard') || $('playerView'))?.insertBefore(shield, $('pTop'));
+    const targetWrap = $('aetherlyEmbedGuard') || $('playerView');
+    const pTop = $('pTop');
+    const refNode = (pTop && pTop.parentNode === targetWrap) ? pTop : targetWrap?.firstChild;
+    if (targetWrap) {
+      if (refNode) {
+        targetWrap.insertBefore(shield, refNode);
+      } else {
+        targetWrap.appendChild(shield);
+      }
+    }
   }
   if (shield) {
     shield.style.position = 'absolute';
