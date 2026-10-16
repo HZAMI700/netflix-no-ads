@@ -126,8 +126,8 @@ test('Strict rule: player iframe has NO sandbox attribute in app.js', () => {
   assert.strictEqual(appContent.includes("iframe.setAttribute('sandbox'"), false);
 });
 
-test('Iframe has credentialless and allow="autoplay; fullscreen; encrypted-media; picture-in-picture; window-management \'none\'"', () => {
-  assert.ok(appContent.includes("autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'"));
+test('Iframe has credentialless and allow="autoplay; fullscreen; encrypted-media; picture-in-picture"', () => {
+  assert.ok(appContent.includes("autoplay; fullscreen; encrypted-media; picture-in-picture"));
   assert.ok(appContent.includes("f.setAttribute('credentialless', '')"));
   assert.ok(appContent.includes("iframe.setAttribute('credentialless', '')"));
 });

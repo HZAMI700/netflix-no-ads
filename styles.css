@@ -2303,9 +2303,10 @@ body.is-scrolling #cardPortal {
   width: 100%;
   height: 100%;
   z-index: 20;
-  display: none;
+  display: block;
   background: transparent;
   cursor: pointer;
+  pointer-events: none;
 }
 
 .p-shield-controls {
@@ -2363,6 +2364,17 @@ body.is-scrolling #cardPortal {
 .p-control-zone-shield {
   display: none !important;
   pointer-events: none !important;
+}
+
+.p-control-zone-sensor {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  z-index: 22;
+  pointer-events: auto;
+  background: transparent;
 }
 
 .p-bottom-bar {

@@ -5456,7 +5456,7 @@ async function switchPlayerServer(newServer, isAutoFailover = false) {
   iframe.allowFullscreen = true;
   iframe.setAttribute('allowfullscreen', '');
   iframe.setAttribute('frameborder', '0');
-  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'");
+  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
   iframe.setAttribute('referrerpolicy', 'origin');
   iframe.setAttribute('credentialless', '');
   try { iframe.credentialless = true; } catch {}
@@ -5627,7 +5627,7 @@ async function playEmbed(o) {
   f.allowFullscreen = true;
   f.setAttribute('allowfullscreen', '');
   f.setAttribute('frameborder', '0');
-  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'");
+  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
   f.setAttribute('referrerpolicy', 'origin');
   f.setAttribute('credentialless', '');
   try { f.credentialless = true; } catch {}
@@ -6284,8 +6284,71 @@ window.addEventListener('beforeunload', (e) => {
 let _firstClickDone = false;
 let _shieldActivateTimer = null;
 let _shieldUnlockTimer = null;
+let _controlOverrideTimer = null;
 let _shieldCountdownInterval = null;
 let _shieldActive = false;
+
+function temporarilyDisableShield(seconds = 2) {
+  if (!_shieldActive) return;
+  const shield = $('vidShield');
+  if (shield) {
+    shield.style.pointerEvents = 'none';
+  }
+  const sensor = $('pControlZoneSensor');
+  if (sensor) {
+    sensor.style.pointerEvents = 'none';
+  }
+  clearTimeout(_controlOverrideTimer);
+  _controlOverrideTimer = setTimeout(() => {
+    if (_shieldActive && $('playerView')?.classList.contains('show')) {
+      const s = $('vidShield');
+      if (s) s.style.pointerEvents = 'auto';
+      const sens = $('pControlZoneSensor');
+      if (sens) sens.style.pointerEvents = 'auto';
+    }
+  }, seconds * 1000);
+}
+
+function initPlayerControlOverride() {
+  const pv = $('playerView');
+  if (!pv || pv._hasControlOverride) return;
+  pv._hasControlOverride = true;
+
+  const checkControlsZone = (clientY) => {
+    if (!_shieldActive) return;
+    const r = pv.getBoundingClientRect();
+    if (!r.height) return;
+    const distFromBottom = r.bottom - clientY;
+    // Bottom 80px is the native player control bar area (play/pause, progress bar, volume, captions, quality)
+    if (distFromBottom <= 80 && distFromBottom >= 0) {
+      temporarilyDisableShield(2);
+    }
+  };
+
+  pv.addEventListener('mousemove', (e) => {
+    checkControlsZone(e.clientY);
+  }, { passive: true });
+
+  pv.addEventListener('touchstart', (e) => {
+    if (e.touches && e.touches[0]) {
+      checkControlsZone(e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  pv.addEventListener('touchmove', (e) => {
+    if (e.touches && e.touches[0]) {
+      checkControlsZone(e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  const sensor = $('pControlZoneSensor');
+  if (sensor) {
+    sensor.addEventListener('mouseenter', () => temporarilyDisableShield(2));
+    sensor.addEventListener('pointerenter', () => temporarilyDisableShield(2));
+    sensor.addEventListener('touchstart', () => temporarilyDisableShield(2), { passive: true });
+    sensor.addEventListener('click', () => temporarilyDisableShield(2));
+  }
+}
 
 function _onPlayerFirstInteraction(e) {
   if (_firstClickDone) return;
@@ -6303,6 +6366,7 @@ function _onPlayerFirstInteraction(e) {
 function disarmVidShield(seconds) {
   clearTimeout(_shieldActivateTimer);
   clearTimeout(_shieldUnlockTimer);
+  clearTimeout(_controlOverrideTimer);
   if (_shieldCountdownInterval) {
     clearInterval(_shieldCountdownInterval);
     _shieldCountdownInterval = null;
@@ -6317,6 +6381,10 @@ function disarmVidShield(seconds) {
   if (zoneShield) {
     zoneShield.style.display = 'none';
     zoneShield.style.pointerEvents = 'none';
+  }
+  const sensor = $('pControlZoneSensor');
+  if (sensor) {
+    sensor.style.pointerEvents = 'none';
   }
   if (typeof seconds === 'number' && seconds > 0) {
     let remaining = seconds;
@@ -6373,7 +6441,7 @@ function activateVidShield() {
         try { e.preventDefault(); } catch {}
         try { e.stopPropagation(); } catch {}
       }
-      toast('Player protected against ads. Click "Unlock Controls (3s)" to adjust settings.');
+      toast('Player protected against ads. Controls unlock automatically on hover.');
     };
     shield.onclick = handleShieldTap;
     shield.ontouchend = handleShieldTap;
@@ -6390,6 +6458,7 @@ function activateVidShield() {
 function armVidShield() {
   clearTimeout(_shieldActivateTimer);
   clearTimeout(_shieldUnlockTimer);
+  clearTimeout(_controlOverrideTimer);
   if (_shieldCountdownInterval) {
     clearInterval(_shieldCountdownInterval);
     _shieldCountdownInterval = null;
@@ -6409,7 +6478,7 @@ function armVidShield() {
     shield.style.width = '100%';
     shield.style.height = '100%';
     shield.style.zIndex = '20';
-    shield.style.display = 'none';
+    shield.style.display = 'block';
     shield.style.pointerEvents = 'none';
     shield.style.background = 'transparent';
     shield.style.cursor = 'pointer';
@@ -6421,6 +6490,8 @@ function armVidShield() {
   }
   const label = $('pUnlockShieldLabel');
   if (label) label.textContent = 'Unlock Controls (3s)';
+
+  initPlayerControlOverride();
 
   // Hook first user interaction on playerView to schedule activation 1.5 seconds later
   const pv = $('playerView');

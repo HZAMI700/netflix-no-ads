@@ -66,9 +66,8 @@ test('Strict rule: NEVER use sandbox attribute on player iframe', () => {
 });
 
 test('Both playEmbed and switchPlayerServer apply credentialless and exact allow attribute', () => {
-  const expectedAllow = 'allow="autoplay; fullscreen; encrypted-media; picture-in-picture; window-management \'none\'"';
-  assert.ok(appContent.includes("f.setAttribute('allow', \"autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'\")"));
-  assert.ok(appContent.includes("iframe.setAttribute('allow', \"autoplay; fullscreen; encrypted-media; picture-in-picture; window-management 'none'\")"));
+  assert.ok(appContent.includes("f.setAttribute('allow', \"autoplay; fullscreen; encrypted-media; picture-in-picture\")"));
+  assert.ok(appContent.includes("iframe.setAttribute('allow', \"autoplay; fullscreen; encrypted-media; picture-in-picture\")"));
   assert.ok(appContent.includes("f.setAttribute('credentialless', '')"));
   assert.ok(appContent.includes("iframe.setAttribute('credentialless', '')"));
 });
@@ -109,7 +108,7 @@ test('beforeunload interceptor active ONLY while user mouse or touch is interact
   assert.ok(appContent.includes("e.preventDefault()"));
 });
 
-console.log('\n--- 5. SMART 1.5s CLICK-SHIELD OVERLAY (PC & MOBILE) ---');
+console.log('\n--- 5. SMART 1.5s CLICK-SHIELD OVERLAY & SEAMLESS CONTROL ACCESS (PC & MOBILE) ---');
 
 test('vidShield styled with position: absolute; inset: 0; z-index: 20 directly over iframe', () => {
   assert.ok(cssContent.includes("#vidShield"));
@@ -117,36 +116,45 @@ test('vidShield styled with position: absolute; inset: 0; z-index: 20 directly o
   assert.ok(appContent.includes("shield.style.zIndex = '20';"));
 });
 
-test('armVidShield leaves shield inactive on load/server switch and arms 1.5s countdown', () => {
+test('Initial Play State: armVidShield sets pointer-events: none initially so first click plays video', () => {
+  assert.ok(appContent.includes("shield.style.pointerEvents = 'none'"));
   assert.ok(appContent.includes("_firstClickDone = false;"));
+});
+
+test('Shield Activation: exactly 1.5s after first interaction, activateVidShield engages pointer-events: auto', () => {
   assert.ok(appContent.includes("clearTimeout(_shieldActivateTimer)"));
   assert.ok(appContent.includes("_shieldActivateTimer = setTimeout(() => {"));
   assert.ok(appContent.includes("1500"));
   assert.ok(appContent.includes("activateVidShield()"));
+  assert.ok(appContent.includes("shield.style.pointerEvents = 'auto'"));
 });
 
-test('Floating action buttons in player corner styled with z-index: 30', () => {
-  assert.ok(htmlContent.includes('id="pShieldControls"'));
-  assert.ok(htmlContent.includes('id="pUnlockShieldBtn"'));
-  assert.ok(htmlContent.includes('Unlock Controls (3s)'));
+test('Seamless Control Override: temporarily disables shield pointer-events for 2s when interacting with controls zone', () => {
+  assert.ok(appContent.includes("function temporarilyDisableShield(seconds = 2)"));
+  assert.ok(appContent.includes("function initPlayerControlOverride()"));
+  assert.ok(appContent.includes("distFromBottom <= 80"));
+  assert.ok(htmlContent.includes('id="pControlZoneSensor"'));
+  assert.ok(cssContent.includes(".p-control-zone-sensor"));
+});
+
+test('Clean Fullscreen button: triggers requestFullscreen and webkitRequestFullscreen on outer wrapper div', () => {
   assert.ok(htmlContent.includes('id="pFullscreenShieldBtn"'));
   assert.ok(htmlContent.includes('Fullscreen'));
-  assert.ok(cssContent.includes(".p-shield-controls"));
-  assert.ok(cssContent.includes("z-index: 30;"));
-});
-
-test('Unlock Controls (3s) temporarily disables pointer-events with countdown then re-locks', () => {
-  assert.ok(appContent.includes("function disarmVidShield(seconds)"));
-  assert.ok(appContent.includes("shield.style.pointerEvents = 'none'"));
-  assert.ok(appContent.includes("Unlocked (${remaining}s)"));
-  assert.ok(appContent.includes("activateVidShield()"));
-});
-
-test('Fullscreen button invokes requestFullscreen and webkitRequestFullscreen on outer player container', () => {
   assert.ok(appContent.includes("function togglePlayerWrapperFullscreen()"));
   assert.ok(appContent.includes("pv.requestFullscreen()"));
   assert.ok(appContent.includes("pv.webkitRequestFullscreen()"));
   assert.ok(appContent.includes("pFullscreenShieldBtn.onclick"));
+  assert.ok(cssContent.includes(".p-shield-controls"));
+  assert.ok(cssContent.includes("z-index: 30;"));
+});
+
+console.log('\n--- 6. AUTOMATIC SERVER FAILOVER & ROUTING ---');
+
+test('Automatic 8-second failover watchdog switches seamlessly across servers (NHD API -> 2Embed -> Vid API)', () => {
+  assert.ok(appContent.includes("function startFailoverWatchdog(currentServerKey)"));
+  assert.ok(appContent.includes("function triggerAutoFailover(currentServerKey)"));
+  assert.ok(appContent.includes("const queue = ['nhdapi', '2embed', '2embed-fallback', 'server1', 'backup'];"));
+  assert.ok(appContent.includes("8000"));
 });
 
 console.log(`\n========================================`);
