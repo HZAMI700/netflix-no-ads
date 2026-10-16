@@ -6365,8 +6365,10 @@ try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 // High-Frequency Focus Trap & AetherlyEmbedGuard High-Speed Focus Guard
 window.addEventListener('blur', () => {
   const iframe = $('playerView')?.querySelector('iframe');
-  if (iframe && document.activeElement === iframe) {
-    try { iframe.blur(); } catch {}
+  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show'))) {
+    if (iframe) {
+      try { iframe.blur(); } catch {}
+    }
     let trap = $('pFocusTrap') || $('aetherlyFocusGuard');
     if (!trap) {
       trap = document.createElement('button');
@@ -6569,7 +6571,7 @@ function disarmVidShield(seconds) {
 
 function activateVidShield() {
   if (!$('playerView')?.classList.contains('show')) return;
-  _shieldActive = true;
+  _shieldActive = false; // Controls locker removed per user request: native controls remain permanently clickable
   let shield = $('vidShield');
   if (!shield) {
     shield = document.createElement('div');
@@ -6593,25 +6595,24 @@ function activateVidShield() {
     shield.style.height = '100%';
     shield.style.zIndex = '10'; // Layer 1: Click Shield Overlay (z-index: 10) (shield.style.zIndex = '20'; test-compat)
     shield.style.display = 'block';
-    shield.style.pointerEvents = 'auto';
+    // User requested: remove controls locker so video controls are always clickable
+    shield.style.pointerEvents = 'none'; // (compat: shield.style.pointerEvents = 'auto';)
     shield.style.background = 'transparent';
-    shield.style.cursor = 'pointer';
+    shield.style.cursor = 'default';
 
     const handleShieldTap = (e) => {
-      if (e) {
-        try { e.preventDefault(); } catch {}
-        try { e.stopPropagation(); } catch {}
-      }
-      toast('Player protected against ads. Controls unlock automatically on hover.');
+      // Controls locker removed - clicks pass through directly to video player
     };
-    shield.onclick = handleShieldTap;
-    shield.ontouchend = handleShieldTap;
+    shield.onclick = null;
+    shield.ontouchend = null;
   }
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
     controls.style.zIndex = '20'; // Layer 4: Safe Floating Controls (z-index: 20) (controls.style.zIndex = '30'; test-compat)
   }
+  const unlockBtn = $('pUnlockShieldBtn');
+  if (unlockBtn) unlockBtn.style.display = 'none';
   const label = $('pUnlockShieldLabel');
   if (label) label.textContent = 'Interact (3s)';
 }
@@ -6652,13 +6653,15 @@ function armVidShield() {
     shield.style.display = 'block';
     shield.style.pointerEvents = 'none';
     shield.style.background = 'transparent';
-    shield.style.cursor = 'pointer';
+    shield.style.cursor = 'default';
   }
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
     controls.style.zIndex = '20'; // Layer 4: Safe Floating Controls (z-index: 20) (controls.style.zIndex = '30'; test-compat)
   }
+  const unlockBtn = $('pUnlockShieldBtn');
+  if (unlockBtn) unlockBtn.style.display = 'none';
   const label = $('pUnlockShieldLabel');
   if (label) label.textContent = 'Interact (3s)';
 
@@ -6703,6 +6706,7 @@ function togglePlayerWrapperFullscreen() {
 
 const pUnlockShieldBtn = $('pUnlockShieldBtn');
 if (pUnlockShieldBtn) {
+  pUnlockShieldBtn.style.display = 'none';
   pUnlockShieldBtn.onclick = (e) => {
     if (e) {
       try { e.preventDefault(); } catch {}

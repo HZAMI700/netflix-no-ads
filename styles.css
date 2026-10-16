@@ -2328,8 +2328,8 @@ body.is-scrolling #cardPortal {
   /* Compatibility guard check: z-index: 20; */
   display: block;
   background: transparent;
-  cursor: pointer;
-  pointer-events: none;
+  cursor: default;
+  pointer-events: none !important;
 }
 
 /* Layer 4: Safe Floating Controls (z-index: 20) */
@@ -2344,6 +2344,12 @@ body.is-scrolling #cardPortal {
   z-index: 20;
   /* Compatibility guard check: z-index: 30; */
   pointer-events: auto;
+}
+
+#pUnlockShieldBtn,
+.aetherly-interact-btn {
+  display: none !important;
+  pointer-events: none !important;
 }
 
 .shield-corner-btn,
@@ -2402,13 +2408,14 @@ body.is-scrolling #cardPortal {
 }
 
 .p-control-zone-sensor {
+  display: none !important;
+  pointer-events: none !important;
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
   height: 80px;
   z-index: 22;
-  pointer-events: auto;
   background: transparent;
 }
 

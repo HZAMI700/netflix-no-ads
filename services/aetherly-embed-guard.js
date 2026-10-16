@@ -70,6 +70,8 @@
         controls.style.display = 'flex';
         controls.style.zIndex = String(this.CONTROLS_Z_INDEX);
       }
+      const unlockBtn = document.getElementById('pUnlockShieldBtn');
+      if (unlockBtn) unlockBtn.style.display = 'none';
       const label = document.getElementById('pUnlockShieldLabel');
       if (label) label.textContent = 'Interact (3s)';
     },
@@ -78,7 +80,7 @@
       const container = this.getContainer();
       if (!container || !container.classList.contains('show')) return;
 
-      this._shieldActive = true;
+      this._shieldActive = false; // Controls locker removed per user request: native controls remain permanently clickable
       const shield = this.getShieldElement();
       if (shield) {
         shield.style.position = 'absolute';
@@ -87,20 +89,13 @@
         shield.style.height = '100%';
         shield.style.zIndex = String(this.SHIELD_Z_INDEX);
         shield.style.display = 'block';
-        shield.style.pointerEvents = 'auto'; // Protect against click-hijacking and ad popups
+        // Controls locker removed: video controls always accessible
+        shield.style.pointerEvents = 'none'; // (compat: shield.style.pointerEvents = 'auto';)
         shield.style.background = 'transparent';
-        shield.style.cursor = 'pointer';
+        shield.style.cursor = 'default';
 
-        shield.onclick = (e) => {
-          if (e) {
-            try { e.preventDefault(); } catch {}
-            try { e.stopPropagation(); } catch {}
-          }
-          if (typeof global.toast === 'function') {
-            global.toast('Player protected against ads. Controls unlock automatically on hover.');
-          }
-        };
-        shield.ontouchend = shield.onclick;
+        shield.onclick = null;
+        shield.ontouchend = null;
       }
 
       const controls = document.getElementById('pShieldControls');
@@ -108,6 +103,8 @@
         controls.style.display = 'flex';
         controls.style.zIndex = String(this.CONTROLS_Z_INDEX);
       }
+      const unlockBtn = document.getElementById('pUnlockShieldBtn');
+      if (unlockBtn) unlockBtn.style.display = 'none';
       const label = document.getElementById('pUnlockShieldLabel');
       if (label) label.textContent = 'Interact (3s)';
     },
