@@ -544,80 +544,231 @@
   </div>
 </section>
 
-<!-- DEDICATED MOVIE & SERIES TITLE PAGE -->
+<!-- DEDICATED MOVIE & SERIES TITLE PAGE (YOUTUBE WATCH PAGE STYLE) -->
 <section class="title-page-view" id="detailBackdrop">
   <div id="detailModal">
-    <div class="detail-hero">
-      <img id="dBackdrop" alt="backdrop">
-      <div class="detail-hero-grad"></div>
-      <div class="detail-top-bar" id="dTopBar">
-        <button class="detail-back-btn" id="dBackBtn" title="Back" aria-label="Go back">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          <span id="dBackText">Back</span>
-        </button>
-        <div class="detail-breadcrumb" id="dBreadcrumb">
-          <a href="#" class="crumb-link" id="crumbHome">Home</a>
-          <span class="crumb-sep">/</span>
-          <a href="#" class="crumb-link" id="crumbType">Movies</a>
-          <span class="crumb-sep">/</span>
-          <span class="crumb-current" id="crumbTitle">Loading…</span>
-        </div>
-        <button class="x-btn detail-close-btn" id="dClose" title="Back" aria-label="Back">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
+    <div class="detail-top-bar" id="dTopBar">
+      <button class="detail-back-btn" id="dBackBtn" title="Back" aria-label="Go back">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span id="dBackText">Back</span>
+      </button>
+      <div class="detail-breadcrumb" id="dBreadcrumb">
+        <a href="#" class="crumb-link" id="crumbHome">Home</a>
+        <span class="crumb-sep">/</span>
+        <a href="#" class="crumb-link" id="crumbType">Movies</a>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current" id="crumbTitle">Loading…</span>
       </div>
-      <div class="detail-hero-content">
-        <div class="detail-hero-kicker" id="dHeroKicker">
-          <span class="n-badge" title="Streamnaro">
-            <svg viewBox="0 0 20 32" width="14" height="24" aria-hidden="true">
-              <text x="50%" y="24" font-family="'Bebas Neue', Impact, 'Arial Black', sans-serif" font-size="26" font-weight="900" fill="#E50914" text-anchor="middle">S</text>
-            </svg>
-          </span>
-          <span class="kicker-type" id="dKickerType">M O V I E</span>
-          <span class="kicker-views-badge" id="dKickerViews"></span>
-        </div>
-        <h1 id="dTitle"></h1>
-        <div class="m-actions">
-          <button class="btn-play" id="dPlay">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Play</span>
-          </button>
-          <button class="cbtn btn-trailer-pill" id="dTrailer" title="Watch Official Trailer">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Trailer</span>
-          </button>
-          <button class="cbtn" id="dList" title="My List">
-            <svg class="icon-plus" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </button>
-          <button class="cbtn" id="dLike" title="I like this">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-          </button>
-          <button class="cbtn" id="dDl" title="Download Servers ↗">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          </button>
-        </div>
-      </div>
+      <button class="x-btn detail-close-btn" id="dClose" title="Back" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
-    <div class="detail-body">
-      <div class="detail-left">
-        <div class="meta-row" id="dMeta"></div>
-        <p class="desc" id="dDesc"></p>
-        <div id="epWrap" style="display:none">
-          <div class="ep-header">
-            <h3>Episodes</h3>
-            <div class="season-sel-wrap">
-              <select id="seasonSel"></select>
+
+    <!-- YouTube-style 2-Column Watch Grid -->
+    <div class="yt-watch-grid">
+      <!-- Main Column (70% width on Desktop) -->
+      <div class="yt-main-col">
+        <!-- 16:9 Responsive Video Player Wrap (Sticky on Mobile) -->
+        <div class="watch-player-wrap" id="watchPlayerWrap">
+          <!-- Before playback starts: Video preview overlay with prominent Play button -->
+          <div class="watch-preview-overlay" id="watchPreviewOverlay">
+            <img id="dBackdrop" alt="backdrop">
+            <div class="watch-preview-grad"></div>
+            <button class="watch-prominent-play-btn" id="dTopPlayBtn" aria-label="Play Now">
+              <div class="watch-play-circle">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              </div>
+              <span id="dTopPlayLabel">▶ Play Movie</span>
+            </button>
+          </div>
+
+          <!-- Video Player Shell -->
+          <div id="playerView">
+            <div id="vidShield"></div>
+            <button id="pFocusTrap" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
+            <div id="pShieldControls" class="p-shield-controls" style="display:none;">
+              <button id="pUnlockShieldBtn" class="shield-corner-btn" title="Unlock player controls for 3 seconds" aria-label="Unlock controls">
+                <span class="shield-btn-icon">🔓</span>
+                <span id="pUnlockShieldLabel">Unlock Controls (3s)</span>
+              </button>
+              <button id="pFullscreenShieldBtn" class="shield-corner-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+                <span class="shield-btn-icon">⛶</span>
+                <span id="pFullscreenShieldLabel">Fullscreen</span>
+              </button>
+            </div>
+            <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
+            <video id="playerVideo" playsinline style="display:none !important"></video>
+            <div class="p-top" id="pTop">
+              <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              </button>
+              <div class="p-title-wrap">
+                <div class="p-title" id="pTitle">Now Playing</div>
+                <div class="p-sub-title" id="pSubTitle">Streaming in High Definition • Multi-Audio &amp; Arabic Subtitles</div>
+              </div>
+              <div class="p-actions-wrap">
+                <button class="player-pill-btn next-ep-pill" id="pNextTop" title="Next Episode" aria-label="Next Episode" style="display:none">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                  <span>Next Ep</span>
+                </button>
+                <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                  <span id="pServerLabel">Server 1 (HD)</span>
+                </button>
+                <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Settings</span>
+                </button>
+                <a href="https://t.me/blackroner" target="_blank" rel="noopener noreferrer" class="player-pill-btn telegram-pill" id="pTelegramTop" title="Join Telegram Channel" aria-label="Join Telegram">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                  <span>Telegram</span>
+                </a>
+                <button class="player-pill-btn download-pill" id="pDl" title="Download Servers">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Download</span>
+                </button>
+              </div>
+            </div>
+            <div id="pTopSensor" class="p-top-sensor" aria-hidden="true"></div>
+            <div id="torrentStats" style="display:none">connecting…</div>
+            <div id="pError">
+              <div id="pErrorTitle">Something went wrong</div>
+              <div id="pErrorMsg">Playback failed.</div>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+                <button class="btn-red" id="pRetry">Try Again</button>
+              </div>
+            </div>
+            <button id="skipIntro" style="display:none">Skip Intro ›</button>
+            <div id="nextEp" style="display:none">
+              <img id="nextThumb" width="110" alt="Next episode thumbnail">
+              <div>
+                <b>Next Episode</b>
+                <div id="nextName" style="font-size:13px;color:#ccc;margin:2px 0 6px"></div>
+                <div style="font-size:12px;color:#888;display:flex;align-items:center;gap:8px">
+                  Starting in <span id="nextCount">25</span>s…
+                  <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
+                </div>
+              </div>
+            </div>
+            <div class="p-bottom-bar" id="pBottomBar">
+              <div class="p-bottom-right">
+                <button class="player-pill-btn p-bottom-btn" id="pBottomCaptions" title="Subtitles &amp; Captions (Default: Arabic)" aria-label="Subtitles and Captions">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect><path d="M7 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1zM14 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"></path></svg>
+                  <span id="pBottomCaptionsLabel">Captions: Arabic</span>
+                </button>
+                <button class="player-pill-btn p-bottom-btn" id="pBottomSettings" title="Player Settings (Speed, Theme, Engine)" aria-label="Player Settings">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Settings</span>
+                </button>
+              </div>
             </div>
           </div>
-          <div id="epList"></div>
         </div>
-        <div class="sim-header">
-          <h3>More Like This</h3>
+
+        <!-- Video Info Row: Kicker, Title, Actions, Server Switcher, Description -->
+        <div class="yt-watch-info-row">
+          <div class="detail-hero-kicker" id="dHeroKicker">
+            <span class="n-badge" title="Streamnaro">
+              <svg viewBox="0 0 20 32" width="14" height="24" aria-hidden="true">
+                <text x="50%" y="24" font-family="'Bebas Neue', Impact, 'Arial Black', sans-serif" font-size="26" font-weight="900" fill="#E50914" text-anchor="middle">S</text>
+              </svg>
+            </span>
+            <span class="kicker-type" id="dKickerType">M O V I E</span>
+            <span class="kicker-views-badge" id="dKickerViews"></span>
+          </div>
+          <h1 class="yt-watch-title" id="dTitle"></h1>
+
+          <!-- Primary Action Bar -->
+          <div class="yt-action-bar">
+            <div class="m-actions">
+              <button class="btn-play" id="dPlay">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Play</span>
+              </button>
+              <button class="cbtn btn-trailer-pill" id="dTrailer" title="Watch Official Trailer">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Trailer</span>
+              </button>
+              <button class="cbtn" id="dList" title="My List">
+                <svg class="icon-plus" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button class="cbtn" id="dLike" title="I like this">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+              </button>
+              <button class="cbtn" id="dDl" title="Download Servers ↗">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Server Switcher Bar -->
+          <div class="yt-server-switcher-bar" id="ytServerSwitcherBar">
+            <span class="yt-server-bar-label">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+              Servers:
+            </span>
+            <div class="yt-server-pills-row">
+              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
+                <span class="yt-pill-dot"></span>
+                <span>Vid API (HD)</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)">
+                <span class="yt-pill-dot"></span>
+                <span>NHD API (Ultra HD)</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerBackup" data-server="backup" title="Backup Stream Mirrors">
+                <span class="yt-pill-dot alt"></span>
+                <span>Backup Server</span>
+              </button>
+              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Force Next Server">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                <span>Force Next Server</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- YouTube-style Rounded Expandable Description Box -->
+          <div class="yt-desc-card" id="ytDescCard">
+            <div class="yt-desc-header">
+              <div class="meta-row" id="dMeta"></div>
+            </div>
+            <p class="desc" id="dDesc"></p>
+            <div class="yt-desc-extended" id="ytDescExtended" style="display:none">
+              <div class="yt-desc-credits" id="dRight"></div>
+              <div class="about" id="dAbout"></div>
+            </div>
+            <button class="yt-desc-toggle-btn" id="ytDescToggle">
+              <span id="ytDescToggleText">Show more</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
         </div>
-        <div class="similar-grid" id="simGrid"></div>
-        <div class="about" id="dAbout"></div>
       </div>
-      <div class="detail-right" id="dRight"></div>
+
+      <!-- Right Sidebar Column (30% width on Desktop) -->
+      <div class="yt-sidebar-col">
+        <!-- For TV Series & Anime: YouTube Playlist-style Seasons & Episodes -->
+        <div class="yt-playlist-card" id="epWrap" style="display:none">
+          <div class="yt-playlist-header">
+            <div class="yt-playlist-title-wrap">
+              <span class="yt-playlist-badge">PLAYLIST</span>
+              <h3 id="ytPlaylistHeading">Episodes</h3>
+            </div>
+            <div class="season-sel-wrap">
+              <select id="seasonSel" aria-label="Select Season"></select>
+            </div>
+          </div>
+          <div class="yt-playlist-episodes" id="epList"></div>
+        </div>
+
+        <!-- Up Next / Recommended vertical feed of compact horizontal cards -->
+        <div class="yt-recs-section">
+          <div class="sim-header">
+            <h3>Up Next &amp; Recommended</h3>
+          </div>
+          <div class="similar-grid yt-recs-feed" id="simGrid"></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -940,87 +1091,6 @@
   </div>
 </div>
 
-<!-- PLAYER VIEW -->
-<div id="playerView">
-  <div id="vidShield"></div>
-  <button id="pFocusTrap" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
-  <div id="pShieldControls" class="p-shield-controls" style="display:none;">
-    <button id="pUnlockShieldBtn" class="shield-corner-btn" title="Unlock player controls for 3 seconds" aria-label="Unlock controls">
-      <span class="shield-btn-icon">🔓</span>
-      <span id="pUnlockShieldLabel">Unlock Controls (3s)</span>
-    </button>
-    <button id="pFullscreenShieldBtn" class="shield-corner-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
-      <span class="shield-btn-icon">⛶</span>
-      <span id="pFullscreenShieldLabel">Fullscreen</span>
-    </button>
-  </div>
-  <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
-  <video id="playerVideo" playsinline style="display:none !important"></video>
-  <div class="p-top" id="pTop">
-    <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    </button>
-    <div class="p-title-wrap">
-      <div class="p-title" id="pTitle">Now Playing</div>
-      <div class="p-sub-title" id="pSubTitle">Streaming in High Definition • Multi-Audio &amp; Arabic Subtitles</div>
-    </div>
-    <div class="p-actions-wrap">
-      <button class="player-pill-btn next-ep-pill" id="pNextTop" title="Next Episode" aria-label="Next Episode" style="display:none">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-        <span>Next Ep</span>
-      </button>
-      <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-        <span id="pServerLabel">Server 1 (HD)</span>
-      </button>
-      <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
-      </button>
-      <a href="https://t.me/blackroner" target="_blank" rel="noopener noreferrer" class="player-pill-btn telegram-pill" id="pTelegramTop" title="Join Telegram Channel" aria-label="Join Telegram">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
-        <span>Telegram</span>
-      </a>
-      <button class="player-pill-btn download-pill" id="pDl" title="Download Servers">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        <span>Download</span>
-      </button>
-    </div>
-  </div>
-  <div id="pTopSensor" class="p-top-sensor" aria-hidden="true"></div>
-  <div id="torrentStats" style="display:none">connecting…</div>
-  <div id="pError">
-    <div id="pErrorTitle">Something went wrong</div>
-    <div id="pErrorMsg">Playback failed.</div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px">
-      <button class="btn-red" id="pRetry">Try Again</button>
-    </div>
-  </div>
-  <button id="skipIntro" style="display:none">Skip Intro ›</button>
-  <div id="nextEp" style="display:none">
-    <img id="nextThumb" width="110" alt="Next episode thumbnail">
-    <div>
-      <b>Next Episode</b>
-      <div id="nextName" style="font-size:13px;color:#ccc;margin:2px 0 6px"></div>
-      <div style="font-size:12px;color:#888;display:flex;align-items:center;gap:8px">
-        Starting in <span id="nextCount">25</span>s…
-        <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
-      </div>
-    </div>
-  </div>
-  <div class="p-bottom-bar" id="pBottomBar">
-    <div class="p-bottom-right">
-      <button class="player-pill-btn p-bottom-btn" id="pBottomCaptions" title="Subtitles &amp; Captions (Default: Arabic)" aria-label="Subtitles and Captions">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect><path d="M7 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1zM14 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"></path></svg>
-        <span id="pBottomCaptionsLabel">Captions: Arabic</span>
-      </button>
-      <button class="player-pill-btn p-bottom-btn" id="pBottomSettings" title="Player Settings (Speed, Theme, Engine)" aria-label="Player Settings">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- FOOTER -->
 <footer>

@@ -2239,12 +2239,14 @@ async function renderDetailRecommendations(m, type) {
   let recs = [];
   if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.CURATED_MEDIA) {
     const list = type === 'series' ? CuratedCatalog.CURATED_SERIES : CuratedCatalog.CURATED_MOVIES;
-    recs = (list || []).filter(x => x.id !== m.id && (x.genres || []).some(g => (m.genres || []).includes(g))).slice(0, 6);
+    const genreFiltered = (list || []).filter(x => x.id !== m.id && (x.genres || []).some(g => (m.genres || []).includes(g)));
+    const otherFiltered = (list || []).filter(x => x.id !== m.id && !genreFiltered.includes(x));
+    recs = [...genreFiltered, ...otherFiltered].slice(0, 10);
   }
 
   const renderSimItems = (items) => {
     simGrid.innerHTML = '';
-    items.slice(0, 6).forEach(s => {
+    items.slice(0, 10).forEach(s => {
       const d = document.createElement('div');
       d.className = 'sim';
       d.innerHTML = `
@@ -2254,6 +2256,7 @@ async function renderDetailRecommendations(m, type) {
           <div class="sim-meta">
             <span class="match">${matchScore(s)}% Match</span>
             <span class="age-badge">${ageRating(s)}</span>
+            <span class="sim-year">${s.year || s.releaseInfo || ''}</span>
           </div>
         </div>
       `;
@@ -2261,10 +2264,14 @@ async function renderDetailRecommendations(m, type) {
       if (simImg) {
         simImg.onerror = function() {
           this.onerror = null;
-          this.src = createPosterFallback(s.name || s.title, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type);
+          this.src = createPosterFallback(s.name || s.title, (s.genres && s.genres[0]) || '', s.year || s.releaseInfo || '2024', s.imdbRating || '8.2', s.type || type, true);
         };
       }
-      d.onclick = () => openDetail(s.id, s.type || type, false, null, s);
+      d.onclick = () => {
+        openDetail(s.id, s.type || type, false, null, s);
+        const bd = $('detailBackdrop');
+        if (bd) bd.scrollTo({ top: 0, behavior: 'smooth' });
+      };
       simGrid.appendChild(d);
     });
   };
@@ -2276,7 +2283,7 @@ async function renderDetailRecommendations(m, type) {
     const cinTop = await fetchCatalog(type + '/top');
     const cinFiltered = (cinTop || []).filter(isCleanSafe).filter(x => x.id !== m.id && (x.genres || []).some(g => (m.genres || []).includes(g)));
     if (cinFiltered.length) {
-      renderSimItems(dedupeMetas([...cinFiltered, ...recs]));
+      renderSimItems(dedupeMetas([...cinFiltered, ...recs]).slice(0, 10));
     }
   } catch (e) {}
 }
@@ -2326,6 +2333,14 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   incrementTitleViews(m);
   const detailViews = getTitleViewCount(m);
   const formattedDetailViews = formatViewCount(detailViews);
+
+  if (!autoplay) {
+    const pv = $('playerView');
+    if (pv) pv.classList.remove('show');
+    document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
+    const overlay = $('watchPreviewOverlay');
+    if (overlay) overlay.style.display = '';
+  }
 
   if ($('dBackdrop')) {
     $('dBackdrop').src = backdrop(m);
@@ -2556,6 +2571,31 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
     ? !!MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id || m.imdb, tmdbId: m.moviedb_id })
     : !!(m.moviedb_id || m.id || m.imdb_id);
 
+  const isAnime = (m.genres || []).some(g => /anime/i.test(g));
+  let playActionLabel = '▶ Play Movie';
+  if (type === 'series') {
+    if (shouldHighlight) {
+      playActionLabel = `▶ Resume S${targetSeason}:E${targetEpisode}`;
+    } else if (isAnime) {
+      playActionLabel = '▶ Watch Anime';
+    } else {
+      playActionLabel = '▶ Watch Series';
+    }
+  }
+
+  // Wire Top Prominent Play Button
+  const topPlayBtn = $('dTopPlayBtn');
+  const topPlayLabel = $('dTopPlayLabel');
+  if (topPlayBtn) {
+    topPlayBtn.disabled = !canWatch;
+    if (topPlayLabel) topPlayLabel.textContent = playActionLabel;
+    topPlayBtn.title = canWatch ? playActionLabel : 'Streaming unavailable for this title';
+    topPlayBtn.onclick = (e) => {
+      e.stopPropagation();
+      playStream();
+    };
+  }
+
   if ($('dPlay')) {
     $('dPlay').disabled = !canWatch;
     if (shouldHighlight && type === 'series') {
@@ -2564,6 +2604,49 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
       $('dPlay').title = canWatch ? 'Watch now' : 'Streaming unavailable for this title';
     }
     $('dPlay').onclick = () => playStream();
+  }
+
+  // Wire interactive YouTube Server Switcher Pills
+  const pillVid = $('ytServerVidapi');
+  const pillNhd = $('ytServerNhdapi');
+  const pillBackup = $('ytServerBackup');
+  const btnForceNext = $('ytForceNextServer');
+
+  if (pillVid) pillVid.onclick = () => switchPlayerServer('server1');
+  if (pillNhd) pillNhd.onclick = () => switchPlayerServer('server2');
+  if (pillBackup) pillBackup.onclick = () => switchPlayerServer('backup');
+  if (btnForceNext) btnForceNext.onclick = () => togglePlayerServer();
+
+  // YouTube Description Card expansion toggle
+  const descCard = $('ytDescCard');
+  const descExt = $('ytDescExtended');
+  const descToggleBtn = $('ytDescToggle');
+  const descToggleText = $('ytDescToggleText');
+  if (descCard) descCard.classList.remove('expanded');
+  if (descExt) descExt.style.display = 'none';
+  if (descToggleText) descToggleText.textContent = 'Show more';
+
+  if (descToggleBtn) {
+    descToggleBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isExpanded = descCard?.classList.toggle('expanded');
+      if (descExt) descExt.style.display = isExpanded ? 'block' : 'none';
+      if (descToggleText) descToggleText.textContent = isExpanded ? 'Show less' : 'Show more';
+    };
+  }
+
+  if (descCard) {
+    descCard.onclick = (e) => {
+      if (e.target.closest('a') || e.target.closest('button')) return;
+      const isExpanded = descCard.classList.toggle('expanded');
+      if (descExt) descExt.style.display = isExpanded ? 'block' : 'none';
+      if (descToggleText) descToggleText.textContent = isExpanded ? 'Show less' : 'Show more';
+    };
+  }
+
+  // Set Playlist Heading for Series vs Anime
+  if ($('ytPlaylistHeading')) {
+    $('ytPlaylistHeading').textContent = isAnime ? 'Anime Episodes' : 'Episodes';
   }
 
   if (autoplay && canWatch) playStream();
@@ -4555,6 +4638,8 @@ function closePlayer() {
   syncEmbedProgress();
   const pv = $('playerView');
   if (pv) pv.classList.remove('show');
+  const overlay = $('watchPreviewOverlay');
+  if (overlay) overlay.style.display = '';
   const pBottomBar = $('pBottomBar');
   if (pBottomBar) pBottomBar.classList.add('hidden');
   hidePlayerError();
@@ -4574,6 +4659,8 @@ function closePlayer() {
   if (currentRoute.page === 'detail' && currentDetail?.meta) {
     show('detail');
   } else {
+    const bd = $('detailBackdrop');
+    if (bd) bd.classList.remove('show');
     show(lastPage || 'home');
   }
 }
@@ -4599,6 +4686,12 @@ function openPlayerShell(title, subTitle) {
   document.querySelectorAll('#playerView iframe').forEach(f => f.remove());
   const pv = $('playerView');
   if (pv) pv.classList.add('show');
+  const overlay = $('watchPreviewOverlay');
+  if (overlay) overlay.style.display = 'none';
+  const bd = $('detailBackdrop');
+  if (bd && !bd.classList.contains('show')) {
+    bd.classList.add('show');
+  }
   if ($('pTitle')) $('pTitle').textContent = title || 'Now Playing';
   if ($('pSubTitle')) $('pSubTitle').textContent = subTitle || 'Streaming in Full HD • OpenSubtitles v3';
 
@@ -4679,8 +4772,11 @@ function playStream() {
   const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
   const imdb = ids.imdb || m.imdb || m.imdb_id || (String(m.id || '').startsWith('tt') ? m.id : null);
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  const isBackup = (currentPlayerServer === 'backup');
   let url = null;
-  if (isServer2) {
+  if (isBackup) {
+    url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server2');
+  } else if (isServer2) {
     if (tmdbId) {
       url = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
     } else {
@@ -4718,8 +4814,11 @@ function playEpisode(season, episode) {
   const tmdbId = ids.tmdbId || m.moviedb_id || m.tmdbId;
   const imdb = ids.imdb || m.imdb || m.imdb_id;
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  const isBackup = (currentPlayerServer === 'backup');
   let url = null;
-  if (isServer2) {
+  if (isBackup) {
+    url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server2');
+  } else if (isServer2) {
     if (tmdbId) {
       url = MediaLinks.getNhdApiEpisodeUrl ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : `https://nhdapi.com/tv/${tmdbId}?season=${s}&episode=${ep}`;
     } else {
@@ -4964,18 +5063,27 @@ function updatePlayerServerUI() {
   const btn = $('pServerTop');
   const sel = $('playerServerSelect');
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  const isBackup = (currentPlayerServer === 'backup');
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : 'Server 1 (HD)';
+    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : (isBackup ? 'Backup Mirror' : 'Server 1 (HD)');
   }
   if (btn) {
-    btn.setAttribute('data-server', isServer2 ? 'server2' : 'server1');
+    btn.setAttribute('data-server', isServer2 ? 'server2' : (isBackup ? 'backup' : 'server1'));
     btn.title = isServer2
       ? 'Watching Server: Ultra HD Fast Server'
-      : 'Watching Server: Server 1: High Definition Stream';
+      : (isBackup ? 'Watching Server: Backup Stream Mirror' : 'Watching Server: Server 1: High Definition Stream');
   }
   if (sel) {
-    sel.value = isServer2 ? 'server2' : 'server1';
+    sel.value = isServer2 ? 'server2' : (isBackup ? 'server2' : 'server1');
   }
+
+  // Synchronize YouTube-style server switcher pills
+  const pillVid = $('ytServerVidapi');
+  const pillNhd = $('ytServerNhdapi');
+  const pillBackup = $('ytServerBackup');
+  if (pillVid) pillVid.classList.toggle('active', currentPlayerServer === 'server1');
+  if (pillNhd) pillNhd.classList.toggle('active', isServer2);
+  if (pillBackup) pillBackup.classList.toggle('active', isBackup);
 }
 
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
@@ -5099,13 +5207,27 @@ function ensureValidStreamEmbedUrl(url, tmdbId, metadata = {}) {
 let _playerLoadSessionId = 0;
 
 function togglePlayerServer() {
-  const next = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') ? 'server1' : 'server2';
+  let next = 'server1';
+  if (currentPlayerServer === 'server1') {
+    next = 'server2';
+  } else if (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi') {
+    next = 'backup';
+  } else {
+    next = 'server1';
+  }
   switchPlayerServer(next);
 }
 
 async function switchPlayerServer(newServer) {
   const isServer2 = (newServer === 'server2' || newServer === 'nhdapi');
-  currentPlayerServer = isServer2 ? 'server2' : 'server1';
+  const isBackup = (newServer === 'backup');
+  if (isBackup) {
+    currentPlayerServer = 'backup';
+  } else if (isServer2) {
+    currentPlayerServer = 'server2';
+  } else {
+    currentPlayerServer = 'server1';
+  }
   store.set('nf_player_server', currentPlayerServer);
   updatePlayerServerUI();
 
@@ -5123,7 +5245,13 @@ async function switchPlayerServer(newServer) {
   const tmdbId = currentEmbed.tmdbId || embedIds.tmdbId || detailIds.tmdbId || ((typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) ? CuratedCatalog.getCuratedById(currentEmbed.id || currentEmbed.imdb)?.moviedb_id : null);
   const imdb = currentEmbed.imdb || embedIds.imdb || detailIds.imdb || ((currentEmbed.id || '').startsWith('tt') ? currentEmbed.id : null);
 
-  if (isServer2) {
+  if (isBackup) {
+    if (isSeries) {
+      newBaseUrl = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, currentEmbed.season || 1, currentEmbed.episode || 1, 'server2');
+    } else {
+      newBaseUrl = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server2');
+    }
+  } else if (isServer2) {
     if (!tmdbId) {
       toast('Ultra HD Fast Server unavailable for this title (requires TMDB ID)');
       return;
@@ -5163,9 +5291,11 @@ async function switchPlayerServer(newServer) {
   currentEmbed.server = currentPlayerServer;
   if (tmdbId) currentEmbed.tmdbId = tmdbId;
 
-  toast(isServer2
-    ? 'Watching Server: Ultra HD Fast Server'
-    : 'Watching Server: Server 1 (High Definition Stream)'
+  toast(isBackup
+    ? 'Watching Server: Backup Stream Mirror'
+    : (isServer2
+        ? 'Watching Server: Ultra HD Fast Server'
+        : 'Watching Server: Server 1 (High Definition Stream)')
   );
 
   armVidShield();
@@ -5368,6 +5498,7 @@ async function playEmbed(o) {
 function playEmbedEntry(m) {
   const ids = resolveMediaIdentifiers(m);
   const isServer2 = (currentPlayerServer === 'server2' || currentPlayerServer === 'nhdapi');
+  const isBackup = (currentPlayerServer === 'backup');
   if (m.type === 'series') {
     const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
     const imdb = ids.imdb || m.imdb;
@@ -5375,7 +5506,9 @@ function playEmbedEntry(m) {
     const s = Math.max(1, Number(m.season || 1));
     const ep = Math.max(1, Number(m.episode || 1));
     let url = null;
-    if (isServer2) {
+    if (isBackup) {
+      url = MediaLinks.getEpisodeStreamUrl({ tmdbId, imdb }, s, ep, 'server2');
+    } else if (isServer2) {
       if (tmdbId) {
         url = MediaLinks.getNhdApiEpisodeUrl ? MediaLinks.getNhdApiEpisodeUrl(tmdbId, s, ep) : `https://nhdapi.com/tv/${tmdbId}?season=${s}&episode=${ep}`;
       } else {
@@ -5402,7 +5535,9 @@ function playEmbedEntry(m) {
   const tmdbId = ids.tmdbId || m.tmdbId || m.moviedb_id;
   const imdb = ids.imdb || m.imdb || ((m.id || '').startsWith('tt') ? m.id : null);
   let url = null;
-  if (isServer2) {
+  if (isBackup) {
+    url = MediaLinks.getMovieStreamUrl({ imdb, tmdbId }, 'server2');
+  } else if (isServer2) {
     if (tmdbId) {
       url = MediaLinks.getNhdApiMovieUrl ? MediaLinks.getNhdApiMovieUrl(tmdbId) : `https://nhdapi.com/movie/${tmdbId}`;
     } else {

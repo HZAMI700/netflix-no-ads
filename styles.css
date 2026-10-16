@@ -1422,43 +1422,17 @@ body.is-scrolling #cardPortal {
   margin: 0;
   overflow: visible;
 }
-  from { transform: scale(0.93) translateY(14px); opacity: 0; }
-  to { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-.detail-hero {
-  position: relative;
-  width: 100%;
-  height: clamp(320px, 46vh, 480px);
-  aspect-ratio: auto;
-  background: #050505;
-  overflow: hidden;
-}
-.detail-hero img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 20%;
-  filter: brightness(0.92);
-  transition: opacity 0.4s ease;
-}
-.detail-hero-grad {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(20,20,20,0.85) 0%, rgba(20,20,20,0.15) 25%, rgba(20,20,20,0.65) 70%, #181818 100%);
-  pointer-events: none;
-}
 
 .detail-top-bar {
-  position: absolute;
-  top: 16px;
-  left: 18px;
-  right: 18px;
-  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding: 14px 28px 10px;
+  max-width: 1750px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
 }
 .detail-back-btn {
   display: inline-flex;
@@ -1543,35 +1517,154 @@ body.is-scrolling #cardPortal {
   transform: scale(1.1);
 }
 
-.detail-hero-content {
+/* ==========================================================================
+   YOUTUBE-STYLE WATCH PAGE LAYOUT (DESKTOP & MOBILE)
+   ========================================================================== */
+.yt-watch-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 3fr);
+  gap: 24px;
+  max-width: 1750px;
+  margin: 0 auto;
+  padding: 8px 28px 48px;
+  box-sizing: border-box;
+}
+
+.yt-main-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.yt-sidebar-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 16:9 Responsive Video Player Wrap */
+.watch-player-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000000;
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.75);
+}
+
+.watch-preview-overlay {
   position: absolute;
-  left: 28px;
-  bottom: 24px;
-  right: 28px;
-  max-width: 100%;
-  margin: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #080808;
+}
+.watch-preview-overlay img#dBackdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 25%;
+  filter: brightness(0.85);
+  transition: opacity 0.3s ease;
+}
+.watch-preview-grad {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.8) 100%),
+              linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 35%, rgba(0, 0, 0, 0.85) 100%);
+  pointer-events: none;
+}
+
+/* Prominent Top Play Button */
+.watch-prominent-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(18, 18, 18, 0.88);
+  border: 2px solid rgba(229, 9, 20, 0.85);
+  padding: 14px 30px 14px 18px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 10px 36px rgba(229, 9, 20, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+.watch-prominent-play-btn:hover {
+  background: var(--nf-red, #e50914);
+  border-color: #ffffff;
+  transform: translate(-50%, -50%) scale(1.06);
+  box-shadow: 0 14px 44px rgba(229, 9, 20, 0.7), 0 0 20px rgba(255, 255, 255, 0.3);
+}
+.watch-play-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--nf-red, #e50914);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.watch-prominent-play-btn:hover .watch-play-circle {
+  background: #ffffff;
+  color: var(--nf-red, #e50914);
+  transform: scale(1.08);
+}
+
+/* Video Info Row below the player */
+.yt-watch-info-row {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .detail-hero-kicker {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
-.detail-hero-content h1 {
-  font-size: clamp(28px, 4.5vw, 48px);
-  font-weight: 900;
-  font-family: 'Bebas Neue', Impact, 'Arial Black', sans-serif;
-  letter-spacing: 0.5px;
-  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.95);
-  margin-bottom: 14px;
-  line-height: 1.05;
+.yt-watch-title {
+  font-size: clamp(22px, 2.2vw, 32px);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+  margin: 0;
+  font-family: inherit;
 }
-
+.yt-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 4px;
+}
 .m-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .m-actions .btn-play {
   padding: 10px 28px;
@@ -1581,32 +1674,288 @@ body.is-scrolling #cardPortal {
   height: 40px;
 }
 
-.detail-body {
-  display: grid;
-  grid-template-columns: minmax(0, 2.3fr) minmax(240px, 1fr);
-  gap: 36px;
-  max-width: 100%;
-  margin: 0;
-  padding: 24px 28px 48px;
+/* Interactive Server Switcher Bar */
+.yt-server-switcher-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  box-sizing: border-box;
 }
-.detail-left {
-  min-width: 0;
+.yt-server-bar-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--nf-gray, #a3a3a3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
-.detail-body p.desc {
-  color: #dddddd;
-  font-size: 15px;
-  line-height: 1.6;
-  margin: 14px 0 24px;
+.yt-server-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.yt-server-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(35, 35, 35, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e5e5e5;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  white-space: nowrap;
+}
+.yt-server-pill:hover {
+  background: rgba(55, 55, 55, 0.95);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+.yt-server-pill.active {
+  background: var(--nf-red, #e50914);
+  border-color: #ffffff;
+  color: #ffffff;
+  box-shadow: 0 2px 12px rgba(229, 9, 20, 0.4);
+}
+.yt-pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #46d369;
+}
+.yt-server-pill.active .yt-pill-dot {
+  background: #ffffff;
+}
+.yt-pill-dot.alt {
+  background: #f59e0b;
+}
+.yt-force-next-btn {
+  background: rgba(229, 9, 20, 0.18);
+  border-color: rgba(229, 9, 20, 0.45);
+  color: #ffffff;
+}
+.yt-force-next-btn:hover {
+  background: var(--nf-red, #e50914);
+  border-color: #ffffff;
 }
 
-.detail-right {
+/* Expandable Description Box */
+.yt-desc-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+.yt-desc-card:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.yt-desc-header {
+  margin-bottom: 8px;
+}
+.yt-desc-card p.desc {
+  color: #e5e5e5;
+  font-size: 14.5px;
+  line-height: 1.55;
+  margin: 8px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.yt-desc-card.expanded p.desc {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.yt-desc-extended {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 13.5px;
+  color: #cccccc;
+  line-height: 1.7;
+}
+.yt-desc-credits {
   font-size: 13px;
   color: #e5e5e5;
   line-height: 1.8;
 }
+.yt-desc-credits b {
+  color: var(--nf-gray);
+  font-weight: 500;
+}
 .detail-right b {
   color: var(--nf-gray);
   font-weight: 500;
+}
+.yt-desc-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0 0 0;
+  margin-top: 4px;
+  opacity: 0.9;
+  transition: opacity 0.2s;
+}
+.yt-desc-toggle-btn:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+.yt-desc-toggle-btn svg {
+  transition: transform 0.2s ease;
+}
+.yt-desc-card.expanded .yt-desc-toggle-btn svg {
+  transform: rotate(180deg);
+}
+
+/* Playlist / Episode Box in Sidebar */
+.yt-playlist-card {
+  background: rgba(22, 22, 24, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+.yt-playlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(30, 30, 32, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.yt-playlist-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.yt-playlist-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: var(--nf-red, #e50914);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.yt-playlist-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+}
+.yt-playlist-episodes {
+  max-height: 480px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.yt-playlist-episodes::-webkit-scrollbar {
+  width: 6px;
+}
+.yt-playlist-episodes::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+}
+
+/* Up Next / Recommendations Vertical Feed */
+.yt-recs-section {
+  display: flex;
+  flex-direction: column;
+}
+.yt-recs-section .sim-header {
+  margin: 0 0 12px 0;
+}
+.yt-recs-section .sim-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.similar-grid.yt-recs-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.yt-recs-feed .sim {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+.yt-recs-feed .sim:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateX(4px);
+}
+.yt-recs-feed .sim img {
+  width: 130px;
+  min-width: 130px;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #181818;
+  flex-shrink: 0;
+}
+.yt-recs-feed .sim-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.yt-recs-feed .sim-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.yt-recs-feed .sim-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.yt-recs-feed .sim-sub {
+  font-size: 11.5px;
+  color: var(--nf-gray, #a3a3a3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Episodes UI */
@@ -1901,26 +2250,39 @@ body.is-scrolling #cardPortal {
    FULLSCREEN PLAYER CHROME
    ========================================================================== */
 #playerView {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  width: 100vw;
-  width: 100dvw;
-  height: 100vh;
-  height: 100dvh;
-  max-width: 100vw;
-  max-width: 100dvw;
-  max-height: 100vh;
-  max-height: 100dvh;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background: #000000;
   box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.9);
-  z-index: 3000;
+  z-index: 10;
   display: none;
   flex-direction: column;
   overflow: hidden;
   box-sizing: border-box;
 }
 #playerView.show {
-  display: flex;
+  display: flex !important;
+}
+#playerView:fullscreen,
+#playerView:-webkit-full-screen,
+#playerView:-moz-full-screen,
+#playerView.is-fullscreen,
+.watch-player-wrap:fullscreen,
+.watch-player-wrap:-webkit-full-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  width: 100dvw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
 }
 #playerVideo {
   display: none !important;
@@ -4440,6 +4802,99 @@ footer {
     width: auto;
     max-width: calc(100vw - 24px);
     max-height: 65vh;
+  }
+/* YouTube Watch Page Responsive Breakpoints */
+@media (max-width: 900px) {
+  #detailBackdrop {
+    padding-top: 0 !important;
+  }
+  .detail-top-bar {
+    padding: 10px 16px;
+    background: #141414;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .yt-watch-grid {
+    display: flex;
+    flex-direction: column;
+    padding: 0 0 40px 0;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+  .yt-main-col {
+    padding: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .watch-player-wrap {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85);
+  }
+  .yt-watch-info-row {
+    padding: 0 16px;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .yt-watch-title {
+    font-size: 20px;
+  }
+  .yt-sidebar-col {
+    padding: 0 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .yt-server-switcher-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    scrollbar-width: none;
+    padding: 8px 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .yt-server-switcher-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .yt-server-pills-row {
+    flex-wrap: nowrap;
+  }
+  .watch-prominent-play-btn {
+    padding: 10px 20px 10px 14px;
+    font-size: 15px;
+    gap: 10px;
+  }
+  .watch-play-circle {
+    width: 40px;
+    height: 40px;
+  }
+  .watch-play-circle svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 500px) {
+  .yt-recs-feed .sim img {
+    width: 110px;
+    min-width: 110px;
+  }
+  .yt-recs-feed .sim-title {
+    font-size: 13px;
   }
 }
 
