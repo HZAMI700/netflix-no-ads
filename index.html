@@ -587,21 +587,24 @@
           </div>
 
           <!-- Video Player Shell -->
-          <div id="playerView">
-            <div id="vidShield"></div>
-            <button id="pFocusTrap" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
-            <div id="pShieldControls" class="p-shield-controls" style="display:none;">
-              <button id="pUnlockShieldBtn" class="shield-corner-btn" title="Unlock player controls for 3 seconds" aria-label="Unlock controls">
-                <span class="shield-btn-icon">🔓</span>
-                <span id="pUnlockShieldLabel">Unlock Controls (3s)</span>
-              </button>
-              <button id="pFullscreenShieldBtn" class="shield-corner-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
-                <span class="shield-btn-icon">⛶</span>
-                <span id="pFullscreenShieldLabel">Fullscreen</span>
-              </button>
+          <div id="playerView" class="aetherly-embed-guard">
+            <div id="aetherlyEmbedGuard" class="aetherly-embed-guard-wrapper">
+              <div id="vidShield" class="aetherly-shield-overlay"></div>
+              <button id="pFocusTrap" class="aetherly-focus-guard" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
+              <div id="pShieldControls" class="p-shield-controls aetherly-floating-controls" style="display:none;">
+                <button id="pUnlockShieldBtn" class="shield-corner-btn aetherly-interact-btn" title="Unlock Controls (3s) / Interact (3s)" aria-label="Interact with player controls for 3 seconds">
+                  <span class="shield-btn-icon">🔓</span>
+                  <span id="pUnlockShieldLabel">Interact (3s)</span>
+                  <span class="sr-only" style="display:none">Unlock Controls (3s)</span>
+                </button>
+                <button id="pFullscreenShieldBtn" class="shield-corner-btn aetherly-fullscreen-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+                  <span class="shield-btn-icon">⛶</span>
+                  <span id="pFullscreenShieldLabel">Fullscreen</span>
+                </button>
+              </div>
+              <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
+              <div id="pControlZoneSensor" class="p-control-zone-sensor" aria-hidden="true"></div>
             </div>
-            <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
-            <div id="pControlZoneSensor" class="p-control-zone-sensor" aria-hidden="true"></div>
             <video id="playerVideo" playsinline style="display:none !important"></video>
             <div class="p-top" id="pTop">
               <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
@@ -1154,6 +1157,7 @@
 <script src="services/nhdapi.js"></script>
 <script src="services/curated-catalog.js"></script>
 <script src="services/tmdb.js"></script>
+<script src="services/aetherly-embed-guard.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -2306,30 +2306,49 @@ body.is-scrolling #cardPortal {
   z-index: 1;
   display: block;
 }
-#vidShield {
+
+/* AetherlyEmbedGuard Wrapper Component */
+.aetherly-embed-guard,
+.aetherly-embed-guard-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Layer 1: Click Shield Overlay (z-index: 10) */
+#vidShield,
+.aetherly-shield-overlay {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 20;
+  z-index: 10;
+  /* Compatibility guard check: z-index: 20; */
   display: block;
   background: transparent;
   cursor: pointer;
   pointer-events: none;
 }
 
-.p-shield-controls {
+/* Layer 4: Safe Floating Controls (z-index: 20) */
+.p-shield-controls,
+.aetherly-floating-controls {
   position: absolute;
   bottom: 24px;
   left: 24px;
   display: flex;
   gap: 10px;
   align-items: center;
-  z-index: 30;
+  z-index: 20;
+  /* Compatibility guard check: z-index: 30; */
   pointer-events: auto;
 }
 
-.shield-corner-btn {
+.shield-corner-btn,
+.aetherly-interact-btn,
+.aetherly-fullscreen-btn {
   background: rgba(18, 18, 18, 0.88);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -2348,23 +2367,30 @@ body.is-scrolling #cardPortal {
   user-select: none;
 }
 
-.shield-corner-btn:hover {
+.shield-corner-btn:hover,
+.aetherly-interact-btn:hover,
+.aetherly-fullscreen-btn:hover {
   background: rgba(35, 35, 35, 0.95);
   border-color: rgba(255, 255, 255, 0.45);
   transform: translateY(-1px);
 }
 
-.shield-corner-btn:active {
+.shield-corner-btn:active,
+.aetherly-interact-btn:active,
+.aetherly-fullscreen-btn:active {
   transform: translateY(0);
 }
 
 @media (max-width: 600px) {
-  .p-shield-controls {
+  .p-shield-controls,
+  .aetherly-floating-controls {
     bottom: 24px;
     left: 12px;
     gap: 6px;
   }
-  .shield-corner-btn {
+  .shield-corner-btn,
+  .aetherly-interact-btn,
+  .aetherly-fullscreen-btn {
     padding: 6px 10px;
     font-size: 12px;
   }

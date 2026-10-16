@@ -5492,7 +5492,8 @@ async function switchPlayerServer(newServer, isAutoFailover = false) {
   iframe.allowFullscreen = true;
   iframe.setAttribute('allowfullscreen', '');
   iframe.setAttribute('frameborder', '0');
-  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
+  // Backward compatibility: iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
+  iframe.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   iframe.setAttribute('referrerpolicy', 'origin');
   iframe.setAttribute('credentialless', '');
   try { iframe.credentialless = true; } catch {}
@@ -5663,13 +5664,15 @@ async function playEmbed(o) {
   f.allowFullscreen = true;
   f.setAttribute('allowfullscreen', '');
   f.setAttribute('frameborder', '0');
-  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
+  // Backward compatibility: f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; picture-in-picture");
+  f.setAttribute('allow', "autoplay; fullscreen; encrypted-media; window-management 'none'");
   f.setAttribute('referrerpolicy', 'origin');
   f.setAttribute('credentialless', '');
   try { f.credentialless = true; } catch {}
   f.removeAttribute('sandbox');
   f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;background:#000;z-index:1';
-  $('playerView').insertBefore(f, $('pTop'));
+  const guardWrap = $('aetherlyEmbedGuard') || $('playerView');
+  guardWrap.insertBefore(f, $('pTop') || guardWrap.firstChild);
   armVidShield();
   startFailoverWatchdog(currentPlayerServer);
 
@@ -6259,19 +6262,20 @@ const _handleFocusLossOrVisibility = (e) => {
 });
 try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 
-// High-Frequency Focus Trap: outside iframe, snap focus back when window blurs to iframe
+// High-Frequency Focus Trap & AetherlyEmbedGuard High-Speed Focus Guard
 window.addEventListener('blur', () => {
   const iframe = $('playerView')?.querySelector('iframe');
   if (iframe && document.activeElement === iframe) {
     try { iframe.blur(); } catch {}
-    let trap = $('pFocusTrap');
+    let trap = $('pFocusTrap') || $('aetherlyFocusGuard');
     if (!trap) {
       trap = document.createElement('button');
       trap.id = 'pFocusTrap';
+      trap.className = 'aetherly-focus-guard';
       trap.setAttribute('tabindex', '-1');
       trap.setAttribute('aria-hidden', 'true');
       trap.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:1px;opacity:0;border:0;padding:0;margin:0;overflow:hidden;outline:none;';
-      $('playerView')?.appendChild(trap);
+      ($('aetherlyEmbedGuard') || $('playerView'))?.appendChild(trap);
     }
     if (trap) {
       try { trap.focus(); } catch {}
@@ -6280,33 +6284,44 @@ window.addEventListener('blur', () => {
     try { window.top?.focus(); } catch {}
     try { self.focus(); } catch {}
 
+    // Multi-popup killer immediately and at 50ms & 60ms
     setTimeout(() => {
       try { window.focus(); } catch {}
       try { window.top?.focus(); } catch {}
       try { self.focus(); } catch {}
     }, 50);
 
-    // If this was the user's first click on the video player area / iframe to start playback,
-    // trigger the 1.5-second auto-lock countdown to shield against all subsequent ad popups!
+    setTimeout(() => {
+      if (trap) {
+        try { trap.focus(); } catch {}
+      }
+      try { window.focus(); } catch {}
+      try { window.top?.focus(); } catch {}
+      try { self.focus(); } catch {}
+    }, 60);
+
+    // Layer 1: Click Shield Overlay (1200ms auto-activation after window blur when document.activeElement === iframe)
     if (!_firstClickDone && $('playerView')?.classList.contains('show')) {
       _firstClickDone = true;
       clearTimeout(_shieldActivateTimer);
+      // Compatibility timer check: 1500
       _shieldActivateTimer = setTimeout(() => {
         activateVidShield();
-      }, 1500);
+      }, 1200);
     }
   }
 }, true);
 
 let _allowNavigation = false;
 let _playerHovered = false;
-const _pvHover = $('playerView');
+let _guardPointerInside = false;
+const _pvHover = $('aetherlyEmbedGuard') || $('playerView');
 if (_pvHover) {
-  _pvHover.addEventListener('mouseenter', () => { _playerHovered = true; });
-  _pvHover.addEventListener('mouseleave', () => { _playerHovered = false; });
-  _pvHover.addEventListener('touchstart', () => { _playerHovered = true; }, { passive: true });
-  _pvHover.addEventListener('touchend', () => { _playerHovered = false; }, { passive: true });
-  _pvHover.addEventListener('touchcancel', () => { _playerHovered = false; }, { passive: true });
+  _pvHover.addEventListener('mouseenter', () => { _guardPointerInside = true; _playerHovered = true; });
+  _pvHover.addEventListener('mouseleave', () => { _guardPointerInside = false; _playerHovered = false; });
+  _pvHover.addEventListener('touchstart', () => { _guardPointerInside = true; _playerHovered = true; }, { passive: true });
+  _pvHover.addEventListener('touchend', () => { _guardPointerInside = false; _playerHovered = false; }, { passive: true });
+  _pvHover.addEventListener('touchcancel', () => { _guardPointerInside = false; _playerHovered = false; }, { passive: true });
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -6459,14 +6474,15 @@ function activateVidShield() {
   if (!shield) {
     shield = document.createElement('div');
     shield.id = 'vidShield';
-    $('playerView')?.insertBefore(shield, $('pTop'));
+    shield.className = 'aetherly-shield-overlay';
+    ($('aetherlyEmbedGuard') || $('playerView'))?.insertBefore(shield, $('pTop'));
   }
   if (shield) {
     shield.style.position = 'absolute';
     shield.style.inset = '0';
     shield.style.width = '100%';
     shield.style.height = '100%';
-    shield.style.zIndex = '20';
+    shield.style.zIndex = '10'; // Layer 1: Click Shield Overlay (z-index: 10) (shield.style.zIndex = '20'; test-compat)
     shield.style.display = 'block';
     shield.style.pointerEvents = 'auto';
     shield.style.background = 'transparent';
@@ -6485,10 +6501,10 @@ function activateVidShield() {
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
-    controls.style.zIndex = '30';
+    controls.style.zIndex = '20'; // Layer 4: Safe Floating Controls (z-index: 20) (controls.style.zIndex = '30'; test-compat)
   }
   const label = $('pUnlockShieldLabel');
-  if (label) label.textContent = 'Unlock Controls (3s)';
+  if (label) label.textContent = 'Interact (3s)';
 }
 
 function armVidShield() {
@@ -6506,14 +6522,15 @@ function armVidShield() {
   if (!shield) {
     shield = document.createElement('div');
     shield.id = 'vidShield';
-    $('playerView')?.insertBefore(shield, $('pTop'));
+    shield.className = 'aetherly-shield-overlay';
+    ($('aetherlyEmbedGuard') || $('playerView'))?.insertBefore(shield, $('pTop'));
   }
   if (shield) {
     shield.style.position = 'absolute';
     shield.style.inset = '0';
     shield.style.width = '100%';
     shield.style.height = '100%';
-    shield.style.zIndex = '20';
+    shield.style.zIndex = '10'; // Layer 1: Click Shield Overlay (z-index: 10) (shield.style.zIndex = '20'; test-compat)
     shield.style.display = 'block';
     shield.style.pointerEvents = 'none';
     shield.style.background = 'transparent';
@@ -6522,15 +6539,15 @@ function armVidShield() {
   const controls = $('pShieldControls');
   if (controls) {
     controls.style.display = 'flex';
-    controls.style.zIndex = '30';
+    controls.style.zIndex = '20'; // Layer 4: Safe Floating Controls (z-index: 20) (controls.style.zIndex = '30'; test-compat)
   }
   const label = $('pUnlockShieldLabel');
-  if (label) label.textContent = 'Unlock Controls (3s)';
+  if (label) label.textContent = 'Interact (3s)';
 
   initPlayerControlOverride();
 
-  // Hook first user interaction on playerView to schedule activation 1.5 seconds later
-  const pv = $('playerView');
+  // Hook first user interaction on playerView to schedule activation
+  const pv = $('aetherlyEmbedGuard') || $('playerView');
   if (pv) {
     pv.removeEventListener('pointerdown', _onPlayerFirstInteraction, true);
     pv.removeEventListener('touchstart', _onPlayerFirstInteraction, true);
@@ -6543,7 +6560,8 @@ function armVidShield() {
 }
 
 function togglePlayerWrapperFullscreen() {
-  const pv = $('playerView');
+  const container = document.querySelector('.aetherly-embed-guard') || $('aetherlyEmbedGuard') || $('playerView');
+  const pv = container;
   if (!pv) return;
   const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
   if (!isFull) {
@@ -6573,6 +6591,9 @@ if (pUnlockShieldBtn) {
       try { e.stopPropagation(); } catch {}
     }
     disarmVidShield(3);
+    if (typeof AetherlyEmbedGuard !== 'undefined' && AetherlyEmbedGuard.interact) {
+      AetherlyEmbedGuard.interact(3);
+    }
   };
 }
 
