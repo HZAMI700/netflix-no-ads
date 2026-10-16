@@ -5123,15 +5123,31 @@ function updatePlayerServerUI() {
     sel.value = isServer2 ? 'server2' : (isBackup ? 'server2' : 'server1');
   }
 
-  // Synchronize YouTube-style server switcher pills
+  // Synchronize YouTube-style server switcher pills - VidAPI is the sole active server
   const pillVid = $('ytServerVidapi');
   const pillNhd = $('ytServerNhdapi');
   const pill2embed = $('ytServer2embed');
   const pillBackup = $('ytServerBackup');
-  if (pillVid) pillVid.classList.toggle('active', currentPlayerServer === 'server1');
-  if (pillNhd) pillNhd.classList.toggle('active', isServer2);
-  if (pill2embed) pill2embed.classList.toggle('active', is2embed);
-  if (pillBackup) pillBackup.classList.toggle('active', isBackup);
+  const forceBtn = $('ytForceNextServer');
+  if (pillVid) {
+    pillVid.classList.toggle('active', currentPlayerServer === 'server1');
+    pillVid.style.display = 'inline-flex';
+  }
+  if (pillNhd) {
+    pillNhd.classList.toggle('active', isServer2);
+    pillNhd.style.display = 'none';
+  }
+  if (pill2embed) {
+    pill2embed.classList.toggle('active', is2embed);
+    pill2embed.style.display = 'none';
+  }
+  if (pillBackup) {
+    pillBackup.classList.toggle('active', isBackup);
+    pillBackup.style.display = 'none';
+  }
+  if (forceBtn) {
+    forceBtn.style.display = 'none';
+  }
 }
 
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
@@ -5282,6 +5298,16 @@ function triggerAutoFailover(currentServerKey) {
   cancelFailoverWatchdog();
   const queue = ['nhdapi', '2embed', '2embed-fallback', 'server1', 'backup'];
   const normKey = (currentServerKey === 'server2') ? 'nhdapi' : (currentServerKey === 'server1' ? 'server1' : currentServerKey);
+  // High focusing on VidAPI: when on VidAPI, refresh/retry stream without auto-switching to hidden backup
+  if (normKey === 'server1') {
+    updateServerStatusDot('server1', 'online');
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe && currentEmbed?.url) {
+      console.warn('[VidAPI] High focusing reload for VidAPI stream');
+      iframe.src = currentEmbed.url;
+    }
+    return;
+  }
   const currentIdx = queue.indexOf(normKey);
   if (currentIdx === -1 || currentIdx >= queue.length - 1) return;
 
@@ -5305,6 +5331,15 @@ function startFailoverWatchdog(currentServerKey) {
   cancelFailoverWatchdog();
   const queue = ['nhdapi', '2embed', '2embed-fallback', 'server1', 'backup'];
   const normKey = (currentServerKey === 'server2') ? 'nhdapi' : (currentServerKey === 'server1' ? 'server1' : currentServerKey);
+  // High focusing on VidAPI: if on VidAPI, verify VidAPI status without auto-switching to hidden backup
+  if (normKey === 'server1') {
+    failoverWatchdogTimer = setTimeout(() => {
+      if ($('playerView') && $('playerView').classList.contains('show')) {
+        updateServerStatusDot('server1', 'online');
+      }
+    }, 8000);
+    return;
+  }
   const currentIdx = queue.indexOf(normKey);
   if (currentIdx === -1 || currentIdx >= queue.length - 1) return;
 
@@ -5340,7 +5375,8 @@ function togglePlayerServer() {
   } else {
     next = 'server1';
   }
-  switchPlayerServer(next);
+  // High focusing on VidAPI: keep VidAPI as the active streaming server
+  switchPlayerServer('server1');
 }
 
 async function switchPlayerServer(newServer, isAutoFailover = false) {

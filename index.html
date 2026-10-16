@@ -710,26 +710,26 @@
           <div class="yt-server-switcher-bar" id="ytServerSwitcherBar">
             <span class="yt-server-bar-label">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-              Servers:
+              Streaming Server:
             </span>
             <div class="yt-server-pills-row">
-              <button class="yt-server-pill active" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)">
+              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
+                <span class="yt-pill-dot online" id="statusDotVid"></span>
+                <span>Vid API (Ultra Fast HD)</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)" style="display:none !important;">
                 <span class="yt-pill-dot" id="statusDotNhd"></span>
                 <span>NHD API (Ultra HD)</span>
               </button>
-              <button class="yt-server-pill" id="ytServer2embed" data-server="2embed" title="2Embed (Auto-Failover Multi-Stream Mirror)">
+              <button class="yt-server-pill" id="ytServer2embed" data-server="2embed" title="2Embed (Auto-Failover Multi-Stream Mirror)" style="display:none !important;">
                 <span class="yt-pill-dot" id="statusDot2embed"></span>
                 <span>2Embed</span>
               </button>
-              <button class="yt-server-pill" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
-                <span class="yt-pill-dot" id="statusDotVid"></span>
-                <span>Vid API (HD)</span>
-              </button>
-              <button class="yt-server-pill" id="ytServerBackup" data-server="backup" title="Backup Stream Mirrors">
+              <button class="yt-server-pill" id="ytServerBackup" data-server="backup" title="Backup Stream Mirrors" style="display:none !important;">
                 <span class="yt-pill-dot alt" id="statusDotBackup"></span>
                 <span>Backup Server</span>
               </button>
-              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Try Next Server (Auto-Failover)">
+              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Try Next Server (Auto-Failover)" style="display:none !important;">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
                 <span>Try Next Server</span>
               </button>
@@ -1072,7 +1072,7 @@
           <label for="playerServerSelect">Video Player / Streaming Engine</label>
           <select id="playerServerSelect" class="settings-select">
             <option value="server1" selected>Server 1: High Definition Stream</option>
-            <option value="server2" data-alias="Server 2: Fast Mirror Stream">Ultra HD Fast Server</option>
+            <option value="server2" data-alias="Server 2: Fast Mirror Stream" style="display:none !important;">Ultra HD Fast Server</option>
           </select>
         </div>
       </div>

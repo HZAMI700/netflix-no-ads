@@ -1752,6 +1752,15 @@ body.is-scrolling #cardPortal {
   border-color: #ffffff;
 }
 
+/* Exclusively keep Vid API server and hide all other server buttons */
+#ytServerNhdapi,
+#ytServer2embed,
+#ytServerBackup,
+#ytForceNextServer {
+  display: none !important;
+}
+
+
 /* Expandable Description Box */
 .yt-desc-card {
   background: rgba(255, 255, 255, 0.07);

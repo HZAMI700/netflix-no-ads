@@ -155,21 +155,21 @@ function toInt(n) {
 /** Movie embed. Returns null when the IMDb/TMDB ID is missing/invalid. */
 function getMovieStreamUrl(movie, server = 'server1') {
   const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
-  const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+  let tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+  if (!tmdb && movie && movie.id) {
+    const raw = String(movie.id).trim();
+    if (/^\d+$/.test(raw)) tmdb = raw;
+    else if (raw.startsWith('tmdb:')) tmdb = raw.slice(5).trim();
+  }
+  if (!tmdb && movie && (imdb || movie.id) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+    const match = CuratedCatalog.getCuratedById(imdb || movie.id);
+    if (match && (match.moviedb_id || match.tmdbId)) {
+      tmdb = String(match.moviedb_id || match.tmdbId).trim();
+    }
+  }
 
   if (server === 'nhdapi') {
     let id = /^\d+$/.test(tmdb) ? tmdb : '';
-    if (!id && movie && movie.id) {
-      const raw = String(movie.id).trim();
-      if (/^\d+$/.test(raw)) id = raw;
-      else if (raw.startsWith('tmdb:')) id = raw.slice(5).trim();
-    }
-    if (!id && (imdb || (movie && movie.id)) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
-      const match = CuratedCatalog.getCuratedById(imdb || movie.id);
-      if (match && (match.moviedb_id || match.tmdbId)) {
-        id = String(match.moviedb_id || match.tmdbId).trim();
-      }
-    }
     if (!id || !/^\d+$/.test(id)) return null;
     return `${NHDAPI_BASE}/movie/${id}`;
   }
@@ -212,24 +212,25 @@ function getMovieStreamUrl(movie, server = 'server1') {
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
 function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   const imdb = series && typeof series.imdb === 'string' ? series.imdb.trim() : '';
-  const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
+  let tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
   const s = toInt(season);
   const e = toInt(episode);
   if (!s || !e) return null;
 
+  if (!tmdb && series && series.id) {
+    const raw = String(series.id).trim();
+    if (/^\d+$/.test(raw)) tmdb = raw;
+    else if (raw.startsWith('tmdb:')) tmdb = raw.slice(5).trim();
+  }
+  if (!tmdb && series && (imdb || series.id) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+    const match = CuratedCatalog.getCuratedById(imdb || series.id);
+    if (match && (match.moviedb_id || match.tmdbId)) {
+      tmdb = String(match.moviedb_id || match.tmdbId).trim();
+    }
+  }
+
   if (server === 'nhdapi') {
     let id = (tmdb && /^\d+$/.test(tmdb)) ? tmdb : '';
-    if (!id && series && series.id) {
-      const raw = String(series.id).trim();
-      if (/^\d+$/.test(raw)) id = raw;
-      else if (raw.startsWith('tmdb:')) id = raw.slice(5).trim();
-    }
-    if (!id && (imdb || (series && series.id)) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
-      const match = CuratedCatalog.getCuratedById(imdb || series.id);
-      if (match && (match.moviedb_id || match.tmdbId)) {
-        id = String(match.moviedb_id || match.tmdbId).trim();
-      }
-    }
     if (!id || !/^\d+$/.test(id)) return null;
     return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
   }
