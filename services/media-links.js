@@ -154,7 +154,11 @@ function toInt(n) {
 
 /** Movie embed. Returns null when the IMDb/TMDB ID is missing/invalid. */
 function getMovieStreamUrl(movie, server = 'server1') {
-  const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
+  const imdb = movie && typeof movie.imdb === 'string' && movie.imdb.trim()
+    ? movie.imdb.trim()
+    : (movie && typeof movie.imdb_id === 'string' && movie.imdb_id.trim()
+      ? movie.imdb_id.trim()
+      : (movie && typeof movie.id === 'string' && movie.id.startsWith('tt') ? movie.id.trim() : ''));
   let tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
   if (!tmdb && movie && movie.id) {
     const raw = String(movie.id).trim();
@@ -211,7 +215,11 @@ function getMovieStreamUrl(movie, server = 'server1') {
 
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
 function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
-  const imdb = series && typeof series.imdb === 'string' ? series.imdb.trim() : '';
+  const imdb = series && typeof series.imdb === 'string' && series.imdb.trim()
+    ? series.imdb.trim()
+    : (series && typeof series.imdb_id === 'string' && series.imdb_id.trim()
+      ? series.imdb_id.trim()
+      : (series && typeof series.id === 'string' && series.id.startsWith('tt') ? series.id.trim() : ''));
   let tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
   const s = toInt(season);
   const e = toInt(episode);

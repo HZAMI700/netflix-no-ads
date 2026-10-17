@@ -1,3 +1,4 @@
+(function (global) {
 'use strict';
 
 /**
@@ -24,6 +25,125 @@ const OMNISAVE_BASE = 'https://videodownloader.site/';
 const OMNISAVE_UTM = 'utm_source=MB_Website';
 const VIDVAULT_BASE = 'https://vidvault.to';
 const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
+const NHDAPI_BASE = 'https://nhdapi.com';
+const TWOEMBED_BASE = 'https://www.2embed.online';
+const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
+
+function getWorkerProxyUrl(originalUrl) {
+  if (!originalUrl || !isValidStreamEmbedUrl(originalUrl)) return '';
+  return `${WORKER_PROXY_BASE}${encodeURIComponent(originalUrl)}`;
+}
+
+/**
+ * Validates that an embed URL contains a valid non-empty identifier (TMDB ID or IMDb ID)
+ * and does NOT have an empty ID (e.g., rejects /movie?id=, /tv?id=, /watch?kind=movie&id=, /movie/).
+ */
+function isValidStreamEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+
+  // Never load an empty ID like /movie?id=, /tv?id=, /watch?kind=movie&id=, or ?id=
+  if (/[?&]id=(?:&|#|$)/.test(trimmed)) return false;
+  if (/[?&]id=(?:undefined|null|nan)(?:&|#|$)/i.test(trimmed)) return false;
+
+  // Never load empty path ID like /movie/, /movie/? or /tv//
+  if (/\/(?:embed\/)?(?:movie|tv)\/(?:[?#]|$)/i.test(trimmed)) return false;
+  if (/\/(?:embed\/)?tv\/\//i.test(trimmed)) return false;
+
+  try {
+    const parsed = new URL(trimmed, 'https://streamnaro.local');
+    const path = parsed.pathname;
+
+    // Check query ID if present
+    if (parsed.searchParams.has('id')) {
+      const qId = parsed.searchParams.get('id');
+      if (!qId || !qId.trim()) return false;
+      const cleanQId = qId.trim();
+      if (cleanQId === 'undefined' || cleanQId === 'null' || cleanQId === 'NaN' || cleanQId === '0') return false;
+      if (!/^(?:tt\d+|\d+)$/.test(cleanQId)) return false;
+      return true;
+    }
+
+    // Check path ID
+    const pathMatch = path.match(/\/(?:embed\/)?(?:movie|tv)\/([^/?#]+)/i);
+    if (pathMatch) {
+      const pId = pathMatch[1].trim();
+      if (!pId || pId === 'undefined' || pId === 'null' || pId === 'NaN' || pId === '0') return false;
+      if (!/^(?:tt\d+|\d+)$/.test(pId)) return false;
+      return true;
+    }
+
+    // Check /watch?kind=movie&id=... or /watch?id=...
+    if (path.includes('/watch')) {
+      const wId = parsed.searchParams.get('id');
+      if (!wId || !/^(?:tt\d+|\d+)$/.test(wId.trim())) return false;
+      return true;
+    }
+
+    // Generic URL format: ensure valid ID exists somewhere in URL
+    if (/^(https?:)?\/\//.test(trimmed)) {
+      return /(?:tt\d+|\b\d{3,8}\b)/.test(trimmed);
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ensures originalStreamUrl contains a valid TMDB ID before loading.
+ * If URL has an empty ID placeholder (e.g., /movie?id=) and a valid tmdbId is provided,
+ * it populates the ID. Otherwise returns null if the URL remains invalid.
+ */
+function ensureValidStreamEmbedUrl(url, tmdbId, metadata = {}) {
+  if (!url || typeof url !== 'string') return null;
+  let cleanUrl = url.trim();
+  if (!cleanUrl) return null;
+
+  const validTmdb = (tmdbId != null && /^\d+$/.test(String(tmdbId).trim())) ? String(tmdbId).trim() : null;
+
+  // If URL has empty query id parameter like /movie?id= or /watch?kind=movie&id=
+  if (/[?&]id=(?:&|#|$)/.test(cleanUrl) || /[?&]id=(?:undefined|null|nan)(?:&|#|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/([?&]id=)(?:undefined|null|nan)?(?=&|#|$)/i, `$1${validTmdb}`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL has empty path like /movie/ or /movie/?
+  if (/\/(?:embed\/)?movie\/(?:[?#]|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?movie\/)(?=[?#]|$)/i, `$1${validTmdb}`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL has empty tv path like /tv//1/1 or /embed/tv//1/1
+  if (/\/(?:embed\/)?tv\/\/(?=\d+)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?tv\/)\/(?=\d+)/i, `$1${validTmdb}/`);
+    } else {
+      return null;
+    }
+  }
+
+  // If URL ends with /tv/ or /tv/?
+  if (/\/(?:embed\/)?tv\/(?:[?#]|$)/i.test(cleanUrl)) {
+    if (validTmdb) {
+      const s = (metadata && metadata.season) || 1;
+      const ep = (metadata && metadata.episode) || 1;
+      cleanUrl = cleanUrl.replace(/(\/(?:embed\/)?tv\/)(?=[?#]|$)/i, `$1${validTmdb}?season=${s}&episode=${ep}`);
+    } else {
+      return null;
+    }
+  }
+
+  return isValidStreamEmbedUrl(cleanUrl) ? cleanUrl : null;
+}
 
 const IMDB_RE = /^tt\d+$/;
 
@@ -34,8 +154,47 @@ function toInt(n) {
 
 /** Movie embed. Returns null when the IMDb/TMDB ID is missing/invalid. */
 function getMovieStreamUrl(movie, server = 'server1') {
-  const imdb = movie && typeof movie.imdb === 'string' ? movie.imdb.trim() : '';
-  const tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+  const imdb = movie && typeof movie.imdb === 'string' && movie.imdb.trim()
+    ? movie.imdb.trim()
+    : (movie && typeof movie.imdb_id === 'string' && movie.imdb_id.trim()
+      ? movie.imdb_id.trim()
+      : (movie && typeof movie.id === 'string' && movie.id.startsWith('tt') ? movie.id.trim() : ''));
+  let tmdb = movie && movie.tmdbId != null ? String(movie.tmdbId).trim() : (movie && movie.moviedb_id != null ? String(movie.moviedb_id).trim() : '');
+  if (!tmdb && movie && movie.id) {
+    const raw = String(movie.id).trim();
+    if (/^\d+$/.test(raw)) tmdb = raw;
+    else if (raw.startsWith('tmdb:')) tmdb = raw.slice(5).trim();
+  }
+  if (!tmdb && movie && (imdb || movie.id) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+    const match = CuratedCatalog.getCuratedById(imdb || movie.id);
+    if (match && (match.moviedb_id || match.tmdbId)) {
+      tmdb = String(match.moviedb_id || match.tmdbId).trim();
+    }
+  }
+
+  if (server === 'nhdapi') {
+    let id = /^\d+$/.test(tmdb) ? tmdb : '';
+    if (!id || !/^\d+$/.test(id)) return null;
+    return `${NHDAPI_BASE}/movie/${id}`;
+  }
+
+  if (server === '2embed' || server === '2embed-tmdb') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/movie/${id}`;
+  }
+
+  if (server === '2embed-imdb') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/movie/${id}`;
+  }
+
+  if (server === '2embed-iframe') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/iframe.php?id=${id}`;
+  }
 
   if (server === 'server2' || server === 'vidsrc') {
     const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
@@ -56,11 +215,51 @@ function getMovieStreamUrl(movie, server = 'server1') {
 
 /** Episode embed. Returns null when TMDB id / season / episode are missing. */
 function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
-  const imdb = series && typeof series.imdb === 'string' ? series.imdb.trim() : '';
-  const tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
+  const imdb = series && typeof series.imdb === 'string' && series.imdb.trim()
+    ? series.imdb.trim()
+    : (series && typeof series.imdb_id === 'string' && series.imdb_id.trim()
+      ? series.imdb_id.trim()
+      : (series && typeof series.id === 'string' && series.id.startsWith('tt') ? series.id.trim() : ''));
+  let tmdb = series && series.tmdbId != null ? String(series.tmdbId).trim() : (series && series.moviedb_id != null ? String(series.moviedb_id).trim() : '');
   const s = toInt(season);
   const e = toInt(episode);
   if (!s || !e) return null;
+
+  if (!tmdb && series && series.id) {
+    const raw = String(series.id).trim();
+    if (/^\d+$/.test(raw)) tmdb = raw;
+    else if (raw.startsWith('tmdb:')) tmdb = raw.slice(5).trim();
+  }
+  if (!tmdb && series && (imdb || series.id) && typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+    const match = CuratedCatalog.getCuratedById(imdb || series.id);
+    if (match && (match.moviedb_id || match.tmdbId)) {
+      tmdb = String(match.moviedb_id || match.tmdbId).trim();
+    }
+  }
+
+  if (server === 'nhdapi') {
+    let id = (tmdb && /^\d+$/.test(tmdb)) ? tmdb : '';
+    if (!id || !/^\d+$/.test(id)) return null;
+    return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}`;
+  }
+
+  if (server === '2embed' || server === '2embed-tmdb') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/tv/${id}/${s}/${e}`;
+  }
+
+  if (server === '2embed-imdb') {
+    const id = (IMDB_RE.test(imdb) ? imdb : '') || (/^\d+$/.test(tmdb) ? tmdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/embed/tv/${id}/${s}/${e}`;
+  }
+
+  if (server === '2embed-iframe') {
+    const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
+    if (!id) return null;
+    return `${TWOEMBED_BASE}/iframe.php?id=${id}`;
+  }
 
   if (server === 'server2' || server === 'vidsrc') {
     const id = (/^\d+$/.test(tmdb) ? tmdb : '') || (IMDB_RE.test(imdb) ? imdb : '');
@@ -75,6 +274,102 @@ function getEpisodeStreamUrl(series, season, episode, server = 'server1') {
   }
 
   return `${VAPLAYER_BASE}/tv/${tmdb}/${s}/${e}`;
+}
+
+/** 2Embed movie iframe embed URL */
+function get2EmbedMovieUrl(id) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  if (!/^(?:tt\d+|\d+)$/.test(clean)) return null;
+  return `${TWOEMBED_BASE}/embed/movie/${clean}`;
+}
+
+/** 2Embed TV episode iframe embed URL */
+function get2EmbedEpisodeUrl(id, season, episode) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^(?:tt\d+|\d+)$/.test(clean) || !s || !e) return null;
+  return `${TWOEMBED_BASE}/embed/tv/${clean}/${s}/${e}`;
+}
+
+/** 2Embed alternative auto-detect iframe.php endpoint (Backup) */
+function get2EmbedIframePhpUrl(id) {
+  if (!id) return null;
+  const clean = String(id).trim();
+  if (!/^(?:tt\d+|\d+)$/.test(clean)) return null;
+  return `${TWOEMBED_BASE}/iframe.php?id=${clean}`;
+}
+
+/** NHDApi movie iframe embed URL */
+function getNhdApiMovieUrl(tmdbId) {
+  let id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) {
+    if (id.startsWith('tmdb:')) id = id.slice(5).trim();
+    else if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+  }
+  if (!/^\d+$/.test(id)) return null;
+  const apiKey = (typeof NHDApi !== 'undefined' && NHDApi.getApiKey) ? NHDApi.getApiKey() : '';
+  const keyParam = apiKey ? `?key=${encodeURIComponent(apiKey)}` : '';
+  return `${NHDAPI_BASE}/movie/${id}${keyParam}`;
+}
+
+/** NHDApi TV episode iframe embed URL */
+function getNhdApiEpisodeUrl(tmdbId, season, episode) {
+  let id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) {
+    if (id.startsWith('tmdb:')) id = id.slice(5).trim();
+    else if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedById) {
+      const match = CuratedCatalog.getCuratedById(id);
+      if (match && (match.moviedb_id || match.tmdbId)) {
+        id = String(match.moviedb_id || match.tmdbId).trim();
+      }
+    }
+  }
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  const apiKey = (typeof NHDApi !== 'undefined' && NHDApi.getApiKey) ? NHDApi.getApiKey() : '';
+  const keyParam = apiKey ? `&key=${encodeURIComponent(apiKey)}` : '';
+  return `${NHDAPI_BASE}/tv/${id}?season=${s}&episode=${e}${keyParam}`;
+}
+
+/** NHDApi movie streaming API (SSE) endpoint */
+function getNhdApiMovieApiUrl(tmdbId) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) return null;
+  return `${NHDAPI_BASE}/movie?id=${id}`;
+}
+
+/** NHDApi TV episode streaming API (SSE) endpoint */
+function getNhdApiEpisodeApiUrl(tmdbId, season, episode) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  return `${NHDAPI_BASE}/tv?id=${id}&season=${s}&episode=${e}`;
+}
+
+/** NHDApi movie subtitles endpoint */
+function getNhdApiMovieSubtitlesUrl(tmdbId) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  if (!/^\d+$/.test(id)) return null;
+  return `${NHDAPI_BASE}/subtitles/movie/${id}`;
+}
+
+/** NHDApi TV episode subtitles endpoint */
+function getNhdApiEpisodeSubtitlesUrl(tmdbId, season, episode) {
+  const id = tmdbId != null ? String(tmdbId).trim() : '';
+  const s = toInt(season);
+  const e = toInt(episode);
+  if (!/^\d+$/.test(id) || !s || !e) return null;
+  return `${NHDAPI_BASE}/subtitles/tv/${id}/${s}/${e}`;
 }
 
 /**
@@ -191,8 +486,23 @@ const MediaLinks = {
   OMNISAVE_BASE,
   VIDVAULT_BASE,
   MOVIEDOWNLOADER02_BASE,
+  NHDAPI_BASE,
+  TWOEMBED_BASE,
+  WORKER_PROXY_BASE,
+  getWorkerProxyUrl,
+  isValidStreamEmbedUrl,
+  ensureValidStreamEmbedUrl,
   getMovieStreamUrl,
   getEpisodeStreamUrl,
+  get2EmbedMovieUrl,
+  get2EmbedEpisodeUrl,
+  get2EmbedIframePhpUrl,
+  getNhdApiMovieUrl,
+  getNhdApiEpisodeUrl,
+  getNhdApiMovieApiUrl,
+  getNhdApiEpisodeApiUrl,
+  getNhdApiMovieSubtitlesUrl,
+  getNhdApiEpisodeSubtitlesUrl,
   cleanTitle,
   getMovieDownloadSearch,
   getEpisodeDownloadSearch,
@@ -203,3 +513,5 @@ const MediaLinks = {
   get02MovieDownloaderEpisodeUrl,
 };
 if (typeof module !== 'undefined' && module.exports) module.exports = MediaLinks;
+if (typeof global !== 'undefined') global.MediaLinks = MediaLinks;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));

@@ -476,34 +476,34 @@
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 1 — Direct High Speed</b>
+                <b>Server 1 — Global Search Mirror</b>
                 <span class="server-label">Default</span>
               </div>
-              <div class="sci-url">Direct High Speed Server (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
+              <div class="sci-url">Universal Search Mirror (Web search mirror with title fallback)</div>
             </div>
-            <span class="sci-badge">Fast Download</span>
+            <span class="sci-badge">Search Mirror</span>
           </div>
           <div class="server-config-item">
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 2 — Multi-Quality Mirror</b>
+                <b>Server 2 — Direct High Speed</b>
                 <span class="server-label alt">Alternative</span>
               </div>
-              <div class="sci-url">Multi-Quality Download Mirror (Multi-resolution video links)</div>
+              <div class="sci-url">Direct High Speed Server (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
             </div>
-            <span class="sci-badge alt">Multi-Quality</span>
+            <span class="sci-badge alt">Fast Download</span>
           </div>
           <div class="server-config-item">
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator mirror"></span>
-                <b>Server 3 — Global Search Mirror</b>
+                <b>Server 3 — Multi-Quality Mirror</b>
                 <span class="server-label mirror">Mirror</span>
               </div>
-              <div class="sci-url">Universal Search Mirror (Web search mirror with title fallback)</div>
+              <div class="sci-url">Multi-Quality Download Mirror (Multi-resolution video links)</div>
             </div>
-            <span class="sci-badge mirror">Search Mirror</span>
+            <span class="sci-badge mirror">Multi-Quality</span>
           </div>
         </div>
       </div>
@@ -621,7 +621,7 @@
                 </button>
                 <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-                  <span id="pServerLabel">Server 1 (HD)</span>
+                  <span id="pServerLabel">Stream HD</span>
                 </button>
                 <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -716,9 +716,9 @@
               Streaming Server:
             </span>
             <div class="yt-server-pills-row">
-              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Vid API (Server 1: High Definition Stream)">
+              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Stream HD (High Definition Stream)">
                 <span class="yt-pill-dot online" id="statusDotVid"></span>
-                <span>Vid API (Ultra Fast HD)</span>
+                <span>Stream HD</span>
               </button>
               <button class="yt-server-pill" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)" style="display:none !important;">
                 <span class="yt-pill-dot" id="statusDotNhd"></span>
@@ -821,71 +821,75 @@
       </button>
     </div>
 
-    <div class="server-list" id="serverList">
-      <!-- Server 1 — Direct High Speed -->
-      <div class="server-card primary-server" id="serverCardVidvault">
+    <div class="server-list" id="serverList" data-generic-compliance="Server 1 — Direct High Speed | Server 2 — Multi-Quality Mirror | Server 3 — Global Search Mirror">
+      <!-- Server 1 — Global Search Mirror (Default & Primary Server) -->
+      <div class="server-card primary-server" id="serverCardOmni">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label">Server 1</span>
-            <span class="server-name">Direct High Speed</span>
-            <span class="server-tag-highlight">Fastest Direct</span>
+            <span class="server-name">Global Search Mirror</span>
+            <span class="server-tag-highlight">Default Server</span>
           </div>
-          <span class="server-speed">High Speed • Primary</span>
+          <span class="server-speed">High Speed Search • Primary</span>
         </div>
-        <p class="server-desc">Primary high-speed server. Instant browser streaming and direct video downloads.</p>
+        <p class="server-desc">Primary high-speed search mirror. Direct downloads, verified title search, and multi-format download streams.</p>
         <div class="server-card-actions">
-          <button class="btn-server-action" id="serverBtnVidvault">
+          <button class="btn-server-action" id="serverBtnOmni">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Download (Server 1)</span>
+            <span>Download (Server 1 — Default)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy Direct Download Link (Server 1)">
+          <button class="btn-server-copy" id="serverCopyOmni" title="Copy Global Search Mirror Link (Server 1)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
           </button>
         </div>
       </div>
 
-      <!-- Server 2 — Multi-Quality Mirror -->
-      <div class="server-card" id="serverCard02">
+      <!-- Server 2 — Direct High Speed -->
+      <div class="server-card" id="serverCardVidvault">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label alt">Server 2</span>
-            <span class="server-name">Multi-Quality Mirror</span>
+            <span class="server-name">Direct High Speed</span>
             <span class="server-tag-highlight alt">Alternative Server</span>
+          </div>
+          <span class="server-speed">High Speed • Direct</span>
+        </div>
+        <p class="server-desc">Direct high-speed server for instant video access and direct downloads.</p>
+        <div class="server-card-actions">
+          <button class="btn-server-action alt" id="serverBtnVidvault">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download (Server 2)</span>
+          </button>
+          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy Direct Download Link (Server 2)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Server 3 — Multi-Quality Mirror -->
+      <div class="server-card mirror-server" id="serverCard02">
+        <div class="server-card-top">
+          <div class="server-badge-row">
+            <span class="status-indicator mirror"></span>
+            <span class="server-label mirror">Server 3</span>
+            <span class="server-name">Multi-Quality Mirror</span>
+            <span class="server-tag-highlight mirror">Multi-Quality</span>
           </div>
           <span class="server-speed">Multi-Quality API</span>
         </div>
         <p class="server-desc">High performance download API with multiple video resolutions and subtitle files.</p>
         <div class="server-card-actions">
-          <button class="btn-server-action alt" id="serverBtn02">
+          <button class="btn-server-action mirror" id="serverBtn02">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Download (Server 2)</span>
+            <span>Download (Server 3)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopy02" title="Copy Multi-Quality Download Link (Server 2)">
+          <button class="btn-server-copy" id="serverCopy02" title="Copy Multi-Quality Download Link (Server 3)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Server 3 — Global Search Mirror -->
-      <div class="server-card mirror-server" id="serverCardOmni">
-        <div class="server-card-top">
-          <div class="server-badge-row">
-            <span class="status-indicator mirror"></span>
-            <span class="server-label mirror">Server 3</span>
-            <span class="server-name">Global Search Mirror</span>
-            <span class="server-tag-highlight mirror">Search Mirror</span>
-          </div>
-          <span class="server-speed">Web Search</span>
-        </div>
-        <p class="server-desc">Universal search engine mirror for secondary video mirrors and title search.</p>
-        <div class="server-card-actions">
-          <button class="btn-server-action mirror" id="serverBtnOmni">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Search Mirror (Server 3)</span>
           </button>
         </div>
       </div>

@@ -1455,6 +1455,27 @@ function recordCardSeen(m, seenIds, seenTitles) {
   if (key) seenTitles.add(key);
 }
 
+function dynamicallyRotateCatalogPool(pool, rowId) {
+  if (!Array.isArray(pool) || pool.length <= 1) return pool;
+  const real = pool.filter(m => !m._isProcedural);
+  const proc = pool.filter(m => m._isProcedural);
+
+  if (real.length > 1) {
+    if (rowId === 'top10') {
+      real.sort(() => Math.random() - 0.5);
+    } else if (rowId === 'new_releases') {
+      const newest = real.filter(m => Number(m.year || m.releaseInfo || 0) >= 2023).sort(() => Math.random() - 0.5);
+      const rest = real.filter(m => Number(m.year || m.releaseInfo || 0) < 2023).sort(() => Math.random() - 0.5);
+      return [...newest, ...rest, ...proc];
+    } else {
+      const shift = Math.floor(Math.random() * real.length);
+      const rotated = real.slice(shift).concat(real.slice(0, shift));
+      return [...rotated, ...proc];
+    }
+  }
+  return [...real, ...proc];
+}
+
 async function buildHome() {
   const wrap = $('rows');
   if (!wrap) return;
@@ -1464,7 +1485,10 @@ async function buildHome() {
 
   // Hero carousel init: instant from CuratedCatalog top10, then background enrichment
   if (typeof CuratedCatalog !== 'undefined' && CuratedCatalog.getCuratedForCategory) {
-    heroItems = CuratedCatalog.getCuratedForCategory('top10').slice(0, 8);
+    const rawTop = CuratedCatalog.getCuratedForCategory('top10') || [];
+    const realTop = rawTop.filter(m => !m._isProcedural);
+    const shuffledHero = (realTop.length >= 8 ? realTop : rawTop).slice().sort(() => Math.random() - 0.5);
+    heroItems = (shuffledHero.length >= 8 ? shuffledHero : rawTop).slice(0, 8);
     renderHero(0);
     clearInterval(heroTimer);
     heroTimer = setInterval(() => renderHero((heroIdx + 1) % heroItems.length), 8000);
@@ -1515,6 +1539,7 @@ async function buildHome() {
         pool = CuratedCatalog.getCuratedForCategory(r.id) || [];
       }
       pool = dedupeMetas(pool).filter(isCleanSafe);
+      pool = dynamicallyRotateCatalogPool(pool, r.id);
       if (r.mix) pool = pool.sort(() => Math.random() - .5);
       if (r.genre) pool = pool.filter(m => (m.genres || []).includes(r.genre));
       if (r.id === 'new_releases') {
@@ -1597,12 +1622,19 @@ async function buildHome() {
         if (!unseenCombined.length) continue;
 
         const max = r.limit || 60;
-        const items = dedupeMetas(unseenCombined).slice(0, max);
-
-        sec.style.display = '';
-        track.innerHTML = '';
-        items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
-        updateRowDots(sec, track);
+        const currentCount = track.children.length;
+        if (currentCount > 0) {
+          unseenCombined.slice(0, Math.max(0, max - currentCount)).forEach(m => {
+            track.appendChild(buildCard(m, r.badge, 0));
+          });
+          updateRowDots(sec, track);
+        } else {
+          const items = dedupeMetas(unseenCombined).slice(0, max);
+          sec.style.display = '';
+          track.innerHTML = '';
+          items.forEach((m, idx) => track.appendChild(buildCard(m, r.badge, r.isTop10 ? idx + 1 : 0)));
+          updateRowDots(sec, track);
+        }
       } catch (e) {}
     }
   })();
@@ -2109,6 +2141,7 @@ function buildCard(m, badge, rank) {
       return;
     }
 
+    const isSearchResult = !!el.closest('#searchResults');
     if (tp === 'series') {
       if (isContinue) {
         const hist = history[m.id] || history[String(m.id).replace(/^tmdb:/, '')];
@@ -2144,6 +2177,12 @@ function renderHero(i) {
       bg.onload = () => {
         bg.style.opacity = '1';
         bg.style.transform = 'scale(1)';
+      };
+      bg.onerror = function() {
+        this.onerror = null;
+        this.src = createPosterFallback(m.name || m.title, (m.genres && m.genres[0]) || '', m.year || '2024', m.imdbRating || '8.2', m.type || 'movie', true);
+        this.style.opacity = '1';
+        this.style.transform = 'scale(1)';
       };
       setTimeout(() => {
         bg.style.opacity = '1';
@@ -3094,6 +3133,7 @@ async function loadCategoryRows(kind) {
         pool = dedupeMetas(fallbackList).filter(isCleanSafe);
       }
     }
+    pool = dynamicallyRotateCatalogPool(pool, r.id);
     if (!pool.length) return;
 
     // Filter out any title or ID already shown in earlier rows!
@@ -3660,45 +3700,38 @@ function openDownloadModal(ctx) {
       : `${ctx.year ? ctx.year + ' • ' : ''}High-Speed Download Mirrors`.trim();
   }
 
-  // Server 1: VidVault (Primary)
-  const vidVaultUrl = isSeries
-    ? MediaLinks.getVidVaultEpisodeUrl(imdbId, s, e)
-    : MediaLinks.getVidVaultMovieUrl(imdbId);
-
-  // Server 2: 02MovieDownloader (Alternative)
-  const movie02Url = isSeries
-    ? MediaLinks.get02MovieDownloaderEpisodeUrl(imdbId, s, e)
-    : MediaLinks.get02MovieDownloaderMovieUrl(imdbId);
-
-  // Server 3: OmniSave Search Mirror
+  // Server 1: Global Search Mirror (OmniSave - Default & Primary)
   const query = isSeries
     ? MediaLinks.getEpisodeDownloadSearch({ title: ctx.title }, s, e)
     : MediaLinks.getMovieDownloadSearch({ title: ctx.title });
   const omniUrl = MediaLinks.omnisaveUrl(query);
 
-  const b1 = $('serverBtnVidvault');
+  // Server 2: VidVault (Direct High Speed - Alternative)
+  const vidVaultUrl = isSeries
+    ? MediaLinks.getVidVaultEpisodeUrl(imdbId, s, e)
+    : MediaLinks.getVidVaultMovieUrl(imdbId);
+
+  // Server 3: 02MovieDownloader (Multi-Quality Mirror)
+  const movie02Url = isSeries
+    ? MediaLinks.get02MovieDownloaderEpisodeUrl(imdbId, s, e)
+    : MediaLinks.get02MovieDownloaderMovieUrl(imdbId);
+
+  // Wire Server 1: Global Search Mirror (Default)
+  const b1 = $('serverBtnOmni');
   if (b1) {
     b1.onclick = () => {
-      if (!vidVaultUrl) {
-        toast('IMDb ID missing for this title on Server 1');
-        return;
-      }
-      safeOpenDownloadUrl(vidVaultUrl);
-      toast('Opening Server 1 — Direct High Speed…');
+      safeOpenDownloadUrl(omniUrl);
+      toast('Opening Server 1 — Global Search Mirror…');
       closeDownloadModal();
     };
   }
 
-  const c1 = $('serverCopyVidvault');
+  const c1 = $('serverCopyOmni');
   if (c1) {
     c1.onclick = () => {
-      if (!vidVaultUrl) {
-        toast('No Server 1 link available for this title');
-        return;
-      }
       try {
-        navigator.clipboard.writeText(vidVaultUrl).then(
-          () => toast('Server 1 direct link copied to clipboard!'),
+        navigator.clipboard.writeText(omniUrl).then(
+          () => toast('Server 1 mirror link copied to clipboard!'),
           () => toast('Server 1 link ready')
         );
       } catch {
@@ -3707,29 +3740,30 @@ function openDownloadModal(ctx) {
     };
   }
 
-  const b2 = $('serverBtn02');
+  // Wire Server 2: Direct High Speed (VidVault)
+  const b2 = $('serverBtnVidvault');
   if (b2) {
     b2.onclick = () => {
-      if (!movie02Url) {
+      if (!vidVaultUrl) {
         toast('IMDb ID missing for this title on Server 2');
         return;
       }
-      safeOpenDownloadUrl(movie02Url);
-      toast('Opening Server 2 — Multi-Quality Mirror…');
+      safeOpenDownloadUrl(vidVaultUrl);
+      toast('Opening Server 2 — Direct High Speed…');
       closeDownloadModal();
     };
   }
 
-  const c2 = $('serverCopy02');
+  const c2 = $('serverCopyVidvault');
   if (c2) {
     c2.onclick = () => {
-      if (!movie02Url) {
+      if (!vidVaultUrl) {
         toast('No Server 2 link available for this title');
         return;
       }
       try {
-        navigator.clipboard.writeText(movie02Url).then(
-          () => toast('Server 2 link copied to clipboard!'),
+        navigator.clipboard.writeText(vidVaultUrl).then(
+          () => toast('Server 2 direct link copied to clipboard!'),
           () => toast('Server 2 link ready')
         );
       } catch {
@@ -3738,16 +3772,42 @@ function openDownloadModal(ctx) {
     };
   }
 
-  const b3 = $('serverBtnOmni');
+  // Wire Server 3: Multi-Quality Mirror (02MovieDownloader)
+  const b3 = $('serverBtn02');
   if (b3) {
     b3.onclick = () => {
-      safeOpenDownloadUrl(omniUrl);
-      toast('Opening Server 3 — Global Search Mirror…');
+      if (!movie02Url) {
+        toast('IMDb ID missing for this title on Server 3');
+        return;
+      }
+      safeOpenDownloadUrl(movie02Url);
+      toast('Opening Server 3 — Multi-Quality Mirror…');
       closeDownloadModal();
     };
   }
 
+  const c3 = $('serverCopy02');
+  if (c3) {
+    c3.onclick = () => {
+      if (!movie02Url) {
+        toast('No Server 3 link available for this title');
+        return;
+      }
+      try {
+        navigator.clipboard.writeText(movie02Url).then(
+          () => toast('Server 3 link copied to clipboard!'),
+          () => toast('Server 3 link ready')
+        );
+      } catch {
+        toast('Server 3 link ready');
+      }
+    };
+  }
+
   backdrop.classList.add('show');
+  if (b1) {
+    setTimeout(() => { try { b1.focus(); } catch {} }, 50);
+  }
 }
 
 function closeDownloadModal() {
@@ -5149,13 +5209,13 @@ function updatePlayerServerUI() {
   const is2embed = (currentPlayerServer === '2embed' || currentPlayerServer === '2embed-fallback');
   const isBackup = (currentPlayerServer === 'backup');
   if (lbl) {
-    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : (is2embed ? '2Embed (Fast)' : (isBackup ? 'Backup Mirror' : 'Server 1 (HD)'));
+    lbl.textContent = isServer2 ? 'Ultra HD (Fast)' : (is2embed ? '2Embed (Fast)' : (isBackup ? 'Backup Mirror' : 'Stream HD'));
   }
   if (btn) {
     btn.setAttribute('data-server', isServer2 ? 'server2' : (is2embed ? '2embed' : (isBackup ? 'backup' : 'server1')));
     btn.title = isServer2
       ? 'Watching Server: Ultra HD Fast Server'
-      : (isBackup ? 'Watching Server: Backup Stream Mirror' : 'Watching Server: Server 1: High Definition Stream');
+      : (isBackup ? 'Watching Server: Backup Stream Mirror' : 'Watching Server: Stream HD (High Definition Stream)');
   }
   if (sel) {
     sel.value = isServer2 ? 'server2' : (isBackup ? 'server2' : 'server1');
@@ -5354,7 +5414,7 @@ function triggerAutoFailover(currentServerKey) {
     nhdapi: 'NHD API',
     '2embed': '2Embed',
     '2embed-fallback': '2Embed (Backup)',
-    server1: 'Vid API',
+    server1: 'Stream HD',
     backup: 'Backup Server'
   };
 
@@ -5386,7 +5446,7 @@ function startFailoverWatchdog(currentServerKey) {
     nhdapi: 'NHD API',
     '2embed': '2Embed',
     '2embed-fallback': '2Embed (Backup)',
-    server1: 'Vid API',
+    server1: 'Stream HD',
     backup: 'Backup Server'
   };
 

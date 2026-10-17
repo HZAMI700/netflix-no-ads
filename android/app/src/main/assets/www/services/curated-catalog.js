@@ -5,8 +5,8 @@
  * Every title includes verified IMDb ID, TMDb ID, genres, rating, synopsis, and high-res art.
  */
 
-const SEXUAL_KEYWORDS_RE = /\b(erotic|erotica|porn|pornographic|pornography|softcore|hardcore|hentai|ecchi|sex tape|sex worker|threesome|gangbang|orgasm|sexually explicit|sensual massage|nude model|fetish|bdsm|swinger|swingers)\b/i;
-const ADULT_GENRES = new Set(['adult', 'erotica', 'erotic', 'hentai', 'porn']);
+const SEXUAL_KEYWORDS_RE = /\b(erotic|erotica|porn|pornographic|pornography|softcore|hardcore|hentai|ecchi|smut|nsfw|xxx|sex tape|sex worker|threesome|gangbang|orgasm|sexually explicit|sensual massage|nude model|fetish|bdsm|swinger|swingers)\b/i;
+const ADULT_GENRES = new Set(['adult', 'erotica', 'erotic', 'hentai', 'ecchi', 'porn', 'smut', 'nsfw']);
 const ADULT_BLOCKED_IDS = new Set([
   'tt21187592', // The Threesome
   'tt1826940',  // 365 Days
@@ -171,7 +171,41 @@ const CANONICAL_SERIES_METRICS = {
   'tt0475784': { seasonsCount: 4, epsPerSeason: 9, baseRuntime: 60 },    // Westworld
   'tt6763664': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 60 },   // The Haunting of Hill House
   'tt10574558': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 65 },   // Midnight Mass
-  'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 }    // Hannibal
+  'tt2243973': { seasonsCount: 3, epsPerSeason: 13, baseRuntime: 43 },   // Hannibal
+  'tt1196946': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 43 },   // The Mentalist
+  'tt1355642': { seasonsCount: 5, epsPerSeason: 13, baseRuntime: 24 },  // Fullmetal Alchemist: Brotherhood
+  'tt0877057': { seasonsCount: 1, epsPerSeason: 37, baseRuntime: 23 },  // Death Note
+  'tt9335498': { seasonsCount: 4, epsPerSeason: 14, baseRuntime: 24 },  // Demon Slayer: Kimetsu no Yaiba
+  'tt12343534': { seasonsCount: 2, epsPerSeason: 24, baseRuntime: 24 }, // Jujutsu Kaisen
+  'tt13706018': { seasonsCount: 2, epsPerSeason: 18, baseRuntime: 24 }, // Spy x Family
+  'tt22240974': { seasonsCount: 1, epsPerSeason: 28, baseRuntime: 24 }, // Frieren: Beyond Journey's End
+  'tt5626028': { seasonsCount: 7, epsPerSeason: 22, baseRuntime: 24 },  // My Hero Academia
+  'tt1910645': { seasonsCount: 1, epsPerSeason: 24, baseRuntime: 24 },  // Steins;Gate
+  'tt3587428': { seasonsCount: 4, epsPerSeason: 21, baseRuntime: 24 },  // Haikyuu!!
+  'tt5897304': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 24 },  // Mob Psycho 100
+  'tt7731720': { seasonsCount: 1, epsPerSeason: 13, baseRuntime: 24 },  // Violet Evergarden
+  'tt21609100': { seasonsCount: 1, epsPerSeason: 12, baseRuntime: 24 }, // Kaiju No. 8
+  'tt21644326': { seasonsCount: 1, epsPerSeason: 24, baseRuntime: 24 }, // Delicious in Dungeon
+  'tt0988824': { seasonsCount: 21, epsPerSeason: 24, baseRuntime: 23 }, // Naruto: Shippuden
+  'tt3741634': { seasonsCount: 2, epsPerSeason: 12, baseRuntime: 24 },  // Tokyo Ghoul
+  'tt2250192': { seasonsCount: 4, epsPerSeason: 24, baseRuntime: 24 },  // Sword Art Online
+  'tt4508902': { seasonsCount: 2, epsPerSeason: 12, baseRuntime: 24 },  // One-Punch Man
+  'tt9679542': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 24 },  // Dr. STONE
+  'tt7441658': { seasonsCount: 4, epsPerSeason: 42, baseRuntime: 24 },  // Black Clover
+  'tt10461638': { seasonsCount: 1, epsPerSeason: 6, baseRuntime: 58 },  // Dune: Prophecy
+  'tt24053860': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 50 }, // The Day of the Jackal
+  'tt16358384': { seasonsCount: 2, epsPerSeason: 10, baseRuntime: 45 }, // Tulsa King
+  'tt11041332': { seasonsCount: 2, epsPerSeason: 10, baseRuntime: 55 }, // Yellowjackets
+  'tt13406094': { seasonsCount: 2, epsPerSeason: 7, baseRuntime: 60 },  // The White Lotus
+  'tt17677860': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 45 },  // Presumed Innocent
+  'tt8822002': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 50 },   // Kaos
+  'tt11712058': { seasonsCount: 3, epsPerSeason: 10, baseRuntime: 50 }, // Mayor of Kingstown
+  'tt13111078': { seasonsCount: 2, epsPerSeason: 8, baseRuntime: 45 },  // Special Ops: Lioness
+  'tt7661390': { seasonsCount: 2, epsPerSeason: 9, baseRuntime: 55 },   // Gangs of London
+  'tt13649112': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 32 },  // Baby Reindeer
+  'tt11016042': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 55 },  // Ripley
+  'tt2640044': { seasonsCount: 1, epsPerSeason: 9, baseRuntime: 55 },   // Masters of the Air
+  'tt15837600': { seasonsCount: 1, epsPerSeason: 6, baseRuntime: 55 }   // Griselda
 };
 
 const RAW_CURATED_MEDIA = [
@@ -299,6 +333,20 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt4236770', name: 'Yellowstone', type: 'series', year: 2018, imdbRating: '8.7', genres: ['Drama', 'Western'], moviedb_id: 73586, description: 'A ranching family in Montana faces off against others encroaching on their land.' },
   { id: 'tt6468322', name: 'Money Heist', type: 'series', year: 2017, imdbRating: '8.2', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 71446, description: 'An unusual group of robbers attempt to carry out the most perfect robbery in Spanish history - stealing 2.4 billion euros from the Royal Mint of Spain.' },
   { id: 'tt5875444', name: 'Slow Horses', type: 'series', year: 2022, imdbRating: '8.2', genres: ['Drama', 'Thriller'], moviedb_id: 117581, description: 'Follows a dysfunctional team of MI5 agents, and their obnoxious boss Jackson Lamb, as they navigate the espionage world to defend England from sinister forces.' },
+  { id: 'tt10461638', name: 'Dune: Prophecy', type: 'series', year: 2024, imdbRating: '7.7', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 93870, seasonsCount: 1, epsPerSeason: 6, description: 'Set 10,000 years before the ascension of Paul Atreides, following two Harkonnen sisters as they combat forces that threaten the future of humankind.' },
+  { id: 'tt24053860', name: 'The Day of the Jackal', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 221851, seasonsCount: 1, epsPerSeason: 10, description: 'An elusive, lone assassin carries out hits for the highest bidder until he meets his match in a tenacious British intelligence officer.' },
+  { id: 'tt16358384', name: 'Tulsa King', type: 'series', year: 2022, imdbRating: '8.0', genres: ['Crime', 'Drama'], moviedb_id: 153312, seasonsCount: 2, epsPerSeason: 10, description: 'Following his release from prison, mafia capo Dwight The General Manfredi is exiled to Tulsa, Oklahoma, where he builds a new criminal empire.' },
+  { id: 'tt11041332', name: 'Yellowjackets', type: 'series', year: 2021, imdbRating: '7.8', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 111803, seasonsCount: 2, epsPerSeason: 10, description: 'A wildly talented high school girl soccer team becomes the unlucky survivors of a plane crash deep in the remote northern wilderness.' },
+  { id: 'tt13406094', name: 'The White Lotus', type: 'series', year: 2021, imdbRating: '8.0', genres: ['Comedy', 'Drama'], moviedb_id: 111861, seasonsCount: 2, epsPerSeason: 7, description: 'A sharp social satire following the exploits of various employees and guests at an exclusive resort over the span of a week.' },
+  { id: 'tt17677860', name: 'Presumed Innocent', type: 'series', year: 2024, imdbRating: '7.7', genres: ['Crime', 'Drama', 'Mystery', 'Thriller'], moviedb_id: 226411, seasonsCount: 1, epsPerSeason: 8, description: 'A horrific murder upends the Chicago Prosecuting Attorney office when one of its own is suspected of the crime.' },
+  { id: 'tt8822002', name: 'Kaos', type: 'series', year: 2024, imdbRating: '7.5', genres: ['Comedy', 'Drama', 'Fantasy'], moviedb_id: 104877, seasonsCount: 1, epsPerSeason: 8, description: 'As discord reigns on Mount Olympus and almighty Zeus succumbs to paranoia, three mortals are destined to reshape the future of humankind.' },
+  { id: 'tt11712058', name: 'Mayor of Kingstown', type: 'series', year: 2021, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 116450, seasonsCount: 3, epsPerSeason: 10, description: 'The McLusky family are power brokers in Kingstown, Michigan, where the business of incarceration is the only thriving industry.' },
+  { id: 'tt13111078', name: 'Special Ops: Lioness', type: 'series', year: 2023, imdbRating: '7.7', genres: ['Action', 'Drama', 'Thriller'], moviedb_id: 138502, seasonsCount: 2, epsPerSeason: 8, description: 'Joe attempts to balance her personal and professional life as the tip of the spear in the CIA war on terror in the Lioness program.' },
+  { id: 'tt7661390', name: 'Gangs of London', type: 'series', year: 2020, imdbRating: '8.0', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 84661, seasonsCount: 2, epsPerSeason: 9, description: 'Tells the story of London being torn apart by the turbulent power struggles of the international gangs that control it.' },
+  { id: 'tt13649112', name: 'Baby Reindeer', type: 'series', year: 2024, imdbRating: '7.8', genres: ['Biography', 'Drama'], moviedb_id: 242690, seasonsCount: 1, epsPerSeason: 7, description: 'When a struggling comedian shows one act of kindness to a vulnerable woman, it sparks a suffocating obsession that threatens to wreck both of their lives.' },
+  { id: 'tt11016042', name: 'Ripley', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 93740, seasonsCount: 1, epsPerSeason: 8, description: 'A grifter named Tom Ripley living in 1960s New York is hired by a wealthy industrialist to travel to Italy and convince his errant son to return home.' },
+  { id: 'tt2640044', name: 'Masters of the Air', type: 'series', year: 2024, imdbRating: '7.8', genres: ['Action', 'Drama', 'Thriller', 'War'], moviedb_id: 91363, seasonsCount: 1, epsPerSeason: 9, description: 'During World War II, airmen risk their lives with the 100th Bomb Group, a brotherhood forged by courage, loss, and triumph.' },
+  { id: 'tt15837600', name: 'Griselda', type: 'series', year: 2024, imdbRating: '7.2', genres: ['Biography', 'Crime', 'Drama'], moviedb_id: 138501, seasonsCount: 1, epsPerSeason: 6, description: 'Chronicles the life of Griselda Blanco, who created one of the most profitable cartels in history in 1970s and 80s Miami.' },
   // Additional Blockbuster & Modern Masterpieces
   { id: 'tt9244578', name: 'Gladiator II', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Action', 'Adventure', 'Drama'], moviedb_id: 558449, description: 'Years after witnessing the death of Maximus at the hands of his uncle, Lucius must enter the Colosseum after the powerful emperors of Rome conquer his home.' },
   { id: 'tt18412256', name: 'Alien: Romulus', type: 'movie', year: 2024, imdbRating: '7.2', genres: ['Horror', 'Sci-Fi', 'Thriller'], moviedb_id: 945961, description: 'While scavenging the deep ends of a derelict space station, a group of young space colonizers come face to face with the most terrifying life form in the universe.' },
@@ -312,6 +360,25 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt3083016', name: 'Beverly Hills Cop: Axel F', type: 'movie', year: 2024, imdbRating: '6.5', genres: ['Action', 'Comedy', 'Crime'], moviedb_id: 280180, description: 'Detective Axel Foley returns to Beverly Hills after his daughter\'s life is threatened, teaming up with old friends to uncover a conspiracy.' },
   { id: 'tt1684562', name: 'The Fall Guy', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Comedy', 'Drama'], moviedb_id: 746036, description: 'A down-and-out stuntman must track down a missing movie star to save his ex-girlfriend\'s directorial debut.' },
   { id: 'tt9214772', name: 'Monkey Man', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Thriller'], moviedb_id: 560016, description: 'An anonymous young man unleashes a campaign of vengeance against the corrupt leaders who murdered his mother and systematically victimize the poor.' },
+  { id: 'tt4758646', name: 'War Machine', type: 'movie', year: 2017, imdbRating: '6.0', genres: ['Action', 'Comedy', 'Drama', 'War'], moviedb_id: 354287, description: 'An idiosyncratic four-star general leaps in to command NATO forces in Afghanistan, only to be taken down by a journalist no-holds-barred exposé.' },
+  { id: 'tt11384580', name: 'Kingdom of the Planet of the Apes', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 653346, description: 'Many years after the reign of Caesar, a young ape goes on a journey that will lead him to question everything he has been taught about the past.' },
+  { id: 'tt14539740', name: 'Godzilla x Kong: The New Empire', type: 'movie', year: 2024, imdbRating: '6.1', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 823464, description: 'Two ancient titans, Godzilla and Kong, clash in an epic battle as humans unravel their origins and connection to Skull Island mysteries.' },
+  { id: 'tt29623480', name: 'The Wild Robot', type: 'movie', year: 2024, imdbRating: '8.3', genres: ['Animation', 'Adventure', 'Drama', 'Family', 'Sci-Fi'], moviedb_id: 1184918, description: 'After a shipwreck, an intelligent robot named Roz is stranded on an uninhabited island and must learn to adapt to the harsh surroundings.' },
+  { id: 'tt14900170', name: 'Red One', type: 'movie', year: 2024, imdbRating: '6.7', genres: ['Action', 'Adventure', 'Comedy', 'Fantasy'], moviedb_id: 845781, description: 'After Santa Claus is kidnapped, the North Pole Head of Security must team up with the world most infamous tracker to save Christmas.' },
+  { id: 'tt31187429', name: 'Moana 2', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 1241982, description: 'After receiving an unexpected call from her wayfinding ancestors, Moana journeys to the far seas of Oceania into dangerous, long-lost waters.' },
+  { id: 'tt1877836', name: 'Wicked', type: 'movie', year: 2024, imdbRating: '7.9', genres: ['Adventure', 'Drama', 'Family', 'Fantasy'], moviedb_id: 402431, description: 'The story of how a green-skinned woman framed by the Wizard of Oz becomes the Wicked Witch of the West.' },
+  { id: 'tt29268110', name: 'Smile 2', type: 'movie', year: 2024, imdbRating: '7.1', genres: ['Horror', 'Mystery', 'Thriller'], moviedb_id: 1100782, description: 'About to embark on a world tour, a global pop sensation begins experiencing increasingly terrifying and inexplicable events.' },
+  { id: 'tt2049403', name: 'Beetlejuice Beetlejuice', type: 'movie', year: 2024, imdbRating: '6.8', genres: ['Comedy', 'Fantasy', 'Horror'], moviedb_id: 917496, description: 'After a family tragedy, three generations of the Deetz family return home to Winter River, where the portal to the Afterlife is accidentally opened.' },
+  { id: 'tt16426418', name: 'Challengers', type: 'movie', year: 2024, imdbRating: '7.2', genres: ['Drama', 'Romance', 'Sport'], moviedb_id: 937287, description: 'Tashi, a former tennis prodigy turned coach, enters her grand slam champion husband into a challenger event where he faces his former friend.' },
+  { id: 'tt5040012', name: 'Nosferatu', type: 'movie', year: 2024, imdbRating: '7.8', genres: ['Fantasy', 'Horror', 'Mystery'], moviedb_id: 426063, description: 'A gothic tale of obsession between a haunted young woman and the terrifying vampire infatuated with her, causing untold horror.' },
+  { id: 'tt20215234', name: 'Conclave', type: 'movie', year: 2024, imdbRating: '7.6', genres: ['Drama', 'Mystery', 'Thriller'], moviedb_id: 974950, description: 'When Cardinal Lawrence is tasked with leading one of the world most secretive and ancient events, selecting a new Pope, he finds himself at the center of a conspiracy.' },
+  { id: 'tt26612950', name: 'Anora', type: 'movie', year: 2024, imdbRating: '7.9', genres: ['Comedy', 'Drama', 'Romance'], moviedb_id: 1064213, description: 'Anora, a young spirited dancer from Brooklyn, gets her chance at a modern romance story when she meets and impulsively marries the son of an oligarch.' },
+  { id: 'tt6987588', name: 'The Ministry of Ungentlemanly Warfare', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Comedy', 'Drama', 'War'], moviedb_id: 799583, description: 'The British military recruits a small group of highly skilled soldiers to strike against German forces behind enemy lines during World War II.' },
+  { id: 'tt15314262', name: 'The Beekeeper', type: 'movie', year: 2024, imdbRating: '6.4', genres: ['Action', 'Crime', 'Thriller'], moviedb_id: 866398, description: 'One man brutal campaign for vengeance takes on national stakes after he is revealed to be a former operative of a powerful clandestine organization.' },
+  { id: 'tt3359350', name: 'Road House', type: 'movie', year: 2024, imdbRating: '6.2', genres: ['Action', 'Thriller'], moviedb_id: 359410, description: 'An ex-UFC fighter takes a job as a bouncer at a rough Florida Keys roadhouse, only to discover that this paradise is not all it seems.' },
+  { id: 'tt26753003', name: 'Trap', type: 'movie', year: 2024, imdbRating: '6.0', genres: ['Crime', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 1032823, description: 'A father and teen daughter attend a pop concert, where they realize they are at the center of a dark and sinister event staged by police to catch a serial killer.' },
+  { id: 'tt20215968', name: 'Hit Man', type: 'movie', year: 2023, imdbRating: '6.8', genres: ['Comedy', 'Crime', 'Romance'], moviedb_id: 974635, description: 'A mild-mannered professor moonlighting as a fake hit man for police descends into dangerous territory when he falls for a client.' },
+  { id: 'tt14911502', name: 'Blink Twice', type: 'movie', year: 2024, imdbRating: '6.6', genres: ['Mystery', 'Thriller'], moviedb_id: 840705, description: 'When tech billionaire Slater King meets cocktail waitress Frida at his fundraising gala, he invites her to join him and his friends on his private island.' },
   { id: 'tt23289160', name: 'Godzilla Minus One', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 940721, description: 'Post-war Japan is at its lowest point when a new crisis emerges in the form of a giant monster, baptized in the horrific power of the atomic bomb.' },
   { id: 'tt14230458', name: 'Poor Things', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Comedy', 'Drama', 'Romance', 'Sci-Fi'], moviedb_id: 792307, description: 'The incredible tale of Bella Baxter, a young woman brought back to life by the brilliant and unorthodox scientist Dr. Godwin Baxter.' },
   { id: 'tt1517268', name: 'Barbie', type: 'movie', year: 2023, imdbRating: '6.8', genres: ['Adventure', 'Comedy', 'Fantasy'], moviedb_id: 346698, description: 'Barbie and Ken are having the time of their lives in the colorful Barbieland until an existential crisis leads them on a journey to the real world.' },
@@ -430,7 +497,30 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt0475784', name: 'Westworld', type: 'series', year: 2016, imdbRating: '8.5', genres: ['Drama', 'Mystery', 'Sci-Fi'], moviedb_id: 63247, seasonsCount: 4, epsPerSeason: 9, description: 'At the intersection of the near future and the reimagined past, waiting a world in which every human appetite can be indulged without consequence.' },
   { id: 'tt6763664', name: 'The Haunting of Hill House', type: 'series', year: 2018, imdbRating: '8.6', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 72844, seasonsCount: 1, epsPerSeason: 10, description: 'Flashing between past and present, a fractured family confronts haunting memories of their old home and the terrifying events that drove them from it.' },
   { id: 'tt10574558', name: 'Midnight Mass', type: 'series', year: 2021, imdbRating: '7.7', genres: ['Drama', 'Fantasy', 'Horror', 'Mystery'], moviedb_id: 93812, seasonsCount: 1, epsPerSeason: 7, description: 'An isolated island community experiences miraculous events - and frightening omens - after the arrival of a charismatic, mysterious young priest.' },
-  { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' }
+  { id: 'tt2243973', name: 'Hannibal', type: 'series', year: 2013, imdbRating: '8.5', genres: ['Crime', 'Drama', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 40008, seasonsCount: 3, epsPerSeason: 13, description: 'Explores the early relationship between renowned psychiatrist Dr. Hannibal Lecter and criminal profiler Will Graham.' },
+  { id: 'tt1196946', name: 'The Mentalist', type: 'series', year: 2008, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Mystery'], moviedb_id: 5920, seasonsCount: 7, epsPerSeason: 22, description: 'Patrick Jane, a former celebrity psychic medium, uses his razor-sharp observational skills and psychological trickery as an independent consultant for the California Bureau of Investigation to hunt down serial killer Red John and solve complex homicides.' },
+
+  // Extensive SFW Anime Collection (Series & Masterpiece Films)
+  { id: 'tt13706018', name: 'Spy x Family', type: 'series', year: 2022, imdbRating: '8.4', genres: ['Animation', 'Action', 'Comedy', 'Anime'], moviedb_id: 120089, seasonsCount: 2, epsPerSeason: 18, description: 'A spy known as Twilight must marry and adopt a girl as part of his undercover mission, unaware that his wife is an assassin and daughter is a telepath.' },
+  { id: 'tt22240974', name: 'Frieren: Beyond Journey\'s End', type: 'series', year: 2023, imdbRating: '8.9', genres: ['Animation', 'Adventure', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 209867, seasonsCount: 1, epsPerSeason: 28, description: 'An elven mage and her fellow adventurers have defeated the Demon King. As her former companions pass away, Frieren embarks on a journey to reflect upon the meaning of time.' },
+  { id: 'tt5626028', name: 'My Hero Academia', type: 'series', year: 2016, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Anime'], moviedb_id: 65930, seasonsCount: 7, epsPerSeason: 22, description: 'A superhero-loving boy born without any superpowers is determined to enroll in a prestigious hero academy and learn what it truly means to be a hero.' },
+  { id: 'tt1910645', name: 'Steins;Gate', type: 'series', year: 2011, imdbRating: '8.8', genres: ['Animation', 'Comedy', 'Drama', 'Sci-Fi', 'Anime'], moviedb_id: 40590, seasonsCount: 1, epsPerSeason: 24, description: 'After discovering time travel, an eccentric scientist and his colleagues must find a way to stop an evil organization and their evil plots.' },
+  { id: 'tt3587428', name: 'Haikyuu!!', type: 'series', year: 2014, imdbRating: '8.7', genres: ['Animation', 'Comedy', 'Drama', 'Sport', 'Anime'], moviedb_id: 60863, seasonsCount: 4, epsPerSeason: 21, description: 'Determined to be like the volleyball championship star the "Little Giant", small-statured Shoyo Hinata revives the volleyball club at his middle school.' },
+  { id: 'tt5897304', name: 'Mob Psycho 100', type: 'series', year: 2016, imdbRating: '8.6', genres: ['Animation', 'Action', 'Comedy', 'Anime'], moviedb_id: 67075, seasonsCount: 3, epsPerSeason: 12, description: 'A psychic middle school boy tries to live a normal life and keep his growing emotional capacity under control, but his power continually causes trouble.' },
+  { id: 'tt7731720', name: 'Violet Evergarden', type: 'series', year: 2018, imdbRating: '8.4', genres: ['Animation', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 73362, seasonsCount: 1, epsPerSeason: 13, description: 'In the aftermath of a great war, Violet Evergarden, a young former child soldier, undertakes a journey as an Auto Memory Doll to write letters and understand "I love you".' },
+  { id: 'tt21609100', name: 'Kaiju No. 8', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi', 'Anime'], moviedb_id: 207381, seasonsCount: 1, epsPerSeason: 12, description: 'In a world plagued by dangerous monsters called Kaiju, Kafka Hibino works as a cleanup worker until a small Kaiju gives him immense superhuman abilities.' },
+  { id: 'tt21644326', name: 'Delicious in Dungeon', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Animation', 'Adventure', 'Comedy', 'Fantasy', 'Anime'], moviedb_id: 208249, seasonsCount: 1, epsPerSeason: 24, description: 'When dungeon adventurer Laios and his party run out of rations while trying to rescue his sister, they decide to cook and eat monsters found along their descent.' },
+  { id: 'tt0988824', name: 'Naruto: Shippuden', type: 'series', year: 2007, imdbRating: '8.7', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 31910, seasonsCount: 21, epsPerSeason: 24, description: 'Naruto Uzumaki is a loud, hyperactive, adolescent ninja who constantly searches for approval and recognition, as well as to become Hokage.' },
+  { id: 'tt3741634', name: 'Tokyo Ghoul', type: 'series', year: 2014, imdbRating: '7.8', genres: ['Animation', 'Action', 'Drama', 'Horror', 'Anime'], moviedb_id: 61374, seasonsCount: 2, epsPerSeason: 12, description: 'A Tokyo college student is attacked by a ghoul, a superpowered human who feeds on human flesh. He survives, but has become part ghoul and becomes a fugitive.' },
+  { id: 'tt2250192', name: 'Sword Art Online', type: 'series', year: 2012, imdbRating: '7.5', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 45782, seasonsCount: 4, epsPerSeason: 24, description: 'Players trapped in a virtual reality MMORPG discover that if they die in the game, they die in real life. Kirito fights to clear all 100 floors.' },
+  { id: 'tt4508902', name: 'One-Punch Man', type: 'series', year: 2015, imdbRating: '8.7', genres: ['Animation', 'Action', 'Comedy', 'Sci-Fi', 'Anime'], moviedb_id: 63926, seasonsCount: 2, epsPerSeason: 12, description: 'The story of Saitama, a superhero who can defeat any opponent with a single punch but seeks to find a worthy opponent after growing bored by a lack of challenge.' },
+  { id: 'tt9679542', name: 'Dr. STONE', type: 'series', year: 2019, imdbRating: '8.1', genres: ['Animation', 'Action', 'Adventure', 'Sci-Fi', 'Anime'], moviedb_id: 86031, seasonsCount: 3, epsPerSeason: 12, description: 'Awakened into a world where all humanity has been petrified into stone for millennia, genius boy Senku uses science to rebuild human civilization.' },
+  { id: 'tt7441658', name: 'Black Clover', type: 'series', year: 2017, imdbRating: '8.3', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 73223, seasonsCount: 4, epsPerSeason: 42, description: 'Asta and Yuno were abandoned at the same church in the Clover Kingdom. Born without magic in a world where magic is everything, Asta vows to become Wizard King.' },
+  { id: 'tt5323662', name: 'A Silent Voice', type: 'movie', year: 2016, imdbRating: '8.1', genres: ['Animation', 'Drama', 'Romance', 'Anime'], moviedb_id: 378064, description: 'A young man is ostracized by his classmates after he bullies a deaf girl to the point he decides to make amends years later.' },
+  { id: 'tt9426210', name: 'Weathering With You', type: 'movie', year: 2019, imdbRating: '7.5', genres: ['Animation', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 568160, description: 'A high-school boy who has run away to Tokyo befriends a girl who appears to be able to manipulate the weather.' },
+  { id: 'tt16428256', name: 'Suzume', type: 'movie', year: 2022, imdbRating: '7.6', genres: ['Animation', 'Action', 'Adventure', 'Fantasy', 'Anime'], moviedb_id: 923936, description: 'A modern action adventure road story where a 17-year-old girl named Suzume helps a mysterious young man close mystical doors unleashing devastation across Japan.' },
+  { id: 'tt6587046', name: 'The Boy and the Heron', type: 'movie', year: 2023, imdbRating: '7.5', genres: ['Animation', 'Adventure', 'Drama', 'Fantasy', 'Anime'], moviedb_id: 508883, description: 'In the wake of his mother\'s death during the Pacific War, a young boy named Mahito ventures into a world shared by the living and the dead.' },
+  { id: 'tt0094625', name: 'Akira', type: 'movie', year: 1988, imdbRating: '8.0', genres: ['Animation', 'Action', 'Sci-Fi', 'Anime'], moviedb_id: 149, description: 'A secret military project endangers Neo-Tokyo when it turns a biker gang member into a rampaging psychic psychopath that only two kids and a group of psychics can stop.' }
 ];
 
 // Core Curated Media enriched with posters/backdrops
@@ -941,10 +1031,14 @@ for (let i = 0; i < CURATED_MEDIA.length; i++) {
   if (m.name) {
     const n = m.name.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
+    const norm = n.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (norm !== n && !CURATED_TITLE_MAP.has(norm)) CURATED_TITLE_MAP.set(norm, m);
   }
   if (m.title && m.title !== m.name) {
     const t = m.title.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
+    const normT = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (normT !== t && !CURATED_TITLE_MAP.has(normT)) CURATED_TITLE_MAP.set(normT, m);
   }
 }
 
@@ -987,24 +1081,154 @@ function getCuratedById(id) {
   return null;
 }
 
+function normalizeSearchText(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/[ة]/g, 'ه')
+    .replace(/[ى]/g, 'ي')
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[''´`]/g, '')
+    .replace(/[-_.:,!?&/\\|()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function levenshteinDistance(s1, s2) {
+  if (s1 === s2) return 0;
+  if (!s1.length) return s2.length;
+  if (!s2.length) return s1.length;
+  if (Math.abs(s1.length - s2.length) > 2) return 99;
+  const m = s1.length, n = s2.length;
+  let prev = new Array(n + 1);
+  let curr = new Array(n + 1);
+  for (let j = 0; j <= n; j++) prev[j] = j;
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    const c1 = s1.charCodeAt(i - 1);
+    for (let j = 1; j <= n; j++) {
+      const cost = c1 === s2.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    const temp = prev; prev = curr; curr = temp;
+  }
+  return prev[n];
+}
+
 function searchCurated(query, limit = 200) {
   if (!query || typeof query !== 'string') return [];
-  const q = query.toLowerCase().trim();
-  if (!q) return [];
-  const realMatches = [];
-  const procMatches = [];
-  for (let i = 0; i < CURATED_MEDIA.length; i++) {
-    const m = CURATED_MEDIA[i];
-    const nameMatch = m.name && m.name.toLowerCase().includes(q);
-    const genreMatch = m.genres && m.genres.some(g => g.toLowerCase().includes(q));
-    const descMatch = m.description && m.description.toLowerCase().includes(q);
-    if (nameMatch || genreMatch || descMatch) {
-      if (!m._isProcedural) realMatches.push(m);
-      else procMatches.push(m);
-      if (limit && realMatches.length + procMatches.length >= limit * 2) break;
+  const nq = normalizeSearchText(query);
+  if (!nq) return [];
+  const qTokens = nq.split(' ').filter(Boolean);
+  const rootNq = nq.replace(/^(the|a|an)\s+/i, '');
+
+  const realMedia = CORE_CURATED_MEDIA;
+  const scoredReal = [];
+
+  for (let i = 0; i < realMedia.length; i++) {
+    const m = realMedia[i];
+    const normTitle = normalizeSearchText(m.name || m.title || '');
+    if (!normTitle) continue;
+    let score = 0;
+    const rootTitle = normTitle.replace(/^(the|a|an)\s+/i, '');
+
+    if (normTitle === nq) {
+      score += 60000;
+    } else if (rootTitle === rootNq && rootNq.length > 0) {
+      score += 55000;
+    } else if (normTitle.startsWith(nq + ' ') || normTitle.startsWith(nq + ':')) {
+      score += 35000;
+    } else if (rootTitle.startsWith(rootNq + ' ') || rootTitle.startsWith(rootNq + ':')) {
+      score += 32000;
+    } else if (normTitle.startsWith(nq)) {
+      score += 26000;
+    } else if (rootTitle.startsWith(rootNq)) {
+      score += 24000;
+    } else if (normTitle.includes(' ' + nq + ' ') || normTitle.endsWith(' ' + nq)) {
+      score += 20000;
+    } else if (rootTitle.includes(' ' + rootNq + ' ') || rootTitle.endsWith(' ' + rootNq)) {
+      score += 18000;
+    } else if (normTitle.includes(nq)) {
+      score += 14000;
+    } else if (rootTitle.includes(rootNq)) {
+      score += 12000;
+    }
+
+    const tTokens = normTitle.split(' ').filter(Boolean);
+    let matchedTokens = 0;
+    for (const qt of qTokens) {
+      let best = 0;
+      for (const tt of tTokens) {
+        if (tt === qt) {
+          best = Math.max(best, 4500);
+        } else if (tt.startsWith(qt) && qt.length >= 2) {
+          best = Math.max(best, 2800);
+        } else if (qt.length >= 4) {
+          const d = levenshteinDistance(qt, tt);
+          if (qt.length >= 6 && d <= 2) best = Math.max(best, 2200);
+          else if (d <= 1) best = Math.max(best, 2200);
+        }
+      }
+      if (best > 0) {
+        score += best;
+        matchedTokens++;
+      }
+    }
+    if (matchedTokens === qTokens.length && qTokens.length > 1) {
+      score += 7000;
+    }
+
+    if (m.cast && Array.isArray(m.cast)) {
+      for (const c of m.cast) {
+        if (normalizeSearchText(c).includes(nq)) { score += 4000; break; }
+      }
+    }
+    if (m.director && normalizeSearchText(m.director).includes(nq)) score += 4000;
+
+    if (m.genres && Array.isArray(m.genres)) {
+      for (const g of m.genres) {
+        const ng = normalizeSearchText(g);
+        if (ng === nq) { score += 3500; break; }
+        if (ng.includes(nq)) { score += 1800; break; }
+      }
+    }
+
+    if (m.year && String(m.year) === nq) score += 2000;
+
+    if (score > 0) {
+      score += 6000; // Real curated bonus
+      score += (parseFloat(m.imdbRating) || 0) * 120;
+      scoredReal.push({ m, score });
+    } else if (m.description && normalizeSearchText(m.description).includes(nq)) {
+      const descScore = 1500 + ((parseFloat(m.imdbRating) || 0) * 50);
+      scoredReal.push({ m, score: descScore });
     }
   }
-  return [...realMatches, ...procMatches].slice(0, limit);
+
+  scoredReal.sort((a, b) => b.score - a.score);
+  const realResults = scoredReal.map(x => x.m);
+
+  // Procedural items: fast scan for remaining slots
+  const procResults = [];
+  const qLower = query.toLowerCase().trim();
+  const maxProcNeeded = Math.max(0, limit - realResults.length);
+  if (maxProcNeeded > 0) {
+    for (let i = 0; i < CURATED_MEDIA.length; i++) {
+      const m = CURATED_MEDIA[i];
+      if (!m._isProcedural) continue;
+      const nameMatch = m.name && m.name.toLowerCase().includes(qLower);
+      const genreMatch = m.genres && m.genres.some(g => g.toLowerCase().includes(qLower));
+      if (nameMatch || genreMatch) {
+        procResults.push(m);
+        if (procResults.length >= maxProcNeeded * 1.5) break;
+      }
+    }
+  }
+
+  return [...realResults, ...procResults].slice(0, limit);
 }
 
 function getCuratedMovies(offset = 0, limit = 48) {
@@ -1178,6 +1402,23 @@ function getCuratedForCategory(catId) {
     case 'b_new_scifi':
       return pick(movies, m => m.genres && m.genres.includes('Sci-Fi') && m.year >= 2021, 60);
 
+    // Browse categories: Anime
+    case 'b_anime_top':
+      return [
+        ...series.filter(s => !s._isProcedural && (s.genres || []).some(g => /anime|animation/i.test(g))).slice(0, 20),
+        ...movies.filter(m => !m._isProcedural && (m.genres || []).some(g => /anime|animation/i.test(g))).slice(0, 20)
+      ];
+    case 'b_anime_series':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)), 60);
+    case 'b_anime_movies':
+      return pick(movies, m => (m.genres || []).some(g => /anime|animation/i.test(g)), 60);
+    case 'b_anime_action':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)) && (s.genres.includes('Action') || s.genres.includes('Adventure')), 60);
+    case 'b_anime_fantasy':
+      return pick(series, s => (s.genres || []).some(g => /anime|animation/i.test(g)) && (s.genres.includes('Fantasy') || s.genres.includes('Sci-Fi')), 60);
+    case 'b_anime_classics':
+      return pick([...movies, ...series], x => (x.genres || []).some(g => /anime|animation/i.test(g)) && parseFloat(x.imdbRating) >= 8.5, 60);
+
     default:
       return [];
   }
@@ -1215,6 +1456,36 @@ function auditCatalog(extraList = []) {
   };
 }
 
+function registerExternalMedia(m) {
+  if (!m || !isSafeContent(m)) return;
+  const id = m.id || m.imdb_id || m.imdb || (m.moviedb_id ? `tmdb:${m.moviedb_id}` : null);
+  if (!id) return;
+  if (!CURATED_MAP.has(id)) {
+    CURATED_MEDIA.push(m);
+    if (m.type === 'series') CURATED_SERIES.push(m);
+    else CURATED_MOVIES.push(m);
+  }
+  CURATED_MAP.set(id, m);
+  if (m.imdb_id) CURATED_MAP.set(m.imdb_id, m);
+  if (m.imdb) CURATED_MAP.set(m.imdb, m);
+  if (m.moviedb_id) {
+    CURATED_MAP.set(String(m.moviedb_id), m);
+    CURATED_MAP.set(`tmdb:${m.moviedb_id}`, m);
+  }
+  if (m.tmdbId) {
+    CURATED_MAP.set(String(m.tmdbId), m);
+    CURATED_MAP.set(`tmdb:${m.tmdbId}`, m);
+  }
+  if (m.name) {
+    const n = m.name.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
+  }
+  if (m.title) {
+    const t = m.title.toLowerCase().trim();
+    if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
+  }
+}
+
 const CuratedCatalog = {
   CURATED_MEDIA,
   CURATED_MAP,
@@ -1230,6 +1501,7 @@ const CuratedCatalog = {
   getSeriesVideos: generateSeriesVideos,
   getCuratedMovies,
   getCuratedSeries,
+  registerExternalMedia,
   auditCatalog
 };
 

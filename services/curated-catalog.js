@@ -191,7 +191,21 @@ const CANONICAL_SERIES_METRICS = {
   'tt2250192': { seasonsCount: 4, epsPerSeason: 24, baseRuntime: 24 },  // Sword Art Online
   'tt4508902': { seasonsCount: 2, epsPerSeason: 12, baseRuntime: 24 },  // One-Punch Man
   'tt9679542': { seasonsCount: 3, epsPerSeason: 12, baseRuntime: 24 },  // Dr. STONE
-  'tt7441658': { seasonsCount: 4, epsPerSeason: 42, baseRuntime: 24 }   // Black Clover
+  'tt7441658': { seasonsCount: 4, epsPerSeason: 42, baseRuntime: 24 },  // Black Clover
+  'tt10461638': { seasonsCount: 1, epsPerSeason: 6, baseRuntime: 58 },  // Dune: Prophecy
+  'tt24053860': { seasonsCount: 1, epsPerSeason: 10, baseRuntime: 50 }, // The Day of the Jackal
+  'tt16358384': { seasonsCount: 2, epsPerSeason: 10, baseRuntime: 45 }, // Tulsa King
+  'tt11041332': { seasonsCount: 2, epsPerSeason: 10, baseRuntime: 55 }, // Yellowjackets
+  'tt13406094': { seasonsCount: 2, epsPerSeason: 7, baseRuntime: 60 },  // The White Lotus
+  'tt17677860': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 45 },  // Presumed Innocent
+  'tt8822002': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 50 },   // Kaos
+  'tt11712058': { seasonsCount: 3, epsPerSeason: 10, baseRuntime: 50 }, // Mayor of Kingstown
+  'tt13111078': { seasonsCount: 2, epsPerSeason: 8, baseRuntime: 45 },  // Special Ops: Lioness
+  'tt7661390': { seasonsCount: 2, epsPerSeason: 9, baseRuntime: 55 },   // Gangs of London
+  'tt13649112': { seasonsCount: 1, epsPerSeason: 7, baseRuntime: 32 },  // Baby Reindeer
+  'tt11016042': { seasonsCount: 1, epsPerSeason: 8, baseRuntime: 55 },  // Ripley
+  'tt2640044': { seasonsCount: 1, epsPerSeason: 9, baseRuntime: 55 },   // Masters of the Air
+  'tt15837600': { seasonsCount: 1, epsPerSeason: 6, baseRuntime: 55 }   // Griselda
 };
 
 const RAW_CURATED_MEDIA = [
@@ -319,6 +333,20 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt4236770', name: 'Yellowstone', type: 'series', year: 2018, imdbRating: '8.7', genres: ['Drama', 'Western'], moviedb_id: 73586, description: 'A ranching family in Montana faces off against others encroaching on their land.' },
   { id: 'tt6468322', name: 'Money Heist', type: 'series', year: 2017, imdbRating: '8.2', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 71446, description: 'An unusual group of robbers attempt to carry out the most perfect robbery in Spanish history - stealing 2.4 billion euros from the Royal Mint of Spain.' },
   { id: 'tt5875444', name: 'Slow Horses', type: 'series', year: 2022, imdbRating: '8.2', genres: ['Drama', 'Thriller'], moviedb_id: 117581, description: 'Follows a dysfunctional team of MI5 agents, and their obnoxious boss Jackson Lamb, as they navigate the espionage world to defend England from sinister forces.' },
+  { id: 'tt10461638', name: 'Dune: Prophecy', type: 'series', year: 2024, imdbRating: '7.7', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 93870, seasonsCount: 1, epsPerSeason: 6, description: 'Set 10,000 years before the ascension of Paul Atreides, following two Harkonnen sisters as they combat forces that threaten the future of humankind.' },
+  { id: 'tt24053860', name: 'The Day of the Jackal', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Action', 'Crime', 'Drama', 'Thriller'], moviedb_id: 221851, seasonsCount: 1, epsPerSeason: 10, description: 'An elusive, lone assassin carries out hits for the highest bidder until he meets his match in a tenacious British intelligence officer.' },
+  { id: 'tt16358384', name: 'Tulsa King', type: 'series', year: 2022, imdbRating: '8.0', genres: ['Crime', 'Drama'], moviedb_id: 153312, seasonsCount: 2, epsPerSeason: 10, description: 'Following his release from prison, mafia capo Dwight The General Manfredi is exiled to Tulsa, Oklahoma, where he builds a new criminal empire.' },
+  { id: 'tt11041332', name: 'Yellowjackets', type: 'series', year: 2021, imdbRating: '7.8', genres: ['Drama', 'Horror', 'Mystery'], moviedb_id: 111803, seasonsCount: 2, epsPerSeason: 10, description: 'A wildly talented high school girl soccer team becomes the unlucky survivors of a plane crash deep in the remote northern wilderness.' },
+  { id: 'tt13406094', name: 'The White Lotus', type: 'series', year: 2021, imdbRating: '8.0', genres: ['Comedy', 'Drama'], moviedb_id: 111861, seasonsCount: 2, epsPerSeason: 7, description: 'A sharp social satire following the exploits of various employees and guests at an exclusive resort over the span of a week.' },
+  { id: 'tt17677860', name: 'Presumed Innocent', type: 'series', year: 2024, imdbRating: '7.7', genres: ['Crime', 'Drama', 'Mystery', 'Thriller'], moviedb_id: 226411, seasonsCount: 1, epsPerSeason: 8, description: 'A horrific murder upends the Chicago Prosecuting Attorney office when one of its own is suspected of the crime.' },
+  { id: 'tt8822002', name: 'Kaos', type: 'series', year: 2024, imdbRating: '7.5', genres: ['Comedy', 'Drama', 'Fantasy'], moviedb_id: 104877, seasonsCount: 1, epsPerSeason: 8, description: 'As discord reigns on Mount Olympus and almighty Zeus succumbs to paranoia, three mortals are destined to reshape the future of humankind.' },
+  { id: 'tt11712058', name: 'Mayor of Kingstown', type: 'series', year: 2021, imdbRating: '8.2', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 116450, seasonsCount: 3, epsPerSeason: 10, description: 'The McLusky family are power brokers in Kingstown, Michigan, where the business of incarceration is the only thriving industry.' },
+  { id: 'tt13111078', name: 'Special Ops: Lioness', type: 'series', year: 2023, imdbRating: '7.7', genres: ['Action', 'Drama', 'Thriller'], moviedb_id: 138502, seasonsCount: 2, epsPerSeason: 8, description: 'Joe attempts to balance her personal and professional life as the tip of the spear in the CIA war on terror in the Lioness program.' },
+  { id: 'tt7661390', name: 'Gangs of London', type: 'series', year: 2020, imdbRating: '8.0', genres: ['Action', 'Crime', 'Drama'], moviedb_id: 84661, seasonsCount: 2, epsPerSeason: 9, description: 'Tells the story of London being torn apart by the turbulent power struggles of the international gangs that control it.' },
+  { id: 'tt13649112', name: 'Baby Reindeer', type: 'series', year: 2024, imdbRating: '7.8', genres: ['Biography', 'Drama'], moviedb_id: 242690, seasonsCount: 1, epsPerSeason: 7, description: 'When a struggling comedian shows one act of kindness to a vulnerable woman, it sparks a suffocating obsession that threatens to wreck both of their lives.' },
+  { id: 'tt11016042', name: 'Ripley', type: 'series', year: 2024, imdbRating: '8.1', genres: ['Crime', 'Drama', 'Thriller'], moviedb_id: 93740, seasonsCount: 1, epsPerSeason: 8, description: 'A grifter named Tom Ripley living in 1960s New York is hired by a wealthy industrialist to travel to Italy and convince his errant son to return home.' },
+  { id: 'tt2640044', name: 'Masters of the Air', type: 'series', year: 2024, imdbRating: '7.8', genres: ['Action', 'Drama', 'Thriller', 'War'], moviedb_id: 91363, seasonsCount: 1, epsPerSeason: 9, description: 'During World War II, airmen risk their lives with the 100th Bomb Group, a brotherhood forged by courage, loss, and triumph.' },
+  { id: 'tt15837600', name: 'Griselda', type: 'series', year: 2024, imdbRating: '7.2', genres: ['Biography', 'Crime', 'Drama'], moviedb_id: 138501, seasonsCount: 1, epsPerSeason: 6, description: 'Chronicles the life of Griselda Blanco, who created one of the most profitable cartels in history in 1970s and 80s Miami.' },
   // Additional Blockbuster & Modern Masterpieces
   { id: 'tt9244578', name: 'Gladiator II', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Action', 'Adventure', 'Drama'], moviedb_id: 558449, description: 'Years after witnessing the death of Maximus at the hands of his uncle, Lucius must enter the Colosseum after the powerful emperors of Rome conquer his home.' },
   { id: 'tt18412256', name: 'Alien: Romulus', type: 'movie', year: 2024, imdbRating: '7.2', genres: ['Horror', 'Sci-Fi', 'Thriller'], moviedb_id: 945961, description: 'While scavenging the deep ends of a derelict space station, a group of young space colonizers come face to face with the most terrifying life form in the universe.' },
@@ -332,6 +360,25 @@ const RAW_CURATED_MEDIA = [
   { id: 'tt3083016', name: 'Beverly Hills Cop: Axel F', type: 'movie', year: 2024, imdbRating: '6.5', genres: ['Action', 'Comedy', 'Crime'], moviedb_id: 280180, description: 'Detective Axel Foley returns to Beverly Hills after his daughter\'s life is threatened, teaming up with old friends to uncover a conspiracy.' },
   { id: 'tt1684562', name: 'The Fall Guy', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Comedy', 'Drama'], moviedb_id: 746036, description: 'A down-and-out stuntman must track down a missing movie star to save his ex-girlfriend\'s directorial debut.' },
   { id: 'tt9214772', name: 'Monkey Man', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Thriller'], moviedb_id: 560016, description: 'An anonymous young man unleashes a campaign of vengeance against the corrupt leaders who murdered his mother and systematically victimize the poor.' },
+  { id: 'tt4758646', name: 'War Machine', type: 'movie', year: 2017, imdbRating: '6.0', genres: ['Action', 'Comedy', 'Drama', 'War'], moviedb_id: 354287, description: 'An idiosyncratic four-star general leaps in to command NATO forces in Afghanistan, only to be taken down by a journalist no-holds-barred exposé.' },
+  { id: 'tt11384580', name: 'Kingdom of the Planet of the Apes', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 653346, description: 'Many years after the reign of Caesar, a young ape goes on a journey that will lead him to question everything he has been taught about the past.' },
+  { id: 'tt14539740', name: 'Godzilla x Kong: The New Empire', type: 'movie', year: 2024, imdbRating: '6.1', genres: ['Action', 'Adventure', 'Sci-Fi'], moviedb_id: 823464, description: 'Two ancient titans, Godzilla and Kong, clash in an epic battle as humans unravel their origins and connection to Skull Island mysteries.' },
+  { id: 'tt29623480', name: 'The Wild Robot', type: 'movie', year: 2024, imdbRating: '8.3', genres: ['Animation', 'Adventure', 'Drama', 'Family', 'Sci-Fi'], moviedb_id: 1184918, description: 'After a shipwreck, an intelligent robot named Roz is stranded on an uninhabited island and must learn to adapt to the harsh surroundings.' },
+  { id: 'tt14900170', name: 'Red One', type: 'movie', year: 2024, imdbRating: '6.7', genres: ['Action', 'Adventure', 'Comedy', 'Fantasy'], moviedb_id: 845781, description: 'After Santa Claus is kidnapped, the North Pole Head of Security must team up with the world most infamous tracker to save Christmas.' },
+  { id: 'tt31187429', name: 'Moana 2', type: 'movie', year: 2024, imdbRating: '7.0', genres: ['Animation', 'Adventure', 'Comedy', 'Family', 'Fantasy'], moviedb_id: 1241982, description: 'After receiving an unexpected call from her wayfinding ancestors, Moana journeys to the far seas of Oceania into dangerous, long-lost waters.' },
+  { id: 'tt1877836', name: 'Wicked', type: 'movie', year: 2024, imdbRating: '7.9', genres: ['Adventure', 'Drama', 'Family', 'Fantasy'], moviedb_id: 402431, description: 'The story of how a green-skinned woman framed by the Wizard of Oz becomes the Wicked Witch of the West.' },
+  { id: 'tt29268110', name: 'Smile 2', type: 'movie', year: 2024, imdbRating: '7.1', genres: ['Horror', 'Mystery', 'Thriller'], moviedb_id: 1100782, description: 'About to embark on a world tour, a global pop sensation begins experiencing increasingly terrifying and inexplicable events.' },
+  { id: 'tt2049403', name: 'Beetlejuice Beetlejuice', type: 'movie', year: 2024, imdbRating: '6.8', genres: ['Comedy', 'Fantasy', 'Horror'], moviedb_id: 917496, description: 'After a family tragedy, three generations of the Deetz family return home to Winter River, where the portal to the Afterlife is accidentally opened.' },
+  { id: 'tt16426418', name: 'Challengers', type: 'movie', year: 2024, imdbRating: '7.2', genres: ['Drama', 'Romance', 'Sport'], moviedb_id: 937287, description: 'Tashi, a former tennis prodigy turned coach, enters her grand slam champion husband into a challenger event where he faces his former friend.' },
+  { id: 'tt5040012', name: 'Nosferatu', type: 'movie', year: 2024, imdbRating: '7.8', genres: ['Fantasy', 'Horror', 'Mystery'], moviedb_id: 426063, description: 'A gothic tale of obsession between a haunted young woman and the terrifying vampire infatuated with her, causing untold horror.' },
+  { id: 'tt20215234', name: 'Conclave', type: 'movie', year: 2024, imdbRating: '7.6', genres: ['Drama', 'Mystery', 'Thriller'], moviedb_id: 974950, description: 'When Cardinal Lawrence is tasked with leading one of the world most secretive and ancient events, selecting a new Pope, he finds himself at the center of a conspiracy.' },
+  { id: 'tt26612950', name: 'Anora', type: 'movie', year: 2024, imdbRating: '7.9', genres: ['Comedy', 'Drama', 'Romance'], moviedb_id: 1064213, description: 'Anora, a young spirited dancer from Brooklyn, gets her chance at a modern romance story when she meets and impulsively marries the son of an oligarch.' },
+  { id: 'tt6987588', name: 'The Ministry of Ungentlemanly Warfare', type: 'movie', year: 2024, imdbRating: '6.9', genres: ['Action', 'Comedy', 'Drama', 'War'], moviedb_id: 799583, description: 'The British military recruits a small group of highly skilled soldiers to strike against German forces behind enemy lines during World War II.' },
+  { id: 'tt15314262', name: 'The Beekeeper', type: 'movie', year: 2024, imdbRating: '6.4', genres: ['Action', 'Crime', 'Thriller'], moviedb_id: 866398, description: 'One man brutal campaign for vengeance takes on national stakes after he is revealed to be a former operative of a powerful clandestine organization.' },
+  { id: 'tt3359350', name: 'Road House', type: 'movie', year: 2024, imdbRating: '6.2', genres: ['Action', 'Thriller'], moviedb_id: 359410, description: 'An ex-UFC fighter takes a job as a bouncer at a rough Florida Keys roadhouse, only to discover that this paradise is not all it seems.' },
+  { id: 'tt26753003', name: 'Trap', type: 'movie', year: 2024, imdbRating: '6.0', genres: ['Crime', 'Horror', 'Mystery', 'Thriller'], moviedb_id: 1032823, description: 'A father and teen daughter attend a pop concert, where they realize they are at the center of a dark and sinister event staged by police to catch a serial killer.' },
+  { id: 'tt20215968', name: 'Hit Man', type: 'movie', year: 2023, imdbRating: '6.8', genres: ['Comedy', 'Crime', 'Romance'], moviedb_id: 974635, description: 'A mild-mannered professor moonlighting as a fake hit man for police descends into dangerous territory when he falls for a client.' },
+  { id: 'tt14911502', name: 'Blink Twice', type: 'movie', year: 2024, imdbRating: '6.6', genres: ['Mystery', 'Thriller'], moviedb_id: 840705, description: 'When tech billionaire Slater King meets cocktail waitress Frida at his fundraising gala, he invites her to join him and his friends on his private island.' },
   { id: 'tt23289160', name: 'Godzilla Minus One', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Action', 'Adventure', 'Drama', 'Sci-Fi'], moviedb_id: 940721, description: 'Post-war Japan is at its lowest point when a new crisis emerges in the form of a giant monster, baptized in the horrific power of the atomic bomb.' },
   { id: 'tt14230458', name: 'Poor Things', type: 'movie', year: 2023, imdbRating: '7.9', genres: ['Comedy', 'Drama', 'Romance', 'Sci-Fi'], moviedb_id: 792307, description: 'The incredible tale of Bella Baxter, a young woman brought back to life by the brilliant and unorthodox scientist Dr. Godwin Baxter.' },
   { id: 'tt1517268', name: 'Barbie', type: 'movie', year: 2023, imdbRating: '6.8', genres: ['Adventure', 'Comedy', 'Fantasy'], moviedb_id: 346698, description: 'Barbie and Ken are having the time of their lives in the colorful Barbieland until an existential crisis leads them on a journey to the real world.' },
@@ -984,10 +1031,14 @@ for (let i = 0; i < CURATED_MEDIA.length; i++) {
   if (m.name) {
     const n = m.name.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(n)) CURATED_TITLE_MAP.set(n, m);
+    const norm = n.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (norm !== n && !CURATED_TITLE_MAP.has(norm)) CURATED_TITLE_MAP.set(norm, m);
   }
   if (m.title && m.title !== m.name) {
     const t = m.title.toLowerCase().trim();
     if (!CURATED_TITLE_MAP.has(t)) CURATED_TITLE_MAP.set(t, m);
+    const normT = t.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (normT !== t && !CURATED_TITLE_MAP.has(normT)) CURATED_TITLE_MAP.set(normT, m);
   }
 }
 

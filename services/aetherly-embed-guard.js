@@ -194,7 +194,13 @@
       try { window.top?.focus(); } catch {}
       try { self.focus(); } catch {}
 
-      // 4. Refocus hidden guard button + window.focus() after 60ms to kill multi-popup chains
+      // 4. Refocus hidden guard button + window.focus() at 50ms and 60ms to kill multi-popup chains
+      setTimeout(() => {
+        try { window.focus(); } catch {}
+        try { window.top?.focus(); } catch {}
+        try { self.focus(); } catch {}
+      }, 50);
+
       setTimeout(() => {
         if (guardBtn) {
           try { guardBtn.focus(); } catch {}

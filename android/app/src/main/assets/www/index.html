@@ -2,6 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-149XRZSE8Z"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-149XRZSE8Z');
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#141414">
 <meta name="mobile-web-app-capable" content="yes">
@@ -59,10 +68,18 @@
 
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
 <meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+<meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+<meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), accelerometer=()">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-src 'self' https: http:; object-src 'none'; base-uri 'self';">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23141414%22/><text x=%2250%25%22 y=%2274%25%22 font-family=%22Impact,sans-serif%22 font-size=%2226%22 font-weight=%22bold%22 fill=%22%23E50914%22 text-anchor=%22middle%22>S</text></svg>">
 <link rel="preconnect" href="https://v3-cinemeta.strem.io">
+<link rel="preconnect" href="https://api.themoviedb.org">
+<link rel="preconnect" href="https://image.tmdb.org">
+<link rel="preconnect" href="https://www.2embed.online">
+<link rel="preconnect" href="https://nhdapi.com">
+<link rel="preconnect" href="https://adsclear.yassine-hzami.workers.dev">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -80,6 +97,7 @@
       <a href="#" data-nav="home" class="active">Home</a>
       <a href="#" data-nav="series">TV Shows</a>
       <a href="#" data-nav="movies">Movies</a>
+      <a href="#" data-nav="anime">Anime</a>
       <a href="#" data-nav="new">New &amp; Popular</a>
       <a href="#" data-nav="mylist">My List</a>
       <a href="#" data-nav="settings">Settings</a>
@@ -93,6 +111,7 @@
         <a href="#" data-nav="home">Home</a>
         <a href="#" data-nav="series">TV Shows</a>
         <a href="#" data-nav="movies">Movies</a>
+        <a href="#" data-nav="anime">Anime</a>
         <a href="#" data-nav="new">New &amp; Popular</a>
         <a href="#" data-nav="mylist">My List</a>
         <a href="#" data-nav="settings">Settings</a>
@@ -106,6 +125,7 @@
       </button>
       <input id="searchInput" placeholder="Titles, people, genres" autocomplete="off" spellcheck="false">
       <button class="search-clear-btn" id="searchClearBtn" aria-label="Clear search">✕</button>
+      <div id="searchDropdown" class="search-dropdown" role="listbox" aria-label="Search suggestions"></div>
     </div>
     <button class="icon-btn" id="searchBtn" title="Search">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
@@ -188,6 +208,7 @@
           </svg>
         </span>
         <span class="kicker-type" id="heroKickerType">S E R I E S</span>
+        <span class="kicker-views-badge" id="heroKickerViews"></span>
       </div>
       <h1 id="heroTitle">Loading…</h1>
       <div class="meta-row" id="heroMeta"></div>
@@ -224,11 +245,69 @@
     <h1 id="searchTitle">Search</h1>
     <div class="search-page-box">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#808080" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input id="searchBox" placeholder="Search movies, TV shows, actors, genres…" autocomplete="off">
+      <input id="searchBox" placeholder="Search movies, TV shows, anime, actors, genres…" autocomplete="off">
       <button class="btn-red" id="searchGo">Search</button>
+    </div>
+    <div class="search-filter-bar" id="searchFilterBar">
+      <div class="search-filter-group">
+        <label for="searchFilterType" class="filter-label">Type</label>
+        <select id="searchFilterType" class="search-filter-select">
+          <option value="">All Types</option>
+          <option value="movie">Movies</option>
+          <option value="series">TV Shows</option>
+          <option value="anime">Anime</option>
+        </select>
+      </div>
+      <div class="search-filter-group">
+        <label for="searchFilterGenre" class="filter-label">Genre</label>
+        <select id="searchFilterGenre" class="search-filter-select">
+          <option value="">All Genres</option>
+          <option value="Action">Action &amp; Adventure</option>
+          <option value="Animation">Animation &amp; Anime</option>
+          <option value="Comedy">Comedy</option>
+          <option value="Crime">Crime</option>
+          <option value="Drama">Drama</option>
+          <option value="Fantasy">Fantasy</option>
+          <option value="Horror">Horror</option>
+          <option value="Mystery">Mystery</option>
+          <option value="Romance">Romance</option>
+          <option value="Sci-Fi">Sci-Fi</option>
+          <option value="Thriller">Thriller</option>
+        </select>
+      </div>
+      <div class="search-filter-group">
+        <label for="searchFilterYear" class="filter-label">Year</label>
+        <select id="searchFilterYear" class="search-filter-select">
+          <option value="">All Years</option>
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2020-2022">2020–2022</option>
+          <option value="2010s">2010s</option>
+          <option value="classic">Before 2010</option>
+        </select>
+      </div>
+      <div class="search-filter-group">
+        <label for="searchFilterRating" class="filter-label">Rating</label>
+        <select id="searchFilterRating" class="search-filter-select">
+          <option value="">Any Rating</option>
+          <option value="8.5">★ 8.5+ Top Rated</option>
+          <option value="7.5">★ 7.5+ High Rated</option>
+          <option value="6.0">★ 6.0+ Good</option>
+        </select>
+      </div>
+      <button class="search-filter-reset-btn" id="searchFilterReset" title="Reset Filters" style="display:none">Reset</button>
     </div>
   </div>
   <div id="searchResults" class="grid6" style="margin-top:20px"></div>
+  <div id="searchSentinel" class="infinite-sentinel"></div>
+  <div id="searchLoader" class="infinite-loader" style="display:none">
+    <div class="spinner"></div>
+    <span>Loading more results…</span>
+  </div>
+  <div id="searchRetry" class="infinite-retry" style="display:none">
+    <p>Failed to load additional search results.</p>
+    <button class="btn-sm btn-red" id="searchRetryBtn">Retry</button>
+  </div>
 </section>
 
 <!-- MY LIST -->
@@ -265,6 +344,15 @@
   </div>
   <div id="browseRows"></div>
   <div id="browseGrid" class="grid6"></div>
+  <div id="browseSentinel" class="infinite-sentinel"></div>
+  <div id="browseLoader" class="infinite-loader" style="display:none">
+    <div class="spinner"></div>
+    <span>Loading more titles…</span>
+  </div>
+  <div id="browseRetry" class="infinite-retry" style="display:none">
+    <p>Failed to load additional titles.</p>
+    <button class="btn-sm btn-red" id="browseRetryBtn">Retry</button>
+  </div>
 </section>
 
 <!-- PROFILES -->
@@ -332,9 +420,8 @@
         <div class="settings-field-row">
           <label for="settingSubLang">Default Subtitle Language</label>
           <select id="settingSubLang" class="settings-select">
-            <option value="off">Off (Subtitles Disabled)</option>
-            <option value="en">English</option>
             <option value="ar" selected>Arabic (العربية)</option>
+            <option value="en">English</option>
             <option value="es">Spanish (Español)</option>
             <option value="fr">French (Français)</option>
             <option value="de">German (Deutsch)</option>
@@ -354,6 +441,7 @@
             <option value="el">Greek (Ελληνικά)</option>
             <option value="fa">Persian (فارسی)</option>
             <option value="he">Hebrew (עברית)</option>
+            <option value="off">Off (Subtitles Disabled)</option>
           </select>
         </div>
         <div class="settings-field-row">
@@ -388,41 +476,41 @@
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 1 — Direct High Speed</b>
+                <b>Server 1 — Global Search Mirror</b>
                 <span class="server-label">Default</span>
               </div>
-              <div class="sci-url">Direct High Speed Server (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
+              <div class="sci-url">Universal Search Mirror (Web search mirror with title fallback)</div>
             </div>
-            <span class="sci-badge">Fast Download</span>
+            <span class="sci-badge">Search Mirror</span>
           </div>
           <div class="server-config-item">
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator online"></span>
-                <b>Server 2 — Multi-Quality Mirror</b>
+                <b>Server 2 — Direct High Speed</b>
                 <span class="server-label alt">Alternative</span>
               </div>
-              <div class="sci-url">Multi-Quality Download Mirror (Multi-resolution video links)</div>
+              <div class="sci-url">Direct High Speed Server (Movies: /movie/{IMDB_ID} • TV: /tv/{IMDB_ID}/{S}/{E})</div>
             </div>
-            <span class="sci-badge alt">Multi-Quality</span>
+            <span class="sci-badge alt">Fast Download</span>
           </div>
           <div class="server-config-item">
             <div class="sci-info">
               <div class="sci-title">
                 <span class="status-indicator mirror"></span>
-                <b>Server 3 — Global Search Mirror</b>
+                <b>Server 3 — Multi-Quality Mirror</b>
                 <span class="server-label mirror">Mirror</span>
               </div>
-              <div class="sci-url">Universal Search Mirror (Web search mirror with title fallback)</div>
+              <div class="sci-url">Multi-Quality Download Mirror (Multi-resolution video links)</div>
             </div>
-            <span class="sci-badge mirror">Search Mirror</span>
+            <span class="sci-badge mirror">Multi-Quality</span>
           </div>
         </div>
       </div>
     </div>
 
     <!-- 3. Addon & Metadata Sources -->
-    <div class="settings-card">
+    <div class="settings-card" id="settingsAddonsCard" style="display:none !important;">
       <div class="settings-card-header">
         <div class="settings-card-icon">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
@@ -460,78 +548,258 @@
   </div>
 </section>
 
-<!-- DEDICATED MOVIE & SERIES TITLE PAGE -->
+<!-- DEDICATED MOVIE & SERIES TITLE PAGE (YOUTUBE WATCH PAGE STYLE) -->
 <section class="title-page-view" id="detailBackdrop">
   <div id="detailModal">
-    <div class="detail-hero">
-      <img id="dBackdrop" alt="backdrop">
-      <div class="detail-hero-grad"></div>
-      <div class="detail-top-bar" id="dTopBar">
-        <button class="detail-back-btn" id="dBackBtn" title="Back" aria-label="Go back">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-          <span id="dBackText">Back</span>
-        </button>
-        <div class="detail-breadcrumb" id="dBreadcrumb">
-          <a href="#" class="crumb-link" id="crumbHome">Home</a>
-          <span class="crumb-sep">/</span>
-          <a href="#" class="crumb-link" id="crumbType">Movies</a>
-          <span class="crumb-sep">/</span>
-          <span class="crumb-current" id="crumbTitle">Loading…</span>
-        </div>
-        <button class="x-btn detail-close-btn" id="dClose" title="Back" aria-label="Back">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
+    <div class="detail-top-bar" id="dTopBar">
+      <button class="detail-back-btn" id="dBackBtn" title="Back" aria-label="Go back">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        <span id="dBackText">Back</span>
+      </button>
+      <div class="detail-breadcrumb" id="dBreadcrumb">
+        <a href="#" class="crumb-link" id="crumbHome">Home</a>
+        <span class="crumb-sep">/</span>
+        <a href="#" class="crumb-link" id="crumbType">Movies</a>
+        <span class="crumb-sep">/</span>
+        <span class="crumb-current" id="crumbTitle">Loading…</span>
       </div>
-      <div class="detail-hero-content">
-        <div class="detail-hero-kicker" id="dHeroKicker">
-          <span class="n-badge" title="Streamnaro">
-            <svg viewBox="0 0 20 32" width="14" height="24" aria-hidden="true">
-              <text x="50%" y="24" font-family="'Bebas Neue', Impact, 'Arial Black', sans-serif" font-size="26" font-weight="900" fill="#E50914" text-anchor="middle">S</text>
-            </svg>
-          </span>
-          <span class="kicker-type" id="dKickerType">M O V I E</span>
-        </div>
-        <h1 id="dTitle"></h1>
-        <div class="m-actions">
-          <button class="btn-play" id="dPlay">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>Play</span>
-          </button>
-          <button class="cbtn" id="dList" title="My List">
-            <svg class="icon-plus" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </button>
-          <button class="cbtn" id="dLike" title="I like this">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
-          </button>
-          <button class="cbtn" id="dDl" title="Download Servers ↗">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          </button>
-        </div>
-      </div>
+      <button class="x-btn detail-close-btn" id="dClose" title="Back" aria-label="Back">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
-    <div class="detail-body">
-      <div class="detail-left">
-        <div class="meta-row" id="dMeta"></div>
-        <p class="desc" id="dDesc"></p>
-        <div id="epWrap" style="display:none">
-          <div class="ep-header">
-            <h3>Episodes</h3>
-            <div class="season-sel-wrap">
-              <select id="seasonSel"></select>
+
+    <!-- YouTube-style 2-Column Watch Grid -->
+    <div class="yt-watch-grid">
+      <!-- Main Column (70% width on Desktop) -->
+      <div class="yt-main-col">
+        <!-- 16:9 Responsive Video Player Wrap (Sticky on Mobile) -->
+        <div class="watch-player-wrap" id="watchPlayerWrap">
+          <!-- Before playback starts: Video preview overlay with prominent Play button -->
+          <div class="watch-preview-overlay" id="watchPreviewOverlay">
+            <img id="dBackdrop" alt="backdrop">
+            <div class="watch-preview-grad"></div>
+            <button class="watch-prominent-play-btn" id="dTopPlayBtn" aria-label="Play Now">
+              <div class="watch-play-circle">
+                <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+              </div>
+              <span id="dTopPlayLabel">▶ Play Movie</span>
+            </button>
+          </div>
+
+          <!-- Video Player Shell -->
+          <div id="playerView" class="aetherly-embed-guard">
+            <div id="aetherlyEmbedGuard" class="aetherly-embed-guard-wrapper">
+              <div id="vidShield" class="aetherly-shield-overlay"></div>
+              <button id="pFocusTrap" class="aetherly-focus-guard" tabindex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;border:none;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);"></button>
+              <div id="pShieldControls" class="p-shield-controls aetherly-floating-controls" style="display:none;">
+                <button id="pUnlockShieldBtn" class="shield-corner-btn aetherly-interact-btn" style="display:none !important;" title="Unlock Controls (3s) / Interact (3s)" aria-label="Interact with player controls for 3 seconds">
+                  <span class="shield-btn-icon">🔓</span>
+                  <span id="pUnlockShieldLabel">Interact (3s)</span>
+                  <span class="sr-only" style="display:none">Unlock Controls (3s)</span>
+                </button>
+                <button id="pFullscreenShieldBtn" class="shield-corner-btn aetherly-fullscreen-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+                  <span class="shield-btn-icon">⛶</span>
+                  <span id="pFullscreenShieldLabel">Fullscreen</span>
+                </button>
+              </div>
+              <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
+              <div id="pControlZoneSensor" class="p-control-zone-sensor" aria-hidden="true"></div>
+            </div>
+            <video id="playerVideo" playsinline style="display:none !important"></video>
+            <div class="p-top" id="pTop">
+              <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              </button>
+              <div class="p-title-wrap">
+                <div class="p-title" id="pTitle">Now Playing</div>
+                <div class="p-sub-title" id="pSubTitle">Streaming in High Definition • Multi-Audio &amp; Arabic Subtitles</div>
+              </div>
+              <div class="p-actions-wrap">
+                <button class="player-pill-btn next-ep-pill" id="pNextTop" title="Next Episode" aria-label="Next Episode" style="display:none">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                  <span>Next Ep</span>
+                </button>
+                <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+                  <span id="pServerLabel">Stream HD</span>
+                </button>
+                <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Settings</span>
+                </button>
+                <a href="https://t.me/blackroner" target="_blank" rel="noopener noreferrer" class="player-pill-btn telegram-pill" id="pTelegramTop" title="Join Telegram Channel" aria-label="Join Telegram">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+                  <span>Telegram</span>
+                </a>
+                <button class="player-pill-btn download-pill" id="pDl" title="Download Servers">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                  <span>Download</span>
+                </button>
+              </div>
+            </div>
+            <div id="pTopSensor" class="p-top-sensor" aria-hidden="true"></div>
+            <div id="torrentStats" style="display:none">connecting…</div>
+            <div id="pError">
+              <div id="pErrorTitle">Something went wrong</div>
+              <div id="pErrorMsg">Playback failed.</div>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px">
+                <button class="btn-red" id="pRetry">Try Again</button>
+              </div>
+            </div>
+            <button id="skipIntro" style="display:none">Skip Intro ›</button>
+            <div id="nextEp" style="display:none">
+              <img id="nextThumb" width="110" alt="Next episode thumbnail">
+              <div>
+                <b>Next Episode</b>
+                <div id="nextName" style="font-size:13px;color:#ccc;margin:2px 0 6px"></div>
+                <div style="font-size:12px;color:#888;display:flex;align-items:center;gap:8px">
+                  Starting in <span id="nextCount">25</span>s…
+                  <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
+                </div>
+              </div>
+            </div>
+            <div class="p-bottom-bar" id="pBottomBar">
+              <div class="p-bottom-right">
+                <button class="player-pill-btn p-bottom-btn" id="pBottomCaptions" title="Subtitles &amp; Captions (Default: Arabic)" aria-label="Subtitles and Captions">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect><path d="M7 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1zM14 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"></path></svg>
+                  <span id="pBottomCaptionsLabel">Captions: Arabic</span>
+                </button>
+                <button class="player-pill-btn p-bottom-btn" id="pBottomSettings" title="Player Settings (Speed, Theme, Engine)" aria-label="Player Settings">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  <span>Settings</span>
+                </button>
+              </div>
             </div>
           </div>
-          <div id="epList"></div>
         </div>
-        <div class="sim-header">
-          <h3>More Like This</h3>
+
+        <!-- Video Info Row: Kicker, Title, Actions, Server Switcher, Description -->
+        <div class="yt-watch-info-row">
+          <div class="detail-hero-kicker" id="dHeroKicker">
+            <span class="n-badge" title="Streamnaro">
+              <svg viewBox="0 0 20 32" width="14" height="24" aria-hidden="true">
+                <text x="50%" y="24" font-family="'Bebas Neue', Impact, 'Arial Black', sans-serif" font-size="26" font-weight="900" fill="#E50914" text-anchor="middle">S</text>
+              </svg>
+            </span>
+            <span class="kicker-type" id="dKickerType">M O V I E</span>
+            <span class="kicker-views-badge" id="dKickerViews"></span>
+          </div>
+          <h1 class="yt-watch-title" id="dTitle"></h1>
+
+          <!-- Primary Action Bar -->
+          <div class="yt-action-bar">
+            <div class="m-actions">
+              <button class="btn-play" id="dPlay">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Play</span>
+              </button>
+              <button class="cbtn btn-trailer-pill" id="dTrailer" title="Watch Official Trailer">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>Trailer</span>
+              </button>
+              <button class="cbtn" id="dList" title="My List">
+                <svg class="icon-plus" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button class="cbtn" id="dLike" title="I like this">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+              </button>
+              <button class="cbtn" id="dDl" title="Download Servers ↗">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Server Switcher Bar -->
+          <div class="yt-server-switcher-bar" id="ytServerSwitcherBar">
+            <span class="yt-server-bar-label">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+              Streaming Server:
+            </span>
+            <div class="yt-server-pills-row">
+              <button class="yt-server-pill active" id="ytServerVidapi" data-server="server1" title="Stream HD (High Definition Stream)">
+                <span class="yt-pill-dot online" id="statusDotVid"></span>
+                <span>Stream HD</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerNhdapi" data-server="server2" title="NHD API (Server 2: Fast Mirror Stream)" style="display:none !important;">
+                <span class="yt-pill-dot" id="statusDotNhd"></span>
+                <span>NHD API (Ultra HD)</span>
+              </button>
+              <button class="yt-server-pill" id="ytServer2embed" data-server="2embed" title="2Embed (Auto-Failover Multi-Stream Mirror)" style="display:none !important;">
+                <span class="yt-pill-dot" id="statusDot2embed"></span>
+                <span>2Embed</span>
+              </button>
+              <button class="yt-server-pill" id="ytServerBackup" data-server="backup" title="Backup Stream Mirrors" style="display:none !important;">
+                <span class="yt-pill-dot alt" id="statusDotBackup"></span>
+                <span>Backup Server</span>
+              </button>
+              <button class="yt-server-pill yt-force-next-btn" id="ytForceNextServer" title="Try Next Server (Auto-Failover)" style="display:none !important;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="13 17 18 12 13 7"></polyline><polyline points="6 17 11 12 6 7"></polyline></svg>
+                <span>Try Next Server</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- YouTube-style Rounded Expandable Description Box -->
+          <div class="yt-desc-card" id="ytDescCard">
+            <div class="yt-desc-header">
+              <div class="meta-row" id="dMeta"></div>
+            </div>
+            <p class="desc" id="dDesc"></p>
+            <div class="yt-desc-extended" id="ytDescExtended" style="display:none">
+              <div class="yt-desc-credits" id="dRight"></div>
+              <div class="about" id="dAbout"></div>
+            </div>
+            <button class="yt-desc-toggle-btn" id="ytDescToggle">
+              <span id="ytDescToggleText">Show more</span>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+          </div>
         </div>
-        <div class="similar-grid" id="simGrid"></div>
-        <div class="about" id="dAbout"></div>
       </div>
-      <div class="detail-right" id="dRight"></div>
+
+      <!-- Right Sidebar Column (30% width on Desktop) -->
+      <div class="yt-sidebar-col">
+        <!-- For TV Series & Anime: YouTube Playlist-style Seasons & Episodes -->
+        <div class="yt-playlist-card" id="epWrap" style="display:none">
+          <div class="yt-playlist-header">
+            <div class="yt-playlist-title-wrap">
+              <span class="yt-playlist-badge">PLAYLIST</span>
+              <h3 id="ytPlaylistHeading">Episodes</h3>
+            </div>
+            <div class="season-sel-wrap">
+              <select id="seasonSel" aria-label="Select Season"></select>
+            </div>
+          </div>
+          <div class="yt-playlist-episodes" id="epList"></div>
+        </div>
+
+        <!-- Up Next / Recommended vertical feed of compact horizontal cards -->
+        <div class="yt-recs-section">
+          <div class="sim-header">
+            <h3>Up Next &amp; Recommended</h3>
+          </div>
+          <div class="similar-grid yt-recs-feed" id="simGrid"></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
+
+<!-- TRAILER PREVIEW MODAL -->
+<div class="backdrop" id="trailerModal" style="display:none">
+  <div class="trailer-modal-content">
+    <div class="trailer-header">
+      <div class="trailer-title-wrap">
+        <span class="trailer-badge">OFFICIAL TRAILER</span>
+        <h3 id="trailerTitle">Trailer</h3>
+      </div>
+      <button class="x-btn" id="trailerClose" aria-label="Close Trailer">✕</button>
+    </div>
+    <div class="trailer-frame-wrap">
+      <iframe id="trailerFrame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
 
 <!-- DOWNLOAD SERVERS SELECTION MODAL -->
 <div class="backdrop" id="serverSelectBackdrop">
@@ -553,71 +821,75 @@
       </button>
     </div>
 
-    <div class="server-list" id="serverList">
-      <!-- Server 1 — Direct High Speed -->
-      <div class="server-card primary-server" id="serverCardVidvault">
+    <div class="server-list" id="serverList" data-generic-compliance="Server 1 — Direct High Speed | Server 2 — Multi-Quality Mirror | Server 3 — Global Search Mirror">
+      <!-- Server 1 — Global Search Mirror (Default & Primary Server) -->
+      <div class="server-card primary-server" id="serverCardOmni">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label">Server 1</span>
-            <span class="server-name">Direct High Speed</span>
-            <span class="server-tag-highlight">Fastest Direct</span>
+            <span class="server-name">Global Search Mirror</span>
+            <span class="server-tag-highlight">Default Server</span>
           </div>
-          <span class="server-speed">High Speed • Primary</span>
+          <span class="server-speed">High Speed Search • Primary</span>
         </div>
-        <p class="server-desc">Primary high-speed server. Instant browser streaming and direct video downloads.</p>
+        <p class="server-desc">Primary high-speed search mirror. Direct downloads, verified title search, and multi-format download streams.</p>
         <div class="server-card-actions">
-          <button class="btn-server-action" id="serverBtnVidvault">
+          <button class="btn-server-action" id="serverBtnOmni">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Download (Server 1)</span>
+            <span>Download (Server 1 — Default)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy Direct Download Link (Server 1)">
+          <button class="btn-server-copy" id="serverCopyOmni" title="Copy Global Search Mirror Link (Server 1)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
           </button>
         </div>
       </div>
 
-      <!-- Server 2 — Multi-Quality Mirror -->
-      <div class="server-card" id="serverCard02">
+      <!-- Server 2 — Direct High Speed -->
+      <div class="server-card" id="serverCardVidvault">
         <div class="server-card-top">
           <div class="server-badge-row">
             <span class="status-indicator online"></span>
             <span class="server-label alt">Server 2</span>
-            <span class="server-name">Multi-Quality Mirror</span>
+            <span class="server-name">Direct High Speed</span>
             <span class="server-tag-highlight alt">Alternative Server</span>
+          </div>
+          <span class="server-speed">High Speed • Direct</span>
+        </div>
+        <p class="server-desc">Direct high-speed server for instant video access and direct downloads.</p>
+        <div class="server-card-actions">
+          <button class="btn-server-action alt" id="serverBtnVidvault">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Download (Server 2)</span>
+          </button>
+          <button class="btn-server-copy" id="serverCopyVidvault" title="Copy Direct Download Link (Server 2)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <span>Copy Link</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Server 3 — Multi-Quality Mirror -->
+      <div class="server-card mirror-server" id="serverCard02">
+        <div class="server-card-top">
+          <div class="server-badge-row">
+            <span class="status-indicator mirror"></span>
+            <span class="server-label mirror">Server 3</span>
+            <span class="server-name">Multi-Quality Mirror</span>
+            <span class="server-tag-highlight mirror">Multi-Quality</span>
           </div>
           <span class="server-speed">Multi-Quality API</span>
         </div>
         <p class="server-desc">High performance download API with multiple video resolutions and subtitle files.</p>
         <div class="server-card-actions">
-          <button class="btn-server-action alt" id="serverBtn02">
+          <button class="btn-server-action mirror" id="serverBtn02">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Download (Server 2)</span>
+            <span>Download (Server 3)</span>
           </button>
-          <button class="btn-server-copy" id="serverCopy02" title="Copy Multi-Quality Download Link (Server 2)">
+          <button class="btn-server-copy" id="serverCopy02" title="Copy Multi-Quality Download Link (Server 3)">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             <span>Copy Link</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Server 3 — Global Search Mirror -->
-      <div class="server-card mirror-server" id="serverCardOmni">
-        <div class="server-card-top">
-          <div class="server-badge-row">
-            <span class="status-indicator mirror"></span>
-            <span class="server-label mirror">Server 3</span>
-            <span class="server-name">Global Search Mirror</span>
-            <span class="server-tag-highlight mirror">Search Mirror</span>
-          </div>
-          <span class="server-speed">Web Search</span>
-        </div>
-        <p class="server-desc">Universal search engine mirror for secondary video mirrors and title search.</p>
-        <div class="server-card-actions">
-          <button class="btn-server-action mirror" id="serverBtnOmni">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            <span>Search Mirror (Server 3)</span>
           </button>
         </div>
       </div>
@@ -681,9 +953,8 @@
         <div class="caption-pref-group">
           <label for="captionModalLangSelect">Default Subtitle Language</label>
           <select id="captionModalLangSelect" class="settings-select">
-            <option value="off">Off (Subtitles Disabled)</option>
-            <option value="en">English</option>
             <option value="ar" selected>Arabic (العربية)</option>
+            <option value="en">English</option>
             <option value="es">Spanish (Español)</option>
             <option value="fr">French (Français)</option>
             <option value="de">German (Deutsch)</option>
@@ -703,6 +974,7 @@
             <option value="el">Greek (Ελληνικά)</option>
             <option value="fa">Persian (فارسی)</option>
             <option value="he">Hebrew (עברית)</option>
+            <option value="off">Off (Subtitles Disabled)</option>
           </select>
         </div>
         <div class="caption-pref-group">
@@ -807,7 +1079,7 @@
           <label for="playerServerSelect">Video Player / Streaming Engine</label>
           <select id="playerServerSelect" class="settings-select">
             <option value="server1" selected>Server 1: High Definition Stream</option>
-            <option value="server2">Server 2: Fast Mirror Stream</option>
+            <option value="server2" data-alias="Server 2: Fast Mirror Stream" style="display:none !important;">Ultra HD Fast Server</option>
           </select>
         </div>
       </div>
@@ -835,77 +1107,14 @@
   </div>
 </div>
 
-<!-- PLAYER VIEW -->
-<div id="playerView">
-  <div id="vidShield"></div>
-  <div id="pControlZoneShield" class="p-control-zone-shield" title="Safe Captions &amp; Settings Controls" aria-label="Safe Controls"></div>
-  <video id="playerVideo" playsinline style="display:none !important"></video>
-  <div class="p-top" id="pTop">
-    <button class="p-back-btn" id="pBack" title="Back to browsing" aria-label="Back to browsing">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-    </button>
-    <div class="p-title-wrap">
-      <div class="p-title" id="pTitle">Now Playing</div>
-      <div class="p-sub-title" id="pSubTitle">Streaming in Ultra HD • Multi-Audio &amp; Arabic Subtitles</div>
-    </div>
-    <div class="p-actions-wrap">
-      <button class="player-pill-btn next-ep-pill" id="pNextTop" title="Next Episode" aria-label="Next Episode" style="display:none">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-        <span>Next Ep</span>
-      </button>
-      <button class="player-pill-btn server-pill" id="pServerTop" title="Switch Video Player / Streaming Server" data-server="server1">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
-        <span id="pServerLabel">Server 1 (HD)</span>
-      </button>
-      <button class="player-pill-btn" id="pCustomizeTop" title="Player &amp; Playback Customization">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
-      </button>
-      <button class="player-pill-btn download-pill" id="pDl" title="Download Servers">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        <span>Download</span>
-      </button>
-    </div>
-  </div>
-  <div id="pTopSensor" class="p-top-sensor" aria-hidden="true"></div>
-  <div id="torrentStats" style="display:none">connecting…</div>
-  <div id="pError">
-    <div id="pErrorTitle">Something went wrong</div>
-    <div id="pErrorMsg">Playback failed.</div>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:10px">
-      <button class="btn-red" id="pRetry">Try Again</button>
-    </div>
-  </div>
-  <button id="skipIntro" style="display:none">Skip Intro ›</button>
-  <div id="nextEp" style="display:none">
-    <img id="nextThumb" width="110" alt="Next episode thumbnail">
-    <div>
-      <b>Next Episode</b>
-      <div id="nextName" style="font-size:13px;color:#ccc;margin:2px 0 6px"></div>
-      <div style="font-size:12px;color:#888;display:flex;align-items:center;gap:8px">
-        Starting in <span id="nextCount">25</span>s…
-        <button class="btn-red" id="nextPlay" style="padding:4px 12px;font-size:12px">Play Now</button>
-      </div>
-    </div>
-  </div>
-  <div class="p-bottom-bar" id="pBottomBar">
-    <div class="p-bottom-right">
-      <button class="player-pill-btn p-bottom-btn" id="pBottomCaptions" title="Subtitles &amp; Captions (Default: Arabic)" aria-label="Subtitles and Captions">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3" ry="3"></rect><path d="M7 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1zM14 15h3a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-3a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1z"></path></svg>
-        <span id="pBottomCaptionsLabel">Captions: Arabic</span>
-      </button>
-      <button class="player-pill-btn p-bottom-btn" id="pBottomSettings" title="Player Settings (Speed, Theme, Engine)" aria-label="Player Settings">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Settings</span>
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- FOOTER -->
 <footer>
   <div class="f-inner">
     <div class="ficons">
+      <a href="https://t.me/blackroner" target="_blank" rel="noopener noreferrer" aria-label="Join Telegram" title="Join Telegram Channel">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+      </a>
       <a href="#" aria-label="Facebook">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
       </a>
@@ -947,8 +1156,12 @@
 
 <div id="cardPortal"></div>
 <div id="toast"></div>
+<script src="purify.min.js"></script>
 <script src="services/media-links.js"></script>
+<script src="services/nhdapi.js"></script>
 <script src="services/curated-catalog.js"></script>
+<script src="services/tmdb.js"></script>
+<script src="services/aetherly-embed-guard.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
