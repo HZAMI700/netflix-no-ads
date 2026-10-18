@@ -6252,6 +6252,25 @@ try { parent.open = window.open; } catch {}
 try { Object.defineProperty(window, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
 try { Object.defineProperty(self, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
 
+// Trap rogue dynamically created iframes attempting to bypass window.open
+try {
+  const origGetContentWindow = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'contentWindow')?.get;
+  if (origGetContentWindow) {
+    Object.defineProperty(HTMLIFrameElement.prototype, 'contentWindow', {
+      get() {
+        const win = origGetContentWindow.call(this);
+        if (win && win !== window) {
+          try {
+            win.open = window.open;
+          } catch {}
+        }
+        return win;
+      },
+      configurable: true
+    });
+  }
+} catch {}
+
 
 // Intercept programmatic anchor clicks targeting _blank or _top
 const _nativeAnchorClick = HTMLAnchorElement.prototype.click;
@@ -6357,12 +6376,24 @@ HTMLFormElement.prototype.submit = function() {
 
 // Snap focus back if popunder attempts to blur the window during active playback
 // Instantly restores window & tab priority across PC and mobile devices at light speed
+// Snap focus back if popunder attempts to blur the window during active playback
+// Instantly restores window & tab priority across PC and mobile devices at light speed
 let _focusSnapTimer = null;
 let _focusGuardian = null;
 let _lastActiveElement = null;
+let _interactionGuardTimer = null;
+let _interactionGuardInterval = null;
 
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    const iframe = $('playerView')?.querySelector('iframe');
+    if (iframe && document.activeElement === iframe) {
+      try { iframe.blur(); } catch {}
+    }
+    const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
+    if (trap) {
+      try { trap.focus(); } catch {}
+    }
     try { window.focus(); } catch {}
     try { window.top?.focus(); } catch {}
     try { self.focus(); } catch {}
@@ -6371,9 +6402,46 @@ function snapWindowFocus() {
 
 function triggerLightSpeedFocusSnap() {
   snapWindowFocus();
-  [0, 2, 5, 10, 15, 25, 40, 60, 90, 130, 180, 250, 350, 500, 750, 1000, 1500].forEach(ms => {
+  [0, 2, 5, 10, 15, 25, 40, 50, 60, 80, 100, 130, 180, 250, 350, 500, 750, 1000, 1500, 2200].forEach(ms => {
     setTimeout(snapWindowFocus, ms);
   });
+}
+
+function armImmediateInteractionFocusGuard() {
+  _playerHovered = true;
+  triggerLightSpeedFocusSnap();
+
+  if (_interactionGuardInterval) clearInterval(_interactionGuardInterval);
+  clearTimeout(_interactionGuardTimer);
+
+  const iframe = $('playerView')?.querySelector('iframe');
+  const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
+
+  _interactionGuardInterval = setInterval(() => {
+    if (!$('playerView')?.classList.contains('show') || _allowNavigation) {
+      if (_interactionGuardInterval) {
+        clearInterval(_interactionGuardInterval);
+        _interactionGuardInterval = null;
+      }
+      return;
+    }
+    const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
+    const lostFocus = !document.hasFocus() || (iframe && document.activeElement === iframe);
+    if (isHidden || lostFocus) {
+      if (iframe && document.activeElement === iframe) {
+        try { iframe.blur(); } catch {}
+      }
+      if (trap) { try { trap.focus(); } catch {} }
+      snapWindowFocus();
+    }
+  }, 25);
+
+  _interactionGuardTimer = setTimeout(() => {
+    if (_interactionGuardInterval) {
+      clearInterval(_interactionGuardInterval);
+      _interactionGuardInterval = null;
+    }
+  }, 2500);
 }
 
 function startFocusGuardian() {
@@ -6384,13 +6452,20 @@ function startFocusGuardian() {
       stopFocusGuardian();
       return;
     }
-    // High-speed liveness check: if active document lost system visibility to an unwanted pop-under tab, snap back at light speed!
+    // High-speed liveness check: if active document lost system visibility or window focus to an unwanted pop-under tab, snap back at light speed!
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
-    if (isHidden) {
+    const iframe = $('playerView')?.querySelector('iframe');
+    const lostFocus = !document.hasFocus() || (iframe && document.activeElement === iframe);
+    if (isHidden || lostFocus) {
       triggerLightSpeedFocusSnap();
+      if (iframe && document.activeElement === iframe) {
+        try { iframe.blur(); } catch {}
+        const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
+        if (trap) { try { trap.focus(); } catch {} }
+      }
     }
     _lastActiveElement = document.activeElement;
-  }, 50);
+  }, 40);
 }
 
 function stopFocusGuardian() {
@@ -6398,12 +6473,17 @@ function stopFocusGuardian() {
     clearInterval(_focusGuardian);
     _focusGuardian = null;
   }
+  if (_interactionGuardInterval) {
+    clearInterval(_interactionGuardInterval);
+    _interactionGuardInterval = null;
+  }
+  clearTimeout(_interactionGuardTimer);
 }
 
 const _handleFocusLossOrVisibility = (e) => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
-    if (isHidden || e?.type === 'pagehide' || e?.type === 'visibilitychange') {
+    if (isHidden || !document.hasFocus() || e?.type === 'pagehide' || e?.type === 'visibilitychange' || e?.type === 'blur' || e?.type === 'focusout') {
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
       _focusSnapTimer = setTimeout(snapWindowFocus, 10);
@@ -6412,6 +6492,7 @@ const _handleFocusLossOrVisibility = (e) => {
       setTimeout(snapWindowFocus, 120);
       setTimeout(snapWindowFocus, 300);
       setTimeout(snapWindowFocus, 600);
+      triggerLightSpeedFocusSnap();
     }
   }
 };
@@ -6424,8 +6505,9 @@ try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 
 // High-Frequency Focus Trap & AetherlyEmbedGuard High-Speed Focus Guard
 window.addEventListener('blur', () => {
+  const isPlayerOpen = $('playerView')?.classList.contains('show');
   const iframe = $('playerView')?.querySelector('iframe');
-  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show'))) {
+  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show')) || isPlayerOpen) {
     if (iframe) {
       try { iframe.blur(); } catch {}
     }
@@ -6462,6 +6544,25 @@ window.addEventListener('blur', () => {
       try { self.focus(); } catch {}
     }, 60);
 
+    // Continuous Multi-Popup Annihilator Barrage (covers up to 2.5s)
+    [0, 5, 10, 20, 35, 50, 60, 80, 100, 140, 200, 300, 500, 800, 1200, 1800, 2500].forEach((ms) => {
+      setTimeout(() => {
+        if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+          if (iframe && document.activeElement === iframe) {
+            try { iframe.blur(); } catch {}
+          }
+          if (trap) { try { trap.focus(); } catch {} }
+          try { window.focus(); } catch {}
+          try { window.top?.focus(); } catch {}
+          try { self.focus(); } catch {}
+        }
+      }, ms);
+    });
+
+    if (typeof AetherlyEmbedGuard !== 'undefined' && AetherlyEmbedGuard.handleWindowBlur) {
+      try { AetherlyEmbedGuard.handleWindowBlur(iframe); } catch {}
+    }
+
     // Layer 1: Click Shield Overlay (1200ms auto-activation after window blur when document.activeElement === iframe)
     if (!_firstClickDone && $('playerView')?.classList.contains('show')) {
       _firstClickDone = true;
@@ -6479,11 +6580,29 @@ let _playerHovered = false;
 let _guardPointerInside = false;
 const _pvHover = $('aetherlyEmbedGuard') || $('playerView');
 if (_pvHover) {
-  _pvHover.addEventListener('mouseenter', () => { _guardPointerInside = true; _playerHovered = true; });
-  _pvHover.addEventListener('mouseleave', () => { _guardPointerInside = false; _playerHovered = false; });
-  _pvHover.addEventListener('touchstart', () => { _guardPointerInside = true; _playerHovered = true; }, { passive: true });
-  _pvHover.addEventListener('touchend', () => { _guardPointerInside = false; _playerHovered = false; }, { passive: true });
-  _pvHover.addEventListener('touchcancel', () => { _guardPointerInside = false; _playerHovered = false; }, { passive: true });
+  _pvHover.addEventListener('mouseenter', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); });
+  _pvHover.addEventListener('mouseleave', () => {
+    _guardPointerInside = false;
+    if (!$('playerView')?.classList.contains('show')) {
+      _playerHovered = false;
+    }
+  });
+  _pvHover.addEventListener('touchstart', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('touchend', () => {
+    _guardPointerInside = false;
+    if (!$('playerView')?.classList.contains('show')) {
+      _playerHovered = false;
+    }
+  }, { passive: true });
+  _pvHover.addEventListener('touchcancel', () => {
+    _guardPointerInside = false;
+    if (!$('playerView')?.classList.contains('show')) {
+      _playerHovered = false;
+    }
+  }, { passive: true });
+  _pvHover.addEventListener('pointerdown', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('mousedown', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('click', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
 }
 
 window.addEventListener('beforeunload', (e) => {

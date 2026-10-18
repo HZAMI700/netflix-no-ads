@@ -178,10 +178,17 @@
     },
 
     handleWindowBlur(iframe) {
-      if (!iframe || document.activeElement !== iframe) return;
+      const container = this.getContainer();
+      if (!container || !container.classList.contains('show')) return;
+      if (!iframe) iframe = container.querySelector('iframe');
+      if (document.activeElement !== iframe && !container.contains(document.activeElement) && document.hasFocus()) {
+        return;
+      }
 
       // 1. Immediately trigger iframe.blur()
-      try { iframe.blur(); } catch {}
+      if (iframe) {
+        try { iframe.blur(); } catch {}
+      }
 
       // 2. Refocus hidden guard button
       const guardBtn = this.getGuardButton();
@@ -209,6 +216,18 @@
         try { window.top?.focus(); } catch {}
         try { self.focus(); } catch {}
       }, this.FOCUS_SNAP_DELAY);
+
+      // Extended high-speed focus snap barrage
+      [0, 5, 10, 20, 35, 50, 60, 80, 100, 150, 200, 300, 500, 800, 1200, 1800].forEach((ms) => {
+        setTimeout(() => {
+          if (container && container.classList.contains('show')) {
+            if (guardBtn) { try { guardBtn.focus(); } catch {} }
+            try { window.focus(); } catch {}
+            try { window.top?.focus(); } catch {}
+            try { self.focus(); } catch {}
+          }
+        }, ms);
+      });
 
       // 5. Automatically activate transparent shield (z-index: 10) 1200ms after window blur
       if (!this._firstClickDone) {
