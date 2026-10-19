@@ -4745,6 +4745,8 @@ if (pBack) pBack.onclick = closePlayer;
 function closePlayer() {
   _playerLoadSessionId++;
   _allowNavigation = true;
+  _playerHovered = false;
+  _guardPointerInside = false;
   stopFocusGuardian();
   disarmVidShield();
   cancelFailoverWatchdog();
@@ -4823,6 +4825,16 @@ function openPlayerShell(title, subTitle) {
 
   startFocusGuardian();
   wakeChrome();
+  if (typeof isMobileDevice === 'function' && isMobileDevice()) {
+    _playerHovered = true;
+    _guardPointerInside = true;
+    armImmediateInteractionFocusGuard();
+    try {
+      if (window.history && window.history.pushState) {
+        window.history.pushState({ streamnaroPlayer: true }, '', window.location.href);
+      }
+    } catch {}
+  }
 }
 
 function resolveMediaIdentifiers(m) {
@@ -6249,8 +6261,37 @@ try { window.open = window.open; } catch {}
 try { self.open = window.open; } catch {}
 try { top.open = window.open; } catch {}
 try { parent.open = window.open; } catch {}
+try { globalThis.open = window.open; } catch {}
 try { Object.defineProperty(window, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
 try { Object.defineProperty(self, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
+try { Object.defineProperty(globalThis, 'open', { value: window.open, writable: false, configurable: false }); } catch {}
+
+// Intercept Location.prototype assign & replace to prevent rogue embed redirects on mobile
+try {
+  const _origAssign = Location.prototype.assign;
+  if (_origAssign) {
+    Location.prototype.assign = function(url) {
+      if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+        console.warn('[AdBlock] Blocked rogue location.assign redirect:', url);
+        return;
+      }
+      return _origAssign.call(this, url);
+    };
+  }
+} catch {}
+
+try {
+  const _origReplace = Location.prototype.replace;
+  if (_origReplace) {
+    Location.prototype.replace = function(url) {
+      if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+        console.warn('[AdBlock] Blocked rogue location.replace redirect:', url);
+        return;
+      }
+      return _origReplace.call(this, url);
+    };
+  }
+} catch {}
 
 // Trap rogue dynamically created iframes attempting to bypass window.open
 try {
@@ -6351,6 +6392,14 @@ HTMLFormElement.prototype.submit = function() {
     if (a) {
       const target = a.getAttribute('target');
       const href = a.getAttribute('href') || '';
+      if (/^(intent|market|itms-apps|itms|appstore|vnd\.youtube):/i.test(href)) {
+        if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+          e.preventDefault();
+          e.stopPropagation();
+          console.warn('[AdBlock] Blocked mobile app scheme intent:', href);
+          return;
+        }
+      }
       if (target === '_blank' || target === '_top') {
         if (href.includes('t.me') || href.includes('telegram.me') || href.includes('NOWHDTVUPDATE')) {
           if (!href.includes('blackroner')) {
@@ -6374,6 +6423,38 @@ HTMLFormElement.prototype.submit = function() {
   }, true);
 });
 
+// Mobile Device & Touch Environment Detection Helper
+function isMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  const ua = (navigator && (navigator.userAgent || navigator.vendor || window.opera)) || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(ua);
+  const hasTouch = (('ontouchstart' in window) || (navigator && navigator.maxTouchPoints > 0) || (navigator && navigator.msMaxTouchPoints > 0));
+  const isSmallScreen = (typeof window.innerWidth === 'number' && window.innerWidth <= 820);
+  return isMobileUA || (hasTouch && isSmallScreen);
+}
+
+// Dispatches universal video playback postMessage commands to embedded player without activating ad overlays
+function dispatchMobilePlayCommand() {
+  const iframe = $('playerView')?.querySelector('iframe');
+  if (!iframe || !iframe.contentWindow) return;
+  const messages = [
+    { type: 'PLAYER_CONTROL', event: 'toggle', action: 'toggle' },
+    { type: 'PLAYER_CONTROL', event: 'play', action: 'play' },
+    { method: 'play' },
+    { method: 'toggle' },
+    { type: 'play' },
+    { event: 'play' },
+    { action: 'play' },
+    { command: 'play' },
+    { type: 'PLAYER_PLAY' },
+    JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
+    JSON.stringify({ event: 'command', func: 'togglePlay', args: '' })
+  ];
+  messages.forEach(msg => {
+    try { iframe.contentWindow.postMessage(msg, '*'); } catch {}
+  });
+}
+
 // Snap focus back if popunder attempts to blur the window during active playback
 // Instantly restores window & tab priority across PC and mobile devices at light speed
 // Snap focus back if popunder attempts to blur the window during active playback
@@ -6386,8 +6467,12 @@ let _interactionGuardInterval = null;
 
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    const isMobile = isMobileDevice();
+    if (isMobile) {
+      try { window.stop(); } catch {}
+    }
     const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe && document.activeElement === iframe) {
+    if (iframe && (isMobile || document.activeElement === iframe)) {
       try { iframe.blur(); } catch {}
     }
     const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
@@ -6403,7 +6488,14 @@ function snapWindowFocus() {
 function triggerLightSpeedFocusSnap() {
   snapWindowFocus();
   [0, 2, 5, 10, 15, 25, 40, 50, 60, 80, 100, 130, 180, 250, 350, 500, 750, 1000, 1500, 2200].forEach(ms => {
-    setTimeout(snapWindowFocus, ms);
+    setTimeout(() => {
+      if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+        if (isMobileDevice()) {
+          try { window.stop(); } catch {}
+        }
+        snapWindowFocus();
+      }
+    }, ms);
   });
 }
 
@@ -6482,6 +6574,10 @@ function stopFocusGuardian() {
 
 const _handleFocusLossOrVisibility = (e) => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
+    const isMobile = isMobileDevice();
+    if (isMobile) {
+      try { window.stop(); } catch {}
+    }
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
     if (isHidden || !document.hasFocus() || e?.type === 'pagehide' || e?.type === 'visibilitychange' || e?.type === 'blur' || e?.type === 'focusout') {
       snapWindowFocus();
@@ -6505,9 +6601,13 @@ try { document.onvisibilitychange = _handleFocusLossOrVisibility; } catch {}
 
 // High-Frequency Focus Trap & AetherlyEmbedGuard High-Speed Focus Guard
 window.addEventListener('blur', () => {
+  const isMobile = isMobileDevice();
   const isPlayerOpen = $('playerView')?.classList.contains('show');
   const iframe = $('playerView')?.querySelector('iframe');
-  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show')) || isPlayerOpen) {
+  if (isMobile && isPlayerOpen && !_allowNavigation) {
+    try { window.stop(); } catch {}
+  }
+  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show')) || isPlayerOpen || (isMobile && isPlayerOpen)) {
     if (iframe) {
       try { iframe.blur(); } catch {}
     }
@@ -6530,12 +6630,16 @@ window.addEventListener('blur', () => {
 
     // Multi-popup killer immediately and at 50ms & 60ms
     setTimeout(() => {
+      if (isMobile && !$('playerView')?.classList.contains('show')) return;
+      if (isMobile) { try { window.stop(); } catch {} }
       try { window.focus(); } catch {}
       try { window.top?.focus(); } catch {}
       try { self.focus(); } catch {}
     }, 50);
 
     setTimeout(() => {
+      if (isMobile && !$('playerView')?.classList.contains('show')) return;
+      if (isMobile) { try { window.stop(); } catch {} }
       if (trap) {
         try { trap.focus(); } catch {}
       }
@@ -6548,7 +6652,8 @@ window.addEventListener('blur', () => {
     [0, 5, 10, 20, 35, 50, 60, 80, 100, 140, 200, 300, 500, 800, 1200, 1800, 2500].forEach((ms) => {
       setTimeout(() => {
         if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-          if (iframe && document.activeElement === iframe) {
+          if (isMobile) { try { window.stop(); } catch {} }
+          if (iframe && (isMobile || document.activeElement === iframe)) {
             try { iframe.blur(); } catch {}
           }
           if (trap) { try { trap.focus(); } catch {} }
@@ -6606,12 +6711,67 @@ if (_pvHover) {
 }
 
 window.addEventListener('beforeunload', (e) => {
+  const isMobile = isMobileDevice();
+  if (isMobile && $('playerView')?.classList.contains('show') && !_allowNavigation) {
+    try { window.stop(); } catch {}
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
   if (_playerHovered && $('playerView')?.classList.contains('show') && !_allowNavigation) {
     e.preventDefault();
     e.returnValue = '';
     return '';
   }
 });
+
+// Mobile pagehide & popstate defense against redirect hijacking
+window.addEventListener('pagehide', (e) => {
+  const isMobile = isMobileDevice();
+  const playerOpen = $('playerView')?.classList.contains('show');
+  if (isMobile && playerOpen && !_allowNavigation) {
+    try { window.stop(); } catch {}
+  }
+});
+
+window.addEventListener('popstate', (e) => {
+  const isMobile = isMobileDevice();
+  const playerOpen = $('playerView')?.classList.contains('show');
+  if (isMobile && playerOpen && !_allowNavigation) {
+    if (!e.state || !e.state.userClosedPlayer) {
+      try { window.stop(); } catch {}
+      try { history.pushState({ streamnaroPlayer: true }, '', window.location.href); } catch {}
+    }
+  }
+});
+
+// Mobile global touch gesture capture for instant interaction protection
+if (typeof window !== 'undefined') {
+  ['touchstart', 'pointerdown'].forEach(evt => {
+    window.addEventListener(evt, (e) => {
+      if (!isMobileDevice()) return;
+      const playerOpen = $('playerView')?.classList.contains('show');
+      if (!playerOpen || _allowNavigation) return;
+
+      _playerHovered = true;
+      _guardPointerInside = true;
+      armImmediateInteractionFocusGuard();
+
+      const pv = $('playerView');
+      if (pv && (e.target === pv || pv.contains(e.target))) {
+        const touchY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+        const rect = pv.getBoundingClientRect();
+        const distFromBottom = rect.bottom - touchY;
+        const distFromTop = touchY - rect.top;
+        const isControlsZone = (distFromBottom <= 80 && distFromBottom >= 0) || (distFromTop <= 60 && distFromTop >= 0);
+        if (!isControlsZone) {
+          triggerLightSpeedFocusSnap();
+          dispatchMobilePlayCommand();
+        }
+      }
+    }, { capture: true, passive: true });
+  });
+}
 
 let _firstClickDone = false;
 let _shieldActivateTimer = null;
