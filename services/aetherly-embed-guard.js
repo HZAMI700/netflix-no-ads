@@ -191,12 +191,15 @@
       if (!container || !container.classList.contains('show')) return;
       if (!iframe) iframe = container.querySelector('iframe');
       const isMobile = this.isMobile();
-      if (!isMobile && document.activeElement !== iframe && !container.contains(document.activeElement) && document.hasFocus()) {
+      if (isMobile) {
+        // On mobile, prioritize window focus without aborting media streams or stripping iframe user activation
+        try { window.focus(); } catch {}
+        try { window.top?.focus(); } catch {}
+        try { self.focus(); } catch {}
         return;
       }
-
-      if (isMobile) {
-        try { window.stop(); } catch {}
+      if (document.activeElement !== iframe && !container.contains(document.activeElement) && document.hasFocus()) {
+        return;
       }
 
       // 1. Immediately trigger iframe.blur()
@@ -217,14 +220,12 @@
 
       // 4. Refocus hidden guard button + window.focus() at 50ms and 60ms to kill multi-popup chains
       setTimeout(() => {
-        if (isMobile) { try { window.stop(); } catch {} }
         try { window.focus(); } catch {}
         try { window.top?.focus(); } catch {}
         try { self.focus(); } catch {}
       }, 50);
 
       setTimeout(() => {
-        if (isMobile) { try { window.stop(); } catch {} }
         if (guardBtn) {
           try { guardBtn.focus(); } catch {}
         }
@@ -237,7 +238,6 @@
       [0, 5, 10, 20, 35, 50, 60, 80, 100, 150, 200, 300, 500, 800, 1200, 1800].forEach((ms) => {
         setTimeout(() => {
           if (container && container.classList.contains('show')) {
-            if (isMobile) { try { window.stop(); } catch {} }
             if (guardBtn) { try { guardBtn.focus(); } catch {} }
             try { window.focus(); } catch {}
             try { window.top?.focus(); } catch {}

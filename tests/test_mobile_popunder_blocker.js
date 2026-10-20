@@ -48,11 +48,11 @@ test('pagehide listener invokes window.stop() on mobile to halt background redir
   assert.ok(appContent.includes('if (isMobile && playerOpen && !_allowNavigation)'));
 });
 
-test('visibilitychange and blur invoke window.stop() on mobile to kill popunder chains', () => {
+test('mobile redirect annihilation preserves media stream without calling window.stop on blur', () => {
   assert.ok(appContent.includes('const isMobile = isMobileDevice()'));
-  assert.ok(guardContent.includes('const isMobile = this.isMobile()'));
-  assert.ok(guardContent.includes('if (isMobile) {'));
-  assert.ok(guardContent.includes('try { window.stop(); } catch {}'));
+  assert.ok(guardContent.includes('this.isMobile()'));
+  assert.ok(appContent.includes("window.addEventListener('beforeunload'"));
+  assert.ok(appContent.includes("window.addEventListener('pagehide'"));
 });
 
 console.log('\n--- 3. MOBILE HISTORY & BACK-BUTTON SHIELD (ANTI-POISONING) ---');
@@ -62,10 +62,10 @@ test('popstate listener prevents rogue external redirects on mobile while player
   assert.ok(appContent.includes('history.pushState({ streamnaroPlayer: true }'));
 });
 
-test('openPlayerShell arms mobile focus guard and history state on mobile devices', () => {
+test('openPlayerShell initializes mobile history state on mobile devices', () => {
   assert.ok(appContent.includes("if (typeof isMobileDevice === 'function' && isMobileDevice())"));
   assert.ok(appContent.includes('_playerHovered = true;'));
-  assert.ok(appContent.includes('armImmediateInteractionFocusGuard()'));
+  assert.ok(appContent.includes('window.history.pushState({ streamnaroPlayer: true }'));
 });
 
 console.log('\n--- 4. MOBILE DEEP LINK & SCHEME INTERCEPTION ---');
@@ -93,7 +93,7 @@ test('Global touch listener captures touchstart and pointerdown on mobile', () =
 test('dispatchMobilePlayCommand sends universal postMessage play events', () => {
   assert.ok(appContent.includes('function dispatchMobilePlayCommand()'));
   assert.ok(appContent.includes("PLAYER_CONTROL"));
-  assert.ok(appContent.includes("togglePlay"));
+  assert.ok(appContent.includes("playVideo"));
 });
 
 console.log('\n--- 6. PC BEHAVIOR & CONTROLS INVARIANTS PRESERVED ---');

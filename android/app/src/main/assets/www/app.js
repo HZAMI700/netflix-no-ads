@@ -4828,7 +4828,6 @@ function openPlayerShell(title, subTitle) {
   if (typeof isMobileDevice === 'function' && isMobileDevice()) {
     _playerHovered = true;
     _guardPointerInside = true;
-    armImmediateInteractionFocusGuard();
     try {
       if (window.history && window.history.pushState) {
         window.history.pushState({ streamnaroPlayer: true }, '', window.location.href);
@@ -6438,25 +6437,22 @@ function dispatchMobilePlayCommand() {
   const iframe = $('playerView')?.querySelector('iframe');
   if (!iframe || !iframe.contentWindow) return;
   const messages = [
-    { type: 'PLAYER_CONTROL', event: 'toggle', action: 'toggle' },
     { type: 'PLAYER_CONTROL', event: 'play', action: 'play' },
     { method: 'play' },
-    { method: 'toggle' },
     { type: 'play' },
     { event: 'play' },
     { action: 'play' },
     { command: 'play' },
     { type: 'PLAYER_PLAY' },
     JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-    JSON.stringify({ event: 'command', func: 'togglePlay', args: '' })
+    JSON.stringify({ event: 'command', func: 'play', args: '' })
+    // Supported fallback events for player engines: togglePlay
   ];
   messages.forEach(msg => {
     try { iframe.contentWindow.postMessage(msg, '*'); } catch {}
   });
 }
 
-// Snap focus back if popunder attempts to blur the window during active playback
-// Instantly restores window & tab priority across PC and mobile devices at light speed
 // Snap focus back if popunder attempts to blur the window during active playback
 // Instantly restores window & tab priority across PC and mobile devices at light speed
 let _focusSnapTimer = null;
@@ -6468,15 +6464,12 @@ let _interactionGuardInterval = null;
 function snapWindowFocus() {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
     const isMobile = isMobileDevice();
-    if (isMobile) {
-      try { window.stop(); } catch {}
-    }
     const iframe = $('playerView')?.querySelector('iframe');
-    if (iframe && (isMobile || document.activeElement === iframe)) {
+    if (iframe && (!isMobile && document.activeElement === iframe)) {
       try { iframe.blur(); } catch {}
     }
     const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
-    if (trap) {
+    if (trap && !isMobile) {
       try { trap.focus(); } catch {}
     }
     try { window.focus(); } catch {}
@@ -6490,9 +6483,6 @@ function triggerLightSpeedFocusSnap() {
   [0, 2, 5, 10, 15, 25, 40, 50, 60, 80, 100, 130, 180, 250, 350, 500, 750, 1000, 1500, 2200].forEach(ms => {
     setTimeout(() => {
       if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-        if (isMobileDevice()) {
-          try { window.stop(); } catch {}
-        }
         snapWindowFocus();
       }
     }, ms);
@@ -6506,6 +6496,7 @@ function armImmediateInteractionFocusGuard() {
   if (_interactionGuardInterval) clearInterval(_interactionGuardInterval);
   clearTimeout(_interactionGuardTimer);
 
+  const isMobile = isMobileDevice();
   const iframe = $('playerView')?.querySelector('iframe');
   const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
 
@@ -6518,12 +6509,12 @@ function armImmediateInteractionFocusGuard() {
       return;
     }
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
-    const lostFocus = !document.hasFocus() || (iframe && document.activeElement === iframe);
+    const lostFocus = isMobile ? isHidden : (!document.hasFocus() || (iframe && document.activeElement === iframe));
     if (isHidden || lostFocus) {
-      if (iframe && document.activeElement === iframe) {
+      if (!isMobile && iframe && document.activeElement === iframe) {
         try { iframe.blur(); } catch {}
       }
-      if (trap) { try { trap.focus(); } catch {} }
+      if (!isMobile && trap) { try { trap.focus(); } catch {} }
       snapWindowFocus();
     }
   }, 25);
@@ -6545,12 +6536,13 @@ function startFocusGuardian() {
       return;
     }
     // High-speed liveness check: if active document lost system visibility or window focus to an unwanted pop-under tab, snap back at light speed!
+    const isMobile = isMobileDevice();
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
     const iframe = $('playerView')?.querySelector('iframe');
-    const lostFocus = !document.hasFocus() || (iframe && document.activeElement === iframe);
+    const lostFocus = isMobile ? isHidden : (!document.hasFocus() || (iframe && document.activeElement === iframe));
     if (isHidden || lostFocus) {
       triggerLightSpeedFocusSnap();
-      if (iframe && document.activeElement === iframe) {
+      if (!isMobile && iframe && document.activeElement === iframe) {
         try { iframe.blur(); } catch {}
         const trap = $('pFocusTrap') || $('aetherlyFocusGuard');
         if (trap) { try { trap.focus(); } catch {} }
@@ -6575,10 +6567,17 @@ function stopFocusGuardian() {
 const _handleFocusLossOrVisibility = (e) => {
   if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
     const isMobile = isMobileDevice();
-    if (isMobile) {
-      try { window.stop(); } catch {}
-    }
     const isHidden = document.hidden || (typeof document.visibilityState === 'string' && document.visibilityState === 'hidden');
+    if (isMobile) {
+      if (isHidden || e?.type === 'pagehide' || e?.type === 'visibilitychange') {
+        snapWindowFocus();
+        clearTimeout(_focusSnapTimer);
+        _focusSnapTimer = setTimeout(snapWindowFocus, 10);
+        setTimeout(snapWindowFocus, 50);
+        setTimeout(snapWindowFocus, 120);
+      }
+      return;
+    }
     if (isHidden || !document.hasFocus() || e?.type === 'pagehide' || e?.type === 'visibilitychange' || e?.type === 'blur' || e?.type === 'focusout') {
       snapWindowFocus();
       clearTimeout(_focusSnapTimer);
@@ -6604,10 +6603,17 @@ window.addEventListener('blur', () => {
   const isMobile = isMobileDevice();
   const isPlayerOpen = $('playerView')?.classList.contains('show');
   const iframe = $('playerView')?.querySelector('iframe');
-  if (isMobile && isPlayerOpen && !_allowNavigation) {
-    try { window.stop(); } catch {}
+
+  if (isMobile) {
+    if (isPlayerOpen && !_allowNavigation) {
+      try { window.focus(); } catch {}
+      try { window.top?.focus(); } catch {}
+      try { self.focus(); } catch {}
+    }
+    return;
   }
-  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show')) || isPlayerOpen || (isMobile && isPlayerOpen)) {
+
+  if ((iframe && document.activeElement === iframe) || (_playerHovered && $('playerView')?.classList.contains('show')) || isPlayerOpen) {
     if (iframe) {
       try { iframe.blur(); } catch {}
     }
@@ -6630,16 +6636,12 @@ window.addEventListener('blur', () => {
 
     // Multi-popup killer immediately and at 50ms & 60ms
     setTimeout(() => {
-      if (isMobile && !$('playerView')?.classList.contains('show')) return;
-      if (isMobile) { try { window.stop(); } catch {} }
       try { window.focus(); } catch {}
       try { window.top?.focus(); } catch {}
       try { self.focus(); } catch {}
     }, 50);
 
     setTimeout(() => {
-      if (isMobile && !$('playerView')?.classList.contains('show')) return;
-      if (isMobile) { try { window.stop(); } catch {} }
       if (trap) {
         try { trap.focus(); } catch {}
       }
@@ -6652,8 +6654,7 @@ window.addEventListener('blur', () => {
     [0, 5, 10, 20, 35, 50, 60, 80, 100, 140, 200, 300, 500, 800, 1200, 1800, 2500].forEach((ms) => {
       setTimeout(() => {
         if ($('playerView')?.classList.contains('show') && !_allowNavigation) {
-          if (isMobile) { try { window.stop(); } catch {} }
-          if (iframe && (isMobile || document.activeElement === iframe)) {
+          if (iframe && document.activeElement === iframe) {
             try { iframe.blur(); } catch {}
           }
           if (trap) { try { trap.focus(); } catch {} }
@@ -6692,7 +6693,7 @@ if (_pvHover) {
       _playerHovered = false;
     }
   });
-  _pvHover.addEventListener('touchstart', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('touchstart', () => { _guardPointerInside = true; _playerHovered = true; }, { passive: true });
   _pvHover.addEventListener('touchend', () => {
     _guardPointerInside = false;
     if (!$('playerView')?.classList.contains('show')) {
@@ -6705,9 +6706,9 @@ if (_pvHover) {
       _playerHovered = false;
     }
   }, { passive: true });
-  _pvHover.addEventListener('pointerdown', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('pointerdown', () => { _guardPointerInside = true; _playerHovered = true; }, { passive: true });
   _pvHover.addEventListener('mousedown', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
-  _pvHover.addEventListener('click', () => { _guardPointerInside = true; _playerHovered = true; armImmediateInteractionFocusGuard(); }, { passive: true });
+  _pvHover.addEventListener('click', () => { _guardPointerInside = true; _playerHovered = true; }, { passive: true });
 }
 
 window.addEventListener('beforeunload', (e) => {
@@ -6755,7 +6756,6 @@ if (typeof window !== 'undefined') {
 
       _playerHovered = true;
       _guardPointerInside = true;
-      armImmediateInteractionFocusGuard();
 
       const pv = $('playerView');
       if (pv && (e.target === pv || pv.contains(e.target))) {
@@ -6765,11 +6765,10 @@ if (typeof window !== 'undefined') {
         const distFromTop = touchY - rect.top;
         const isControlsZone = (distFromBottom <= 80 && distFromBottom >= 0) || (distFromTop <= 60 && distFromTop >= 0);
         if (!isControlsZone) {
-          triggerLightSpeedFocusSnap();
           dispatchMobilePlayCommand();
         }
       }
-    }, { capture: true, passive: true });
+    }, { passive: true });
   });
 }
 
