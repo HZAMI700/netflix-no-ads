@@ -28,6 +28,17 @@ const MOVIEDOWNLOADER02_BASE = 'https://02moviedownloader.site';
 const NHDAPI_BASE = 'https://nhdapi.com';
 const TWOEMBED_BASE = 'https://www.2embed.online';
 const WORKER_PROXY_BASE = 'https://adsclear.yassine-hzami.workers.dev/?url=';
+const STREAM_SHIELD_WORKER = 'https://stream-shield.yassine-hzami.workers.dev';
+
+function getStreamShieldEmbedCode(id, type = 'movie', season = 1, episode = 1) {
+  if (!id) return '';
+  const cleanId = String(id).replace(/^tmdb:/, '');
+  const embedPath = (type === 'series' || type === 'tv')
+    ? `/embed/tv/${encodeURIComponent(cleanId)}/${season || 1}/${episode || 1}`
+    : `/embed/${encodeURIComponent(cleanId)}`;
+  const embedUrl = `${STREAM_SHIELD_WORKER}${embedPath}`;
+  return `<iframe src="${embedUrl}" width="800" height="450" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0"></iframe>`;
+}
 
 function getWorkerProxyUrl(originalUrl) {
   if (!originalUrl || !isValidStreamEmbedUrl(originalUrl)) return '';
@@ -489,6 +500,8 @@ const MediaLinks = {
   NHDAPI_BASE,
   TWOEMBED_BASE,
   WORKER_PROXY_BASE,
+  STREAM_SHIELD_WORKER,
+  getStreamShieldEmbedCode,
   getWorkerProxyUrl,
   isValidStreamEmbedUrl,
   ensureValidStreamEmbedUrl,

@@ -2598,6 +2598,44 @@ body.is-scrolling #cardPortal {
   color: #ffffff;
   box-shadow: 0 4px 14px rgba(42, 171, 238, 0.4);
 }
+.player-pill-btn.embed-pill {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+.player-pill-btn.embed-pill:hover {
+  background: rgba(99, 102, 241, 0.35);
+  border-color: #818cf8;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+/* Dedicated Standalone Embed View Mode */
+body.is-embed-mode nav,
+body.is-embed-mode .profiles-gate,
+body.is-embed-mode #profileSelection,
+body.is-embed-mode .hero,
+body.is-embed-mode #browseRows,
+body.is-embed-mode footer,
+body.is-embed-mode .bottom-nav,
+body.is-embed-mode #detailBackdrop {
+  display: none !important;
+}
+
+body.is-embed-mode #playerView {
+  display: block !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999999 !important;
+}
+
+body.is-embed-mode .p-back-btn {
+  display: none !important;
+}
 .player-pill-btn.telegram-pill svg {
   fill: currentColor;
 }

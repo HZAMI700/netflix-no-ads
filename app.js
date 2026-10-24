@@ -2645,6 +2645,12 @@ function renderDetailUI(m, type, autoplay, continueTarget) {
   if ($('dList')) $('dList').onclick = () => toggleList(m);
   if ($('dLike')) $('dLike').onclick = () => toggleLike(m);
   if ($('dDl')) $('dDl').onclick = () => downloadCurrent();
+  if ($('dEmbed')) {
+    $('dEmbed').onclick = () => {
+      const anyId = m.moviedb_id || m.tmdbId || m.id || m.imdb;
+      copyEmbedCodeToClipboard(anyId, type, targetSeason || 1, targetEpisode || 1);
+    };
+  }
 
   const canWatch = type === 'movie'
     ? !!MediaLinks.getMovieStreamUrl({ imdb: m.id || m.imdb_id || m.imdb, tmdbId: m.moviedb_id })
@@ -3889,6 +3895,14 @@ function downloadEpisode(seriesTitle, season, episode) {
 
 const pDl = $('pDl');
 if (pDl) pDl.onclick = () => downloadCurrent();
+const pEmbedShare = $('pEmbedShare');
+if (pEmbedShare) {
+  pEmbedShare.onclick = () => {
+    if (!currentEmbed) return;
+    const anyId = currentEmbed.tmdbId || currentEmbed.id || currentEmbed.imdb;
+    copyEmbedCodeToClipboard(anyId, currentEmbed.type, currentEmbed.season, currentEmbed.episode);
+  };
+}
 
 /* ---------- CAPTIONS, OPENSUBTITLES & PLAYER CUSTOMIZATION ---------- */
 function applyPlayerTheme(theme) {
@@ -5957,7 +5971,36 @@ function playEmbedEntry(m) {
   });
 }
 
-const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com', 'https://www.2embed.online', 'https://2embed.online', 'https://adsclear.yassine-hzami.workers.dev'];
+const STREAM_SHIELD_WORKER = 'https://stream-shield.yassine-hzami.workers.dev';
+
+function getStreamShieldEmbedCode(id, type = 'movie', season = 1, episode = 1) {
+  if (!id) return '';
+  const cleanId = String(id).replace(/^tmdb:/, '');
+  const embedPath = (type === 'series' || type === 'tv')
+    ? `/embed/tv/${encodeURIComponent(cleanId)}/${season || 1}/${episode || 1}`
+    : `/embed/${encodeURIComponent(cleanId)}`;
+  const embedUrl = `${STREAM_SHIELD_WORKER}${embedPath}`;
+  return `<iframe src="${embedUrl}" width="800" height="450" allowfullscreen allow="autoplay; fullscreen; encrypted-media; picture-in-picture" frameborder="0"></iframe>`;
+}
+
+function copyEmbedCodeToClipboard(id, type = 'movie', season = 1, episode = 1) {
+  const code = getStreamShieldEmbedCode(id, type, season, episode);
+  if (!code) {
+    toast('Embed code unavailable for this title');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      toast('Copied Embed Code to clipboard! (StreamShield No-Ads)');
+    }).catch(() => {
+      prompt('Copy this embed code:', code);
+    });
+  } else {
+    prompt('Copy this embed code:', code);
+  }
+}
+
+const EMBED_ORIGINS = ['https://vaplayer.ru', 'https://vidapi.ru', 'https://vidsrc.sh', 'https://nextgencloudfabric.com', 'https://nhdapi.com', 'https://www.2embed.online', 'https://2embed.online', 'https://adsclear.yassine-hzami.workers.dev', 'https://stream-shield.yassine-hzami.workers.dev'];
 function readProgressStore() {
   try { return JSON.parse(localStorage.getItem('vidsrcProgress') || localStorage.getItem('vidLinkProgress') || '{}'); }
   catch { return {}; }
@@ -7355,13 +7398,33 @@ function parseRouteFromLocation() {
   const segments = path ? path.split('/').map(decodeURIComponent).filter(Boolean) : [];
   const first = (segments[0] || '').toLowerCase();
 
-  // /watch?kind=movie&id=... or /watch?kind=tv&id=...
-  if (first === 'watch') {
-    const id = qId || (segments[1] && segments[1] !== 'watch' ? segments[1] : null);
-    const kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : 'movie';
-    const season = qSeason ? parseInt(qSeason, 10) : (segments[2] ? parseInt(segments[2], 10) : 1);
-    const episode = qEpisode ? parseInt(qEpisode, 10) : (segments[3] ? parseInt(segments[3], 10) : 1);
-    return { type: 'media', kind, id, season, episode, isWatch: true };
+  // /watch?kind=movie&id=... or /watch?kind=tv&id=... or /embed/:id or /embed/tv/:id/:s/:ep
+  if (first === 'watch' || first === 'embed') {
+    const isEmbed = (first === 'embed');
+    let kind = (qKind === 'tv' || qKind === 'series' || qSeason != null) ? 'series' : 'movie';
+    let id = qId;
+    let season = qSeason ? parseInt(qSeason, 10) : 1;
+    let episode = qEpisode ? parseInt(qEpisode, 10) : 1;
+
+    if (segments[1] === 'tv' || segments[1] === 'series') {
+      kind = 'series';
+      id = segments[2] || qId;
+      season = segments[3] ? parseInt(segments[3], 10) : season;
+      episode = segments[4] ? parseInt(segments[4], 10) : episode;
+    } else if (segments[1] === 'movie') {
+      kind = 'movie';
+      id = segments[2] || qId;
+    } else if (segments[1] && segments[1] !== 'watch' && segments[1] !== 'embed') {
+      id = segments[1];
+      if (segments[2]) {
+        season = parseInt(segments[2], 10) || 1;
+        kind = 'series';
+      }
+      if (segments[3]) {
+        episode = parseInt(segments[3], 10) || 1;
+      }
+    }
+    return { type: 'media', kind, id, season, episode, isWatch: true, isEmbed };
   }
 
   // /movie/:id or /movie?id=...
@@ -7432,6 +7495,9 @@ function handleRouteFromHash() {
   }
 
   if (route.type === 'media') {
+    if (route.isEmbed) {
+      try { document.body.classList.add('is-embed-mode'); } catch {}
+    }
     let routeType = (route.kind === 'series' || route.kind === 'tv') ? 'series' : (route.kind === 'anime' ? 'anime' : 'movie');
     const routeId = route.id ? String(route.id).trim() : null;
 
