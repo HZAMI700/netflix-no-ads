@@ -6276,7 +6276,9 @@ if (pRetry) {
  * 4. Window Focus Guardian: Instantly detects focus loss/blur caused by popunders
  *    and snaps focus right back to the player while re-arming the shield.
  */
-const _nativeWindowOpen = window.open;
+let _nativeWindowOpen = null;
+try { _nativeWindowOpen = (typeof window !== 'undefined' && window.open) ? window.open.bind(window) : null; } catch {}
+try {
 window.open = function(url, target, features) {
   const urlStr = String(url || '');
   if (
@@ -6289,15 +6291,18 @@ window.open = function(url, target, features) {
     urlStr.includes('t.me/blackroner') ||
     urlStr.includes('telegram.me/blackroner')
   ) {
-    return _nativeWindowOpen.call(window, url, target, features);
+    if (_nativeWindowOpen) return _nativeWindowOpen(url, target, features);
+    return null;
   }
   if (urlStr.includes('t.me') || urlStr.includes('telegram.me') || urlStr.includes('NOWHDTVUPDATE')) {
     console.log('[Telegram] Redirecting unauthorized Telegram link to https://t.me/blackroner');
-    return _nativeWindowOpen.call(window, 'https://t.me/blackroner', target || '_blank', features || 'noopener,noreferrer');
+    if (_nativeWindowOpen) return _nativeWindowOpen('https://t.me/blackroner', target || '_blank', features || 'noopener,noreferrer');
+    return null;
   }
   console.warn('[AdBlock] Blocked unauthorized window.open popup attempt:', url);
   return null;
 };
+} catch {}
 try { Window.prototype.open = window.open; } catch {}
 try { window.open = window.open; } catch {}
 try { self.open = window.open; } catch {}

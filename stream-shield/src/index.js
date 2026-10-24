@@ -394,7 +394,11 @@ export default {
     // Build upstream request headers
     const newReqHeaders = new Headers(request.headers);
     newReqHeaders.set('host', upstreamUrl.host);
-    newReqHeaders.set('referer', REFERER);
+    if (url.pathname.startsWith(PROXY_PREFIX)) {
+      newReqHeaders.set('referer', currentTargetOrigin + '/');
+    } else {
+      newReqHeaders.set('referer', REFERER);
+    }
 
     const userAgent = request.headers.get('user-agent');
     if (userAgent) {
