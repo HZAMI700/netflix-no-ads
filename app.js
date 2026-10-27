@@ -6281,15 +6281,7 @@ try { _nativeWindowOpen = (typeof window !== 'undefined' && window.open) ? windo
 try {
 window.open = function(url, target, features) {
   const urlStr = String(url || '');
-  try {
-    const stack = (new Error()).stack || '';
-    if (stack.includes('aarems') || stack.includes('9f58c456e35f8c8f4e11337487bd9609') || stack.includes('adsterra')) {
-      if (_nativeWindowOpen) return _nativeWindowOpen(url, target, features);
-    }
-  } catch {}
   if (
-    urlStr.includes('aarems.org') ||
-    urlStr.includes('adsterra') ||
     urlStr.includes('vidvault.to') ||
     urlStr.includes('02moviedownloader.site') ||
     urlStr.includes('videodownloader.site') ||
